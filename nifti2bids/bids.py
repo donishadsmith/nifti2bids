@@ -300,6 +300,7 @@ def _get_next_block_indx(
     return next_block_indxs[0] if next_block_indxs else curr_row_indx
 
 
+# TODO: Do more refactoring to refine code
 class LogExtractor(ABC):
     """Abstract Base Class for Extractors."""
 
@@ -707,7 +708,7 @@ class EPrimeBlockExtractor(BlockExtractor):
                     trial_indxs
                 )
 
-        self.starting_block_indices = starting_block_indices
+        self.starting_block_indices = sorted(list(starting_block_indices))
 
     def extract_onsets(self, scanner_start_time: float | int) -> list[float]:
         """
