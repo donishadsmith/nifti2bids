@@ -13,7 +13,7 @@ PRESENTATION_COLUMNS = [
     "Pair Index",
 ]
 
-BLOCK_DATA = [
+BLOCK_PRESENTATION_DATA = [
     [
         "Trial",
         "Event Type",
@@ -300,7 +300,7 @@ BLOCK_DATA = [
     ],
 ]
 
-EVENT_DATA = [
+EVENT_PRESENTATION_DATA = [
     [
         "Trial",
         "Event Type",
@@ -388,7 +388,7 @@ EVENT_DATA = [
     [
         "4",
         "Picture",
-        "neutralleft",
+        "congruentleft",
         "203586",
         "0",
         "1",
@@ -441,4 +441,28 @@ EVENT_DATA = [
         "nan",
         "nan",
     ],
+]
+
+EPRIME_DATA = [
+    [
+        "STRING",
+        "STRING",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "STRING",
+    ],
+    [
+        "ExperimentName",
+        "Subject",
+        "Data.OnsetTime",
+        "Data.RT",
+        "Data.ACC",
+        "Procedure",
+    ],
+    ["ThisExperiment", "1", "10000", "1000", "1", "A"],
+    ["ThisExperiment", "1", "20000", "1000", "0", "A"],
+    ["ThisExperiment", "1", "30000", "1000", "1", "B"],
+    ["ThisExperiment", "1", "40000", "1000", "1", "B"],
+    ["ThisExperiment", "1", "50000", "1000", "nan", "Rest"],
 ]

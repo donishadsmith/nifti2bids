@@ -7,9 +7,12 @@ from nifti2bids.bids import (
     create_participant_tsv,
     create_dataset_description,
     save_dataset_description,
-    presentation_log_to_bids,
+    PresentationBlockExtractor,
+    PresentationEventExtractor,
+    EPrimeBlockExtractor,
+    EPrimeEventExtractor,
 )
-from ._constants import BLOCK_DATA, EVENT_DATA
+from ._constants import BLOCK_PRESENTATION_DATA, EVENT_PRESENTATION_DATA, EPRIME_DATA
 
 
 @pytest.mark.parametrize("dst_dir, remove_src_file", ([None, True], [True, False]))
@@ -77,7 +80,7 @@ def test_create_participant_tsv(tmp_dir):
 
 def _create_presentation_logfile(dst_dir, design):
     dst_dir = Path(dst_dir)
-    data = BLOCK_DATA if design == "block" else EVENT_DATA
+    data = BLOCK_PRESENTATION_DATA if design == "block" else EVENT_PRESENTATION_DATA
 
     filename = dst_dir / f"{design}.txt"
     with open(filename, mode="w") as file:
@@ -85,47 +88,159 @@ def _create_presentation_logfile(dst_dir, design):
             file.write("\t".join(line) + "\n")
 
 
-@pytest.mark.parametrize("experimental_design", ("block", "event"))
-def test_presentation_log_to_bids(tmp_dir, experimental_design):
-    """Test for ``presentation_log_to_bids``."""
+def test_PresentationBlockExtractor(tmp_dir):
+    """Test for ``PresentationBlockExtractor``."""
     from pandas.testing import assert_frame_equal
 
-    filename = Path(tmp_dir.name) / f"{experimental_design}.txt"
-    _create_presentation_logfile(tmp_dir.name, experimental_design)
+    filename = Path(tmp_dir.name) / "block.txt"
+    _create_presentation_logfile(tmp_dir.name, "block")
 
-    if experimental_design == "block":
-        expected_df = pd.DataFrame(
-            {
-                "onset": [1.0, 35.0],
-                "duration": [14.0, 14.0],
-                "trial_type": ["indoor", "indoor"],
-            }
-        )
-        kwargs = {
-            "presentation_log_or_df": filename,
-            "trial_types": ["indoor"],
-            "experimental_design": "block",
-            "rest_block_code": "rest",
-            "convert_to_seconds": ["Time"],
+    expected_df = pd.DataFrame(
+        {
+            "onset": [1.0, 35.0],
+            "duration": [14.0, 14.0],
+            "trial_type": ["indoor", "indoor"],
         }
-    else:
-        expected_df = pd.DataFrame(
-            {
-                "onset": [7.9107, 10.8965],
-                "duration": [0.7058, 0.6720],
-                "trial_type": ["incongruentright", "neutralleft"],
-            }
-        )
-        kwargs = {
-            "presentation_log_or_df": filename,
-            "trial_types": ["incongruent", "neutral"],
-            "experimental_design": "event",
-            "convert_to_seconds": ["Time"],
-        }
+    )
 
-    df = presentation_log_to_bids(**kwargs)
+    extractor = PresentationBlockExtractor(
+        log_or_df=filename, trial_types=["indoor"], convert_to_seconds=["Time"]
+    )
+
+    onsets = extractor.extract_onsets()
+    durations = extractor.extract_durations(rest_block_code="rest")
+    trial_types = extractor.extract_trial_types()
+
+    df = pd.DataFrame(
+        {"onset": onsets, "duration": durations, "trial_type": trial_types}
+    )
     assert_frame_equal(df, expected_df)
 
-    if experimental_design == "event":
-        expected_df["response"] = ["hit", "hit"]
-        df = presentation_log_to_bids(**kwargs, include_response=True)
+
+def test_PresentationEventExtractor(tmp_dir):
+    """Test for ``PresentationEventExtractor``."""
+    from pandas.testing import assert_frame_equal
+
+    filename = Path(tmp_dir.name) / "event.txt"
+    _create_presentation_logfile(tmp_dir.name, "event")
+
+    expected_df = pd.DataFrame(
+        {
+            "onset": [7.9107, 10.8965],
+            "duration": [0.7058, 0.6720],
+            "trial_type": ["incongruentright", "congruentleft"],
+            "response": ["hit", "hit"],
+        }
+    )
+
+    extractor = PresentationEventExtractor(
+        log_or_df=filename,
+        trial_types=["incongruentright", "congruentleft"],
+        convert_to_seconds=["Time"],
+    )
+
+    onsets = extractor.extract_onsets()
+    durations = extractor.extract_durations()
+    trial_types = extractor.extract_trial_types()
+    responses = extractor.extract_responses()
+
+    df = pd.DataFrame(
+        {
+            "onset": onsets,
+            "duration": durations,
+            "trial_type": trial_types,
+            "response": responses,
+        }
+    )
+    assert_frame_equal(df, expected_df)
+
+
+def _create_eprime_logfile(dst_dir, design):
+    dst_dir = Path(dst_dir)
+
+    filename = dst_dir / f"{design}.txt"
+    with open(filename, mode="w") as file:
+        for line in EPRIME_DATA:
+            file.write("\t".join(line) + "\n")
+
+
+def test_EPrimeBlockExtractor(tmp_dir):
+    """Test for ``EPrimeBlockExtractor``."""
+    from pandas.testing import assert_frame_equal
+
+    filename = Path(tmp_dir.name) / "block.txt"
+
+    _create_eprime_logfile(tmp_dir.name, "block")
+
+    expected_df = pd.DataFrame(
+        {
+            "onset": [10.0, 30.0, 50.0],
+            "duration": [20.0, 20.0, 0],
+            "trial_type": ["A", "B", "Rest"],
+        }
+    )
+
+    extractor = EPrimeBlockExtractor(
+        log_or_df=filename,
+        trial_types=["A", "B", "Rest"],
+        onset_column_name="Data.OnsetTime",
+        procedure_column_name="Procedure",
+        convert_to_seconds=["Data.OnsetTime"],
+    )
+
+    onsets = extractor.extract_onsets(scanner_start_time=0)
+    durations = extractor.extract_durations()
+    trial_types = extractor.extract_trial_types()
+
+    df = pd.DataFrame(
+        {"onset": onsets, "duration": durations, "trial_type": trial_types}
+    )
+    assert_frame_equal(df, expected_df)
+
+
+def test_EPrimeEventExtractor(tmp_dir):
+    """Test for ``EPrimeEventExtractor``."""
+    from pandas.testing import assert_frame_equal
+
+    filename = Path(tmp_dir.name) / "event.txt"
+
+    _create_eprime_logfile(tmp_dir.name, "event")
+
+    expected_df = pd.DataFrame(
+        {
+            "onset": [10.0, 20.0, 30.0, 40.0, 50.0],
+            "duration": [1.0, 1.0, 1.0, 1.0, 1.0],
+            "trial_type": ["A", "A", "B", "B", "Rest"],
+            "responses": [
+                "correct",
+                "incorrect",
+                "correct",
+                "correct",
+                "nan",
+            ],
+        }
+    )
+
+    extractor = EPrimeEventExtractor(
+        log_or_df=filename,
+        trial_types=["A", "B", "Rest"],
+        procedure_column_name="Procedure",
+        convert_to_seconds=["Data.OnsetTime", "Data.RT"],
+    )
+
+    onsets = extractor.extract_onsets(
+        onset_column_name="Data.OnsetTime", scanner_start_time=0
+    )
+    durations = extractor.extract_durations(duration_column_name="Data.RT")
+    trial_types = extractor.extract_trial_types()
+    responses = extractor.extract_responses(accuracy_column_name="Data.ACC")
+
+    df = pd.DataFrame(
+        {
+            "onset": onsets,
+            "duration": durations,
+            "trial_type": trial_types,
+            "responses": responses,
+        }
+    )
+    assert_frame_equal(df, expected_df)

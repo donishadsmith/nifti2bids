@@ -16,7 +16,16 @@ Module for initializing and creating BIDs compliant files.
    create_dataset_description
    save_dataset_description
    create_participant_tsv
-   presentation_log_to_bids
+
+.. autosummary::
+   :template: class.rst
+   :nosignatures:
+   :toctree: generated/
+
+   PresentationBlockExtractor
+   PresentationEventExtractor
+   EPrimeBlockExtractor
+   EPrimeEventExtractor
 
 :mod:`nifti2bids.logging`
 -------------------------

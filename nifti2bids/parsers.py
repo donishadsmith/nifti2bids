@@ -12,7 +12,7 @@ def _determine_delimiter(
 ) -> str:
     """
     Identify the delimiter used for the data based on the
-    delimiter used for the inital column headers.
+    delimiter used for the initial column header.
 
     Parameters
     ----------
@@ -76,10 +76,15 @@ def _convert_time(
 
 
 def convert_edat3_to_tsv(
-    edat_path: str | Path, dst_path: Optional[str | Path] = None
-) -> None:
+    edat_path: str | Path,
+    dst_path: Optional[str | Path] = None,
+    return_dst_path: bool = False,
+) -> str | None:
     """
     Converts a file with an "edat3" extension to a TSV file.
+
+    .. warning::
+       - Program is opened and closed rapidly, which results in white flashes.
 
     .. important::
        - Only works with Windows platforms with Eprime 3 installed.
@@ -90,6 +95,14 @@ def convert_edat3_to_tsv(
     dst_path: :obj:`str` or :obj:`Path`, default=None
         Absolute path to the output TSV file that the edat3 file will be converted to.
         If None, the TSV file will be saved in the same folder as the edat3 file.
+
+    return_dst_path: :obj:`bool`, default=False
+        Returns the destination path if True.
+
+    Returns
+    -------
+    str or None
+        Returns the destination path if ``return_dst_path`` is True.
     """
     assert (
         Path(edat_path).suffix == ".edat3"
@@ -112,12 +125,13 @@ def convert_edat3_to_tsv(
 
     Path(tmpfile.name).unlink()
 
+    return dst_path if return_dst_path else None
+
 
 def load_eprime_log(
     log_filepath: str | Path,
     convert_to_seconds: list[str] = None,
-    drop_columns: list[str] = None,
-    initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+    initial_column_headers: str = ("ExperimentName", "Subject"),
 ) -> pd.DataFrame:
     """
     Loads EPrime 3 log file as a Pandas Dataframe.
@@ -135,11 +149,11 @@ def load_eprime_log(
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from milliseconds to seconds.
 
-    drop_columns: :obj:`list[str]` or :obj:`None`, default=None
-        Remove specified columns from dataframe.
-
     initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data.
+
+    drop_columns: :obj:`list[str]` or :obj:`None`, default=None
+        Remove specified columns from dataframe.
 
     Returns
     -------
@@ -149,7 +163,6 @@ def load_eprime_log(
     assert (
         not Path(log_filepath).suffix == ".edat3"
     ), "`log_filepath` cannot be a file with the '.edat3' extension."
-
     with open(log_filepath, "r") as f:
         initial_column_headers = tuple(initial_column_headers)
         textlines = f.readlines()
@@ -162,12 +175,6 @@ def load_eprime_log(
 
         text = "".join(cleaned_textlines[start_indx:])
         df = pd.read_csv(io.StringIO(text, newline=None), sep=delimiter)
-
-        if drop_columns:
-            drop_columns = (
-                [drop_columns] if isinstance(drop_columns, str) else drop_columns
-            )
-            df = df.drop(drop_columns, axis=1)
 
     return (
         df
@@ -192,7 +199,7 @@ def load_presentation_log(
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
-    initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
+    initial_column_headers: :obj:`str`, default=("Trial", "Event Tupe")
         The initial column headers for data.
 
     Returns

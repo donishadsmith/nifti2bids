@@ -1,14 +1,16 @@
 """Module for creating BIDS compliant files."""
 
 import json
+import itertools
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Literal, Optional
 
 import pandas as pd
-import numpy as np
 
+from nifti2bids._helpers import list_to_str
 from nifti2bids.io import _copy_file, glob_contents
-from nifti2bids.parsers import load_presentation_log, _convert_time
+from nifti2bids.parsers import load_eprime_log, load_presentation_log, _convert_time
 
 
 def create_bids_file(
@@ -195,119 +197,769 @@ def create_participant_tsv(
     return df if return_df else None
 
 
-def presentation_log_to_bids(
-    presentation_log_or_df: str | Path | pd.DataFrame,
-    convert_to_seconds: Optional[list[str]],
-    trial_types: Optional[list[str]],
-    experimental_design: Literal["block", "event"],
-    rest_block_code: Optional[list[str]] = None,
-    include_response: bool = False,
-    initial_column_headers: tuple[str] = ("Trial", "Event Type"),
-) -> pd.DataFrame:
+def _process_log_or_df(
+    log_or_df: str | Path | pd.DataFrame,
+    convert_to_seconds: list[str] | None,
+    initial_column_headers: tuple[str],
+    divisor: float | int,
+    software: Literal["Presentation", "E-Prime"],
+):
     """
-    Creates BIDs compliant events dataframe from Presentation log or dataframe.
+    Processes the event log from a neurobehavioral software.
 
     Parameters
     ----------
-    presentation_log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
-        The presentation log as a file path or the presentation DataFrame
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+        The log or DataFrame of event informaiton from a neurobehavioral software.
+
+    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+        Convert the time resolution of the specified columns.
+
+    initial_column_headers: :obj:`tuple[str]`
+        The initial column headers for data. Only used when
+        ``log_or_df`` is a file path.
+
+    divisor: :obj:`float` or :obj:`int`
+        Value to divide columns specified in ``convert_to_seconds`` by.
+
+    software: :obj:`Literal["Presentation", "EPrime"]
+        The specific neurobehavioral software.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A dataframe of the task information.
+    """
+    loader = {"Presentation": load_presentation_log, "E-Prime": load_eprime_log}
+
+    if not isinstance(log_or_df, pd.DataFrame):
+        df = loader[software](
+            log_or_df,
+            convert_to_seconds=convert_to_seconds,
+            initial_column_headers=tuple(initial_column_headers),
+        )
+    elif convert_to_seconds:
+        df = _convert_time(
+            log_or_df, convert_to_seconds=convert_to_seconds, divisor=divisor
+        )
+    else:
+        df = log_or_df
+
+    return df
+
+
+def _get_next_block_indx(
+    trial_series: pd.Series,
+    curr_row_indx: int,
+    rest_block_code: str,
+    trial_types: tuple[str],
+) -> int:
+    """
+    Get the starting index for each block.
+
+    Parameters
+    ----------
+    trial_series: :obj:`pd.Series`
+        A pandas Series of the column containing the trail type information.
+
+    curr_row_indx: :obj:`int`
+        The current row index.
+
+    rest_block_code: :obj:`str` or :obj:`None`
+        The name of the rest block.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types. Only used when ``rest_block_code``.
+        When used, identifies the indices of all trial types minus
+        the indices corresponding to the current trial type.
+
+        .. important::
+           ``trial_types=("congruent", "incongruent")`` will identify
+           all trial types beginning with "congruent" and "incongruent"
+
+    Returns
+    -------
+    int
+        The starting index of the next block.
+    """
+    curr_trial = trial_series[curr_row_indx]
+    filtered_trial_series = trial_series[curr_row_indx + 1 :]
+    filtered_trial_series = filtered_trial_series.astype(str)
+
+    if rest_block_code:
+        next_block_indxs = filtered_trial_series[
+            filtered_trial_series == rest_block_code
+        ].index.tolist()
+    else:
+        target_block_names = set(tuple(trial_types))
+        target_block_names.discard(curr_trial)
+        next_block_indxs = filtered_trial_series[
+            filtered_trial_series.isin(target_block_names)
+        ].index.tolist()
+
+    return next_block_indxs[0] if next_block_indxs else curr_row_indx
+
+
+class LogExtractor(ABC):
+    """Abstract Base Class for Extractors."""
+
+    @abstractmethod
+    def extract_onsets(self):
+        """Extract onsets."""
+
+    @abstractmethod
+    def extract_durations(self):
+        """Extract durations."""
+
+    @abstractmethod
+    def extract_trial_types(self):
+        """Extract the trial types."""
+
+
+class BlockExtractor(LogExtractor):
+    """Abstract Base Class for Block Extractors."""
+
+
+class EventExtractor(LogExtractor):
+    """Abstract Base Class for Event Extractors."""
+
+    @abstractmethod
+    def extract_responses():
+        """Extract responses for each trial."""
+
+
+class PresentationExtractor:
+    """
+    Base class for Presentation log extractors.
+
+    Provides shared initialization and extraction logic for both block
+    and event design extractors.
+
+    Parameters
+    ----------
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+        The Presentation log as a file path or the Presentation DataFrame
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types (i.e "congruentleft", "seen").
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
         .. note:: Recommend time resolution of the "Time" column to be converted.
 
-    trial_types: :obj:`list[str]` or :obj:`None`
+    initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
+        The initial column headers for data. Only used when
+        ``log_or_df`` is a file path.
+    """
+
+    def __init__(
+        self,
+        log_or_df: str | Path | pd.DataFrame,
+        trial_types: tuple[str],
+        convert_to_seconds: Optional[list[str]] = None,
+        initial_column_headers: tuple[str] = ("Trial", "Event Type"),
+    ):
+
+        df = _process_log_or_df(
+            log_or_df,
+            convert_to_seconds,
+            initial_column_headers,
+            divisor=10000,
+            software="Presentation",
+        )
+        self.trial_types = trial_types
+        scanner_start_index = df.loc[
+            df["Event Type"] == "Pulse", "Time"
+        ].index.tolist()[0]
+        self.scanner_start_time = df.loc[scanner_start_index, "Time"]
+        self.df = df.loc[(scanner_start_index + 1) :, :]
+
+    def _extract_onsets(self) -> list[float]:
+        """Extract onset times for each block or event."""
+        onsets = []
+        for _, row in self.df.iterrows():
+            if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
+                onset = row["Time"] - self.scanner_start_time
+                onsets.append(onset)
+
+        return onsets
+
+    def _extract_trial_types(self) -> list[str]:
+        """Extract trial types for each block or event."""
+        trial_types = []
+        for _, row in self.df.iterrows():
+            if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
+                trial_types.append(row["Code"])
+
+        return trial_types
+
+
+class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
+    """
+    Extract onsets, durations, and trial types from Presentation logs using a block design.
+
+    .. warning::
+       - May not capture all edge cases.
+       - If duration is fixed, it may be best to simply changed all
+         values of "duration" in the events DataFrame to that
+         fixed value.
+
+    Parameters
+    ----------
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+        The Presentation log as a file path or the Presentation DataFrame
+        returned by :code:`nifti2bids.parsers.load_presentation_log`.
+
+    trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
-        If None, the code will identify the trial types.
 
-        .. important::
-        ``trial_types=["congruent", "incongruent"]`` will identify
-        all trial types beginning with "congruent" and "incongruent"
+        .. note::
+           If your block design does not include a rest block or
+           crosshair code, include the code immediately after the
+           final block.
 
-    experiment_design: :obj:`Literal["block", "event"]
-        The experimental design. Options are "block" or "event".
+    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+        Convert the time resolution of the specified columns from 0.1ms to seconds.
 
-        .. important::
-           Duration for "block" is computed as the difference between the
-           start of the block and the start of the interstimulus time.
-           The duration of "event" is computed as the difference between
-           the event stimulus and the response.
-
-    rest_block_code: :obj:`str`, default=None
-        The name of the code for the rest block. Only used
-        when ``experiment_design`` is "block".
-
-    include_response: :obj:`bool`, default=False
-        Includes a response column. Only used when
-        ``experiment_design`` is "event".
+        .. note:: Recommend time resolution of the "Time" column to be converted.
 
     initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
-        ``presentation_log_or_df`` is a file path.
-
-    Returns
-    -------
-    pandas.DataFrame
-        The event dataframe which includes columns specifying the onset, duration,
-        and trial type. If ``include_response`` is True and ``experimental_design``
-        is True then a "response" column is added.
+        ``log_or_df`` is a file path.
     """
-    assert experimental_design in [
-        "event",
-        "block",
-    ], "Valid inputs for ``experimental_design`` are 'event' and 'block'."
-    assert not (
-        experimental_design == "block" and rest_block_code is None
-    ), "``rest_block_code` cannot be None when ``experimental_design`` is 'block'."
 
-    if not isinstance(presentation_log_or_df, pd.DataFrame):
-        presentation_df = load_presentation_log(
-            presentation_log_or_df,
-            convert_to_seconds=convert_to_seconds,
-            initial_column_headers=tuple(initial_column_headers),
-        )
-    elif convert_to_seconds:
-        presentation_df = _convert_time(
-            presentation_df, convert_to_seconds=convert_to_seconds, divisor=10000
-        )
-    else:
-        presentation_df = presentation_log_or_df
+    def extract_onsets(self) -> list[float]:
+        """
+        Extract the onset times for each block.
 
-    if experimental_design == "block":
-        rest_block_indxs = presentation_df[
-            presentation_df["Code"].str.startswith(rest_block_code)
-        ].index.tolist()
-        rest_block_indxs = np.array(rest_block_indxs)
+        Onset is calculated as the difference between the event time and
+        the scanner start time (first pulse).
 
-    # Get the first pulse which corresponds to scanner start time
-    scanner_start = presentation_df.loc[
-        presentation_df["Event Type"] == "Pulse", "Time"
-    ].values[0]
-    events = []
-    for row_indx, row in presentation_df.iterrows():
-        onset = row["Time"] - scanner_start
-        if row["Event Type"] == "Picture" and row["Code"].startswith(
-            tuple(trial_types)
-        ):
-            if experimental_design == "event":
+        Returns
+        -------
+        list[float]
+            A list of onset times for each block.
+        """
+        return self._extract_onsets()
+
+    def extract_durations(self, rest_block_code: Optional[str] = None) -> list[float]:
+        """
+        Extract the duration for each block.
+
+        Duration is computed as the difference between the start of the block
+        and the start of the next block (either a rest block or some task block).
+
+        Parameters
+        ----------
+        rest_block_code: :obj:`str` or :obj:`None`, default=None
+            The name of the code for the rest block. Used when a resting state
+            block is between the events to compute the correct block duration.
+            If None, the block duration will be computed based on the starting
+            index of the trial types given by ``trial_types``.
+
+        Returns
+        -------
+        list[float]
+            A list of durations for each block.
+        """
+        durations = []
+        for row_indx, row in self.df.iterrows():
+            if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
+                block_end_indx = _get_next_block_indx(
+                    trial_series=self.df["Code"],
+                    curr_row_indx=row_indx,
+                    rest_block_code=rest_block_code,
+                    trial_types=self.trial_types,
+                )
+                block_end_row = self.df.loc[block_end_indx, :]
+                durations.append((block_end_row["Time"] - row["Time"]))
+
+        return durations
+
+    def extract_trial_types(self) -> list[str]:
+        """
+        Extract the trial type for each block.
+
+        Returns
+        -------
+        list[str]
+            A list of trial types for each block.
+        """
+        return self._extract_trial_types()
+
+
+class PresentationEventExtractor(PresentationExtractor, EventExtractor):
+    """
+    Extract onsets, durations, and trial types from Presentation logs using an event design.
+
+    .. warning::
+       - May not capture all edge cases.
+       - If duration is fixed, it may be best to simply changed all
+         values of "duration" in the events DataFrame to that
+         fixed value.
+
+    Parameters
+    ----------
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+        The Presentation log as a file path or the Presentation DataFrame
+        returned by :code:`nifti2bids.parsers.load_presentation_log`.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types (i.e "congruentleft", "seen").
+
+        .. note::
+           If your block design does not include a rest block or
+           crosshair code, include the code immediately after the
+           final block.
+
+    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+        Convert the time resolution of the specified columns from 0.1ms to seconds.
+
+        .. note:: Recommend time resolution of the "Time" column to be converted.
+
+    initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
+        The initial column headers for data. Only used when
+        ``log_or_df`` is a file path.
+    """
+
+    def extract_onsets(self) -> list[float]:
+        """
+        Extract the onset times for each event.
+
+        Onset is calculated as the difference between the event time and
+        the scanner start time (first pulse).
+
+        Returns
+        -------
+        list[float]
+            A list of onset times for each event.
+        """
+        return self._extract_onsets()
+
+    def _extract_durations_and_responses(self) -> tuple[list[float], list[str]]:
+        """
+        Extract durations and responses for each event.
+
+        Duration is computed as the difference between the event stimulus
+        and the response. When no response is given, the duration is the
+        difference between the starting time of that trial and the starting
+        time of the subsequent stimuli.
+
+        Returns
+        -------
+        tuple[list[float], list[str]]
+            A tuple containing a list of durations and a list of responses.
+
+        Note
+        ----
+        When no response is given the response will be assigned "nan" and the
+        reaction time is the difference between the starting time of that
+        trial and the starting time of the subsequent stimuli.
+        """
+        durations, responses = [], []
+        for row_indx, row in self.df.iterrows():
+            if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
                 trial_num = row["Trial"]
-                response_row = presentation_df[
-                    (presentation_df["Trial"] == trial_num)
-                    & (presentation_df["Event Type"] == "Response")
+                response_row = self.df[
+                    (self.df["Trial"] == trial_num)
+                    & (self.df["Event Type"] == "Response")
                 ]
-                duration = response_row.iloc[0]["Time"] - row["Time"]
-                response = row["Stim Type"]
-            else:
-                rest_indx = rest_block_indxs[rest_block_indxs > row_indx][0]
-                rest_row = presentation_df.loc[rest_indx, :]
-                duration = rest_row["Time"] - row["Time"]
+                if not response_row.empty:
+                    duration = response_row.iloc[0]["Time"] - row["Time"]
+                    response = row["Stim Type"]
+                else:
+                    duration = self.df.loc[(row_indx + 1), "Time"] - row["Time"]
+                    response = "nan"
 
-            data = {"onset": onset, "duration": duration, "trial_type": row["Code"]}
-            if experimental_design == "event" and include_response:
-                data.update({"response": response})
+                durations.append(duration)
+                responses.append(response)
 
-            events.append(data)
+        return durations, responses
 
-    return pd.DataFrame(events)
+    def extract_durations(self) -> list[float]:
+        """
+        Extract the duration for each event.
+
+        Duration is computed as the difference between the event stimulus
+        and the response. When no response is given, the duration is the
+        difference between the starting time of that trial and the starting
+        time of the subsequent stimuli.
+
+        Returns
+        -------
+        list[float]
+            A list of durations for each event.
+        """
+        durations, _ = self._extract_durations_and_responses()
+
+        return durations
+
+    def extract_trial_types(self) -> list[str]:
+        """
+        Extract the trial type for each event.
+
+        Returns
+        -------
+        list[str]
+            A list of trial types for each event.
+        """
+        return self._extract_trial_types()
+
+    def extract_responses(self) -> list[str]:
+        """
+        Extract the response for each event.
+
+        Returns
+        -------
+        list[str]
+            A list of responses for each event.
+
+        Note
+        ----
+        When no response is given the response will be assigned "nan".
+        """
+        _, responses = self._extract_durations_and_responses()
+
+        return responses
+
+
+class EPrimeBlockExtractor(BlockExtractor):
+    """
+    Extract onsets, durations, and trial types from E-Prime 3 logs using a block design.
+
+    .. warning::
+        - May not capture all edge cases.
+        - If duration is fixed, it may be best to simply changed all
+          values of "duration" in the events DataFrame to that
+          fixed value.
+
+    Parameters
+    ----------
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+        The Eprime log as a file path or the Eprime DataFrame
+        returned by :code:`nifti2bids.parsers.load_eprime_log`.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types (i.e "congruentleft", "seen").
+
+        .. note::
+            Depending on the way your Eprime data is structured, for block
+            design the rest block may have to be included as a "trial_type"
+            to compute the correct duration. These rows can then be dropped
+            from the events DataFrame.
+
+    onset_column_name: :obj:`str`
+        The name of the column containing stimulus onset time.
+
+    procedure_column_name: :obj:`str`
+        The name of the column containing the procedure names.
+
+    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+        Convert the time resolution of the specified columns from milliseconds to seconds.
+
+        .. note::
+           Recommend time resolution of the columns containing the onset time
+           be converted to seconds.
+
+    initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
+        The initial column headers for data. Only used when
+        ``log_or_df`` is a file path.
+    """
+
+    def __init__(
+        self,
+        log_or_df: str | Path | pd.DataFrame,
+        trial_types: tuple[str],
+        onset_column_name: str,
+        procedure_column_name: str,
+        convert_to_seconds: Optional[list[str]] = None,
+        initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+    ):
+
+        self.df = _process_log_or_df(
+            log_or_df,
+            convert_to_seconds,
+            initial_column_headers,
+            divisor=1000,
+            software="E-Prime",
+        )
+        self.trial_types = trial_types
+        self.onset_column_name = onset_column_name
+        self.procedure_column_name = procedure_column_name
+
+        trials_list = self.df[self.procedure_column_name].tolist()
+        # Get the starting index for each block via grouping indices with the same
+        # trial type
+        starting_block_indices = []
+        current_index = 0
+        for _, group in itertools.groupby(trials_list):
+            starting_block_indices.append(current_index)
+            current_index += len(list(group))
+
+        for trial_type in self.df[self.procedure_column_name].unique():
+            if trial_type not in trial_types:
+                trial_indxs = self.df[
+                    self.df[self.procedure_column_name] == trial_type
+                ].index.to_list()
+                starting_block_indices = set(starting_block_indices).difference(
+                    trial_indxs
+                )
+
+        self.starting_block_indices = starting_block_indices
+
+    def extract_onsets(self, scanner_start_time: float | int) -> list[float]:
+        """
+        Extract the onset times for each block.
+
+        Onset is calculated as the difference between the event time and
+        the scanner start time.
+
+        Parameters
+        ----------
+        scanner_start_time: :obj:`float` or :obj:`int`
+            The scanner start time. Used to compute onset relative to
+            the start of the scan.
+
+        Returns
+        -------
+        list[float]
+            A list of onset times for each block.
+        """
+        onsets = []
+        for row_indx, row in self.df.iterrows():
+            if row[self.procedure_column_name] in self.trial_types:
+                if row_indx not in self.starting_block_indices:
+                    continue
+
+                onsets.append((row[self.onset_column_name] - scanner_start_time))
+
+        return onsets
+
+    def extract_durations(self, rest_block_code: Optional[str] = None) -> list[float]:
+        """
+        Extract the duration for each block.
+
+        Duration is computed as the difference between the start of the block
+        and the start of the next block (either a rest block or some task block).
+
+        Parameters
+        ----------
+        rest_block_code: :obj:`str` or :obj:`None`, default=None
+            The name of the code for the rest block. Used when a resting state
+            block is between the events to compute the correct block duration.
+            If None, the block duration will be computed based on the starting
+            index of the trial types given by ``trial_types``.
+
+        Returns
+        -------
+        list[float]
+            A list of durations for each block.
+        """
+        durations = []
+        for row_indx, row in self.df.iterrows():
+            if row_indx not in self.starting_block_indices:
+                continue
+
+            block_end_indx = _get_next_block_indx(
+                trial_series=self.df[self.procedure_column_name],
+                curr_row_indx=row_indx,
+                rest_block_code=rest_block_code,
+                trial_types=self.trial_types,
+            )
+            block_end_row = self.df.loc[block_end_indx, :]
+            duration = (
+                block_end_row[self.onset_column_name] - row[self.onset_column_name]
+            )
+
+            durations.append(duration)
+
+        return durations
+
+    def extract_trial_types(self) -> list[str]:
+        """
+        Extract the trial type for each block.
+
+        Returns
+        -------
+        list[str]
+            A list of trial types for each block.
+        """
+        trial_types = []
+        for row_indx, row in self.df.iterrows():
+            if row_indx not in self.starting_block_indices:
+                continue
+
+            trial_types.append(row[self.procedure_column_name])
+
+        return trial_types
+
+
+class EPrimeEventExtractor(EventExtractor):
+    """
+    Extract onsets, durations, and trial types from E-Prime 3 logs using an event design.
+
+    .. warning::
+        - May not capture all edge cases.
+        - If duration is fixed, it may be best to simply changed all
+          values of "duration" in the events DataFrame to that
+          fixed value.
+
+    Parameters
+    ----------
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+        The Eprime log as a file path or the Eprime DataFrame
+        returned by :code:`nifti2bids.parsers.load_eprime_log`.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types (i.e "congruentleft", "seen").
+
+        .. note::
+            Depending on the way your Eprime data is structured, for block
+            design the rest block may have to be included as a "trial_type"
+            to compute the correct duration. These rows can then be dropped
+            from the events DataFrame.
+
+    procedure_column_name: :obj:`str`
+        The name of the column containing the procedure names.
+
+    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+        Convert the time resolution of the specified columns from milliseconds to seconds.
+
+        .. note::
+           Recommend time resolution of the columns containing the onset time
+           and reaction time be converted to seconds.
+
+    initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
+        The initial column headers for data. Only used when
+        ``log_or_df`` is a file path.
+    """
+
+    def __init__(
+        self,
+        log_or_df: str | Path | pd.DataFrame,
+        trial_types: tuple[str],
+        procedure_column_name: str,
+        convert_to_seconds: Optional[list[str]] = None,
+        initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+    ):
+
+        self.df = _process_log_or_df(
+            log_or_df,
+            convert_to_seconds,
+            initial_column_headers,
+            divisor=1000,
+            software="E-Prime",
+        )
+        self.trial_types = trial_types
+        self.procedure_column_name = procedure_column_name
+
+    def extract_onsets(
+        self,
+        scanner_start_time: float | int,
+        onset_column_name: str,
+    ) -> list[float]:
+        """
+        Extract the onset times for each event.
+
+        Onset is calculated as the difference between the event time and
+        the scanner start time.
+
+        Parameters
+        ----------
+        scanner_start_time: :obj:`float` or :obj:`int`
+            The scanner start time. Used to compute onset relative to
+            the start of the scan.
+
+        onset_column_name: :obj:`str`
+            The name of the column containing stimulus onset time.
+
+        Returns
+        -------
+        list[float]
+            A list of onset times for each event.
+        """
+        onsets = []
+        for _, row in self.df.iterrows():
+            if row[self.procedure_column_name] in self.trial_types:
+                onsets.append((row[onset_column_name] - scanner_start_time))
+
+        return onsets
+
+    def extract_durations(self, duration_column_name: str) -> list[float]:
+        """
+        Extract the duration for each event.
+
+        Duration is typically the reaction time for event-related designs.
+
+        Parameters
+        ----------
+        duration_column_name: :obj:`str`
+            The name of the column containing the duration or reaction time.
+
+        Returns
+        -------
+        list[float]
+            A list of durations for each event.
+        """
+        durations = []
+        for _, row in self.df.iterrows():
+            if row[self.procedure_column_name] in self.trial_types:
+                durations.append(row[duration_column_name])
+
+        return durations
+
+    def extract_trial_types(self) -> list[str]:
+        """
+        Extract the trial type for each event.
+
+        Returns
+        -------
+        list[str]
+            A list of trial types for each event.
+        """
+        trial_types = []
+        for _, row in self.df.iterrows():
+            if row[self.procedure_column_name] in self.trial_types:
+                trial_types.append(row[self.procedure_column_name])
+
+        return trial_types
+
+    def extract_responses(self, accuracy_column_name: str) -> list[str]:
+        """
+        Extract the response for each event.
+
+        Parameters
+        ----------
+        accuracy_column_name: :obj:`str`
+            The name of the column containing accuracy information.
+            Assumes accuracy is coded as 0 (incorrect) or 1 (correct).
+            Usually the column name ending in ".ACC".
+
+        Returns
+        -------
+        list[str]
+            A list of responses for each event. Values are "correct",
+            "incorrect", or "nan" if no response was given.
+
+        Note
+        ----
+        When no response is given the response will be assigned "nan".
+        """
+        responses = []
+        for _, row in self.df.iterrows():
+            if row[self.procedure_column_name] in self.trial_types:
+                try:
+                    response_val = int(row[accuracy_column_name])
+                except:
+                    response_val = "nan"
+
+                if response_val != "nan":
+                    response = {"0": "incorrect", "1": "correct"}.get(str(response_val))
+                else:
+                    response = "nan"
+
+                responses.append(response)
+
+        return responses

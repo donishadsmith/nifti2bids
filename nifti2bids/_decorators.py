@@ -55,6 +55,21 @@ def check_all_none(parameter_names: list[str]) -> Callable:
 
 
 def check_nifti(nifti_param_name: Optional[str] = None) -> Callable:
+    """
+    Checks if input NIfTI has qform or sform codes set to scanner.
+
+    Parameters
+    ----------
+    nifti_param_name: :obj:`list[str]`
+        Name of the NIfTI parameter. If None, assumes the
+        NIfTI parameter is "nifti_file_or_img".
+
+    Returns
+    -------
+    Callable
+        Decorator function wrapping target function.
+    """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:

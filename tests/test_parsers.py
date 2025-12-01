@@ -4,7 +4,7 @@ import pytest
 
 from nifti2bids.parsers import load_presentation_log, load_eprime_log
 
-from ._constants import PRESENTATION_COLUMNS
+from ._constants import PRESENTATION_COLUMNS, EPRIME_DATA
 
 
 @pytest.fixture(autouse=False, scope="function")
@@ -33,38 +33,14 @@ def create_presentation_logfile(tmp_dir):
 
 @pytest.fixture(autouse=False, scope="function")
 def create_eprime_logfile(tmp_dir):
-    """Temp Eprime function to eventually create better representation"""
-    sample_log = [
-        "INTEGER\n",
-        "\n",
-        "ExperimentName\tSubject\tCode\tTime\tTTime\tUncertainty\tDuration\tUncertainty\tReqTime\tReqDur\tStim Type\tPair Index\n",
-        "\n",
-        "1\tPicture\tcrosshairF\t151281\t151235\t1\t78633\t1\t0\t79789\tother\t1\n",
-        "1\tPort Input\t54\t151495\t''\t2\n",
-        "\n",
-        "Picture\t53\t150385\tNULL\t2\n",
-    ]
     dst_path = Path(tmp_dir.name) / "sample_log.txt"
     with open(dst_path, "w") as f:
-        for line in sample_log:
-            f.writelines(line)
+        for line in EPRIME_DATA:
+            f.writelines("\t".join(line) + "\n")
 
     yield dst_path
 
     dst_path.unlink()
-
-
-def test_load_presentation_log(create_logfile):
-    """Test for ``load_presentation_log`` function."""
-    src_file = create_logfile
-    df = load_presentation_log(src_file)
-    assert len(df) == 2
-    assert all(col in PRESENTATION_COLUMNS for col in df.columns)
-    assert df["Event Type"].values.tolist() == ["Picture", "Port Input"]
-    assert df.loc[0, "Time"] == 151281
-
-    df = load_presentation_log(src_file, convert_to_seconds=["Time"])
-    assert df.loc[0, "Time"] == 15.1281
 
 
 def test_load_presentation_log(create_presentation_logfile):
@@ -84,11 +60,8 @@ def test_load_eprime_log(create_eprime_logfile):
     """Test for ``load_eprime_log`` function."""
     src_file = create_eprime_logfile
     df = load_eprime_log(src_file)
-    assert len(df) == 3
-    assert df.loc[0, "Time"] == 151281
+    assert len(df) == 5
+    assert df.loc[0, "Data.OnsetTime"] == 10000
 
-    df = load_eprime_log(src_file, convert_to_seconds=["Time"])
-    assert df.loc[0, "Time"] == 151.281
-
-    df = load_eprime_log(src_file, drop_columns=["Time"])
-    assert not "Time" in df.columns
+    df = load_eprime_log(src_file, convert_to_seconds=["Data.OnsetTime"])
+    assert df.loc[0, "Data.OnsetTime"] == 10.0

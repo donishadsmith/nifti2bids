@@ -2,6 +2,13 @@
 
 Documentation of changes for each version of ``Nifti2Bids``.
 
+**Currently doesn't follow semantic versioning.**
+
+## [0.2.10] - 2025-12-01
+- Add new classes and functions for getting
+onsets, durations, trial types and responses from
+EPrime and Presentation logs.
+
 ## [0.2.9] - 2025-11-28
 - Change `get_date_from_filename` to `parse_date_from_path`
 
