@@ -435,6 +435,11 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         The Presentation log as a file path or the Presentation DataFrame
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
 
+        .. important::
+           If a text file, assumes that first column contains digits for
+           proper parsing.
+
+
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
@@ -551,6 +556,10 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
         The Presentation log as a file path or the Presentation DataFrame
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
+
+        .. important::
+           If a text file, assumes that first column contains digits for
+           proper parsing.
 
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
