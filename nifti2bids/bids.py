@@ -348,6 +348,9 @@ class PresentationExtractor:
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
+    trial_column_name: :obj:`str`, default="Code"
+        Name of the column containing the trial types.
+
     use_first_pulse: :obj:`bool`, default=True
         Uses the timing of the first pulse as the start time for the scanner,
         which is used to compute the onset times of the trials relative
@@ -356,6 +359,10 @@ class PresentationExtractor:
         .. note::
            If set to False, a scanner start time can be supplied to
            ``self.extract_onsets``.
+
+        .. important::
+           If not using this option, it is advised to clip the dataframe so that
+           trials before the scanner onset are not included.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
@@ -371,6 +378,7 @@ class PresentationExtractor:
         self,
         log_or_df: str | Path | pd.DataFrame,
         trial_types: tuple[str],
+        trial_column_name: str = "Code",
         use_first_pulse: bool = True,
         convert_to_seconds: Optional[list[str]] = None,
         initial_column_headers: tuple[str] = ("Trial", "Event Type"),
@@ -384,6 +392,7 @@ class PresentationExtractor:
             software="Presentation",
         )
         self.trial_types = trial_types
+        self.trial_column_name = trial_column_name
 
         if use_first_pulse:
             scanner_start_index = df.loc[
@@ -407,7 +416,10 @@ class PresentationExtractor:
 
         onsets = []
         for _, row in self.df.iterrows():
-            if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
+            if (
+                row["Event Type"] == "Picture"
+                and row[self.trial_column_name] in self.trial_types
+            ):
                 onset = row["Time"] - self.scanner_start_time
                 onsets.append(onset)
 
@@ -417,8 +429,11 @@ class PresentationExtractor:
         """Extract trial types for each block or event."""
         trial_types = []
         for _, row in self.df.iterrows():
-            if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
-                trial_types.append(row["Code"])
+            if (
+                row["Event Type"] == "Picture"
+                and row[self.trial_column_name] in self.trial_types
+            ):
+                trial_types.append(row[self.trial_column_name])
 
         return trial_types
 
@@ -451,6 +466,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
            crosshair code, include the code immediately after the
            final block.
 
+    trial_column_name: :obj:`str`, default="Code"
+        Name of the column containing the trial types.
+
     use_first_pulse: :obj:`bool`, default=True
         Uses the timing of the first pulse as the start time for the scanner,
         which is used to compute the onset times of the trials relative
@@ -459,6 +477,10 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         .. note::
            If set to False, a scanner start time can be supplied to
            ``self.extract_onsets``.
+
+        .. important::
+           If not using this option, it is advised to clip the dataframe so that
+           trials before the scanner onset are not included.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
@@ -520,9 +542,12 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         """
         durations = []
         for row_indx, row in self.df.iterrows():
-            if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
+            if (
+                row["Event Type"] == "Picture"
+                and row[self.trial_column_name] in self.trial_types
+            ):
                 block_end_indx = _get_next_block_indx(
-                    trial_series=self.df["Code"],
+                    trial_series=self.df[self.trial_column_name],
                     curr_row_indx=row_indx,
                     rest_block_code=rest_block_code,
                     trial_types=self.trial_types,
@@ -572,6 +597,9 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
            crosshair code, include the code immediately after the
            final block.
 
+    trial_column_name: :obj:`str`, default="Code"
+        Name of the column containing the trial types.
+
     use_first_pulse: :obj:`bool`, default=True
         Uses the timing of the first pulse as the start time for the scanner,
         which is used to compute the onset times of the trials relative
@@ -580,6 +608,10 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         .. note::
            If set to False, a scanner start time can be supplied to
            ``self.extract_onsets``.
+
+        .. important::
+           If not using this option, it is advised to clip the dataframe so that
+           trials before the scanner onset are not included.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
@@ -641,7 +673,10 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         """
         durations, responses = [], []
         for row_indx, row in self.df.iterrows():
-            if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
+            if (
+                row["Event Type"] == "Picture"
+                and row[self.trial_column_name] in self.trial_types
+            ):
                 trial_num = row["Trial"]
                 response_row = self.df[
                     (self.df["Trial"] == trial_num)

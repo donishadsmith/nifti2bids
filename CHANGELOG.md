@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.3.3] - 2025-12-03
+- Add new trial column parameter to Presentation classes
+
 ## [0.3.2] - 2025-12-03
 - More flexibility for log parsing
 
