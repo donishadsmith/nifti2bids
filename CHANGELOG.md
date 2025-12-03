@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.3.0] - 2025-12-02
+- Add new parameters to the Presentation Extractor classes
+
 ## [0.2.11] - 2025-12-01
 - Ensure starting block indices are sorted for EPrimeBlockExtractor
 

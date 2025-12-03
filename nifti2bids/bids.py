@@ -345,6 +345,15 @@ class PresentationExtractor:
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
+    use_first_pulse: :obj:`bool`, default=True
+        Uses the timing of the first pulse as the start time for the scanner,
+        which is used to compute the onset times of the trials relative
+        to the scanner start time.
+
+        .. note::
+           If set to False, a scanner start time can be supplied to
+           ``self.extract_onsets``.
+
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
@@ -359,6 +368,7 @@ class PresentationExtractor:
         self,
         log_or_df: str | Path | pd.DataFrame,
         trial_types: tuple[str],
+        use_first_pulse: bool = True,
         convert_to_seconds: Optional[list[str]] = None,
         initial_column_headers: tuple[str] = ("Trial", "Event Type"),
     ):
@@ -371,14 +381,27 @@ class PresentationExtractor:
             software="Presentation",
         )
         self.trial_types = trial_types
-        scanner_start_index = df.loc[
-            df["Event Type"] == "Pulse", "Time"
-        ].index.tolist()[0]
-        self.scanner_start_time = df.loc[scanner_start_index, "Time"]
-        self.df = df.loc[(scanner_start_index + 1) :, :]
 
-    def _extract_onsets(self) -> list[float]:
+        if use_first_pulse:
+            scanner_start_index = df.loc[
+                df["Event Type"] == "Pulse", "Time"
+            ].index.tolist()[0]
+            self.scanner_start_time = df.loc[scanner_start_index, "Time"]
+            self.df = df.loc[(scanner_start_index + 1) :, :]
+        else:
+            self.scanner_start_time = None
+            self.df = df
+
+    def _extract_onsets(
+        self, scanner_start_time: Optional[float | int] = None
+    ) -> list[float]:
         """Extract onset times for each block or event."""
+        if scanner_start_time:
+            self.scanner_start_time = scanner_start_time
+
+        if not self.scanner_start_time:
+            raise ValueError("A value for `scanner_start_time` needs to be given.")
+
         onsets = []
         for _, row in self.df.iterrows():
             if row["Event Type"] == "Picture" and row["Code"] in self.trial_types:
@@ -421,6 +444,15 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
            crosshair code, include the code immediately after the
            final block.
 
+    use_first_pulse: :obj:`bool`, default=True
+        Uses the timing of the first pulse as the start time for the scanner,
+        which is used to compute the onset times of the trials relative
+        to the scanner start time.
+
+        .. note::
+           If set to False, a scanner start time can be supplied to
+           ``self.extract_onsets``.
+
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
@@ -431,19 +463,31 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         ``log_or_df`` is a file path.
     """
 
-    def extract_onsets(self) -> list[float]:
+    def extract_onsets(self, scanner_start_time: Optional[float | int]) -> list[float]:
         """
-        Extract the onset times for each block.
+        Extract the onset times for each event.
 
         Onset is calculated as the difference between the event time and
-        the scanner start time (first pulse).
+        the scanner start time (e.g. first pulse).
+
+        Parameters
+        ----------
+        scanner_start_time: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+            The start time for the scanner.
+
+            .. important::
+               If ``use_first_pulse`` is set to True during class initialization, then
+               the ``self.scanner_start_time`` is set to the first detected pulse in the log
+               data and this value can remain as None. If this value needs to be
+               overriden, then the value supplied to ``scanner_start_time`` can be
+               set.
 
         Returns
         -------
         list[float]
             A list of onset times for each block.
         """
-        return self._extract_onsets()
+        return self._extract_onsets(scanner_start_time=scanner_start_time)
 
     def extract_durations(self, rest_block_code: Optional[str] = None) -> list[float]:
         """
@@ -515,6 +559,15 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
            crosshair code, include the code immediately after the
            final block.
 
+    use_first_pulse: :obj:`bool`, default=True
+        Uses the timing of the first pulse as the start time for the scanner,
+        which is used to compute the onset times of the trials relative
+        to the scanner start time.
+
+        .. note::
+           If set to False, a scanner start time can be supplied to
+           ``self.extract_onsets``.
+
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
@@ -525,19 +578,31 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         ``log_or_df`` is a file path.
     """
 
-    def extract_onsets(self) -> list[float]:
+    def extract_onsets(self, scanner_start_time: Optional[float | int]) -> list[float]:
         """
         Extract the onset times for each event.
 
         Onset is calculated as the difference between the event time and
-        the scanner start time (first pulse).
+        the scanner start time (e.g. first pulse).
+
+        Parameters
+        ----------
+        scanner_start_time: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+            The start time for the scanner.
+
+            .. important::
+               If ``use_first_pulse`` is set to True during class initialization, then
+               the ``self.scanner_start_time`` is set to the first detected pulse in the log
+               data and this value can remain as None. If this value needs to be
+               overriden, then the value supplied to ``scanner_start_time`` can be
+               set.
 
         Returns
         -------
         list[float]
             A list of onset times for each event.
         """
-        return self._extract_onsets()
+        return self._extract_onsets(scanner_start_time=scanner_start_time)
 
     def _extract_durations_and_responses(self) -> tuple[list[float], list[str]]:
         """

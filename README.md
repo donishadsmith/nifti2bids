@@ -10,7 +10,7 @@
 [![Documentation Status](https://readthedocs.org/projects/nifti2bids/badge/?version=stable)](http://nifti2bids.readthedocs.io/en/stable/?badge=stable)
 
 
-A toolkit for post hoc BIDS-ification unstructured NIfTI datasets. Includes utilities for metadata extraction, file renaming, and JSON sidecar generation, designed primarily for datasets where the original DICOMs are unavailable.
+A toolkit for post hoc BIDS-ification unstructured NIfTI datasets. Includes utilities for metadata extraction, file renaming, neurobehavioral log parsing (for E-Prime and Presentation), and JSON sidecar generation, designed primarily for datasets where the original DICOMs are unavailable.
 
 ## Installation
 To install ``nifti2bids`` use one of the following methods:

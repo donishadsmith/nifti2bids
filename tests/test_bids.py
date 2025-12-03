@@ -88,7 +88,8 @@ def _create_presentation_logfile(dst_dir, design):
             file.write("\t".join(line) + "\n")
 
 
-def test_PresentationBlockExtractor(tmp_dir):
+@pytest.mark.parametrize("scanner_start_time", [None, 10000])
+def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
     """Test for ``PresentationBlockExtractor``."""
     from pandas.testing import assert_frame_equal
 
@@ -107,7 +108,8 @@ def test_PresentationBlockExtractor(tmp_dir):
         log_or_df=filename, trial_types=["indoor"], convert_to_seconds=["Time"]
     )
 
-    onsets = extractor.extract_onsets()
+    scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
+    onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
     durations = extractor.extract_durations(rest_block_code="rest")
     trial_types = extractor.extract_trial_types()
 
@@ -117,7 +119,8 @@ def test_PresentationBlockExtractor(tmp_dir):
     assert_frame_equal(df, expected_df)
 
 
-def test_PresentationEventExtractor(tmp_dir):
+@pytest.mark.parametrize("scanner_start_time", [None, 94621])
+def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
     """Test for ``PresentationEventExtractor``."""
     from pandas.testing import assert_frame_equal
 
@@ -139,7 +142,8 @@ def test_PresentationEventExtractor(tmp_dir):
         convert_to_seconds=["Time"],
     )
 
-    onsets = extractor.extract_onsets()
+    scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
+    onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
     durations = extractor.extract_durations()
     trial_types = extractor.extract_trial_types()
     responses = extractor.extract_responses()
