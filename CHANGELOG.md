@@ -4,6 +4,10 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.3.4] - 2025-12-03
+- Replace use_first_pulse with scanner_trigger_code and scanner_event_code
+- Improve series filtering code
+
 ## [0.3.3] - 2025-12-03
 - Add new trial column parameter to Presentation classes
 

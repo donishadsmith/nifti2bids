@@ -8,8 +8,11 @@ from typing import Literal, Optional
 
 import pandas as pd
 
+from nifti2bids.logging import setup_logger
 from nifti2bids.io import _copy_file, glob_contents
 from nifti2bids.parsers import load_eprime_log, load_presentation_log, _convert_time
+
+LGR = setup_logger(__name__)
 
 
 def create_bids_file(
@@ -281,8 +284,8 @@ def _get_next_block_indx(
     int
         The starting index of the next block.
     """
-    curr_trial = trial_series[curr_row_indx]
-    filtered_trial_series = trial_series[curr_row_indx + 1 :]
+    curr_trial = trial_series.at[curr_row_indx]
+    filtered_trial_series = trial_series[trial_series.index > curr_row_indx]
     filtered_trial_series = filtered_trial_series.astype(str)
 
     if rest_block_code:
@@ -348,6 +351,21 @@ class PresentationExtractor:
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
+    scanner_event_type: :obj:`str`
+        The event type in the "Event Type" column the scanner
+        trigger is listed under (e.g., "Pulse", "Response", "Picture", etc).
+
+    scanner_trigger_code: :obj:`str`
+        Code listed under "Code" for the scanner start (e.g., "54", "99", "trigger).
+        Used with ``scanner_event_type`` to compute the onset
+        times of the trials relative to the scanner start time then
+        clip the dataframe to ensure that no trials
+        before the start of the scanner is initiated.
+
+        .. note::
+           Uses the first index of the rows in the dataframe with values
+           provided for ``scanner_event_type`` and ``scanner_trigger_code``.
+
     trial_column_name: :obj:`str`, default="Code"
         Name of the column containing the trial types.
 
@@ -378,8 +396,9 @@ class PresentationExtractor:
         self,
         log_or_df: str | Path | pd.DataFrame,
         trial_types: tuple[str],
+        scanner_event_type: str,
+        scanner_trigger_code: str,
         trial_column_name: str = "Code",
-        use_first_pulse: bool = True,
         convert_to_seconds: Optional[list[str]] = None,
         initial_column_headers: tuple[str] = ("Trial", "Event Type"),
     ):
@@ -393,14 +412,23 @@ class PresentationExtractor:
         )
         self.trial_types = trial_types
         self.trial_column_name = trial_column_name
+        self.scanner_event_type = scanner_event_type
+        self.scanner_trigger_code = scanner_trigger_code
 
-        if use_first_pulse:
-            scanner_start_index = df.loc[
-                df["Event Type"] == "Pulse", "Time"
-            ].index.tolist()[0]
+        scanner_start_index_list = df.loc[
+            (df["Event Type"] == self.scanner_event_type)
+            & (df["Code"] == self.scanner_trigger_code)
+        ].index.tolist()
+
+        if scanner_start_index_list:
+            scanner_start_index = scanner_start_index_list[0]
             self.scanner_start_time = df.loc[scanner_start_index, "Time"]
             self.df = df.loc[(scanner_start_index + 1) :, :]
         else:
+            LGR.warning(
+                f"No scanner trigger under 'Event Type': {self.scanner_event_type} "
+                f"and 'Code': {self.scanner_trigger_code} "
+            )
             self.scanner_start_time = None
             self.df = df
 
@@ -412,7 +440,11 @@ class PresentationExtractor:
             self.scanner_start_time = scanner_start_time
 
         if not self.scanner_start_time:
-            raise ValueError("A value for `scanner_start_time` needs to be given.")
+            raise ValueError(
+                "A value for `scanner_start_time` needs to be given "
+                "since ``self.scanner_event_type`` and ``self.scanner_trigger_code`` "
+                "did not identify a time."
+            )
 
         onsets = []
         for _, row in self.df.iterrows():
@@ -469,18 +501,20 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     trial_column_name: :obj:`str`, default="Code"
         Name of the column containing the trial types.
 
-    use_first_pulse: :obj:`bool`, default=True
-        Uses the timing of the first pulse as the start time for the scanner,
-        which is used to compute the onset times of the trials relative
-        to the scanner start time.
+    scanner_event_type: :obj:`str`
+        The event type in the "Event Type" column the scanner
+        trigger is listed under (e.g., "Pulse", "Response", "Picture", etc).
+
+    scanner_trigger_code: :obj:`str`
+        Code listed under "Code" for the scanner start (e.g., "54", "99", "trigger).
+        Used with ``scanner_event_type`` to compute the onset
+        times of the trials relative to the scanner start time then
+        clip the dataframe to ensure that no trials
+        before the start of the scanner is initiated.
 
         .. note::
-           If set to False, a scanner start time can be supplied to
-           ``self.extract_onsets``.
-
-        .. important::
-           If not using this option, it is advised to clip the dataframe so that
-           trials before the scanner onset are not included.
+           Uses the first index of the rows in the dataframe with values
+           provided for ``scanner_event_type`` and ``scanner_trigger_code``.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
@@ -507,11 +541,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             The start time for the scanner.
 
             .. important::
-               If ``use_first_pulse`` is set to True during class initialization, then
-               the ``self.scanner_start_time`` is set to the first detected pulse in the log
-               data and this value can remain as None. If this value needs to be
-               overriden, then the value supplied to ``scanner_start_time`` can be
-               set.
+               Scanner start time will be detected during class initialization, unless
+               the ``self.scanner_event_code`` and ``self.scanner_trigger_code`` does
+               not return an index.
 
         Returns
         -------
@@ -597,21 +629,23 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
            crosshair code, include the code immediately after the
            final block.
 
-    trial_column_name: :obj:`str`, default="Code"
-        Name of the column containing the trial types.
+    scanner_event_type: :obj:`str`
+        The event type in the "Event Type" column the scanner
+        trigger is listed under (e.g., "Pulse", "Response", "Picture", etc).
 
-    use_first_pulse: :obj:`bool`, default=True
-        Uses the timing of the first pulse as the start time for the scanner,
-        which is used to compute the onset times of the trials relative
-        to the scanner start time.
+    scanner_trigger_code: :obj:`str`
+        Code listed under "Code" for the scanner start (e.g., "54", "99", "trigger).
+        Used with ``scanner_event_type`` to compute the onset
+        times of the trials relative to the scanner start time then
+        clip the dataframe to ensure that no trials
+        before the start of the scanner is initiated.
 
         .. note::
-           If set to False, a scanner start time can be supplied to
-           ``self.extract_onsets``.
+           Uses the first index of the rows in the dataframe with values
+           provided for ``scanner_event_type`` and ``scanner_trigger_code``.
 
-        .. important::
-           If not using this option, it is advised to clip the dataframe so that
-           trials before the scanner onset are not included.
+    trial_column_name: :obj:`str`, default="Code"
+        Name of the column containing the trial types.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
@@ -638,11 +672,9 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
             The start time for the scanner.
 
             .. important::
-               If ``use_first_pulse`` is set to True during class initialization, then
-               the ``self.scanner_start_time`` is set to the first detected pulse in the log
-               data and this value can remain as None. If this value needs to be
-               overriden, then the value supplied to ``scanner_start_time`` can be
-               set.
+               Scanner start time will be detected during class initialization, unless
+               the ``self.scanner_event_code`` and ``self.scanner_trigger_code`` does
+               not return an index.
 
         Returns
         -------

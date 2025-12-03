@@ -105,7 +105,11 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
     )
 
     extractor = PresentationBlockExtractor(
-        log_or_df=filename, trial_types=["indoor"], convert_to_seconds=["Time"]
+        log_or_df=filename,
+        trial_types=["indoor"],
+        convert_to_seconds=["Time"],
+        scanner_event_type="Pulse",
+        scanner_trigger_code="99",
     )
 
     scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
@@ -140,6 +144,8 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
         log_or_df=filename,
         trial_types=["incongruentright", "congruentleft"],
         convert_to_seconds=["Time"],
+        scanner_event_type="Pulse",
+        scanner_trigger_code="99",
     )
 
     scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
