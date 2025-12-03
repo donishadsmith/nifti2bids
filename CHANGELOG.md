@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.3.2] - 2025-12-03
+- More flexibility for log parsing
+
 ## [0.3.1.post1] - 2025-12-03
 - Add directive to doc
 

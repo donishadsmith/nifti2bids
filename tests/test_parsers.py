@@ -16,9 +16,9 @@ def create_presentation_logfile(tmp_dir):
         "Trial\tEvent Type\tCode\tTime\tTTime\tUncertainty\tDuration\tUncertainty\tReqTime\tReqDur\tStim Type\tPair Index\n",
         "\n",
         "1\tPicture\tcrosshairF\t151281\t151235\t1\t78633\t1\t0\t79789\tother\t1\n",
-        "1\tPort Input\t54\t151495\t151450\t2\n",
+        "1.0\tPort Input\t54.0\t1.51495\t1.51450\t2.0\n",
         "\n",
-        "Picture\t53\t150385\t150950\t2\n",
+        "Event Type\tCode\tTime\tTTime\tUncertainty\tDuration\tUncertainty\tReqTime\tReqDur\tStim Type\tPair Index\n",
         "Some random text",
     ]
     dst_path = Path(tmp_dir.name) / "sample_log.txt"

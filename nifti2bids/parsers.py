@@ -128,18 +128,79 @@ def convert_edat3_to_tsv(
     return dst_path if return_dst_path else None
 
 
+def _is_float(value) -> bool:
+    """Checks if value is a float."""
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+
+def _text_to_df(
+    log_filepath: str | Path, initial_column_headers: tuple[str]
+) -> pd.DataFrame:
+    """
+    Convert text to a DataFrame.
+
+    Parameters
+    ----------
+    log_filepath: :obj:`str` or :obj:`Path`
+        Path to log data.
+
+    initial_column_headers :obj:`tuple[str]`
+        The initial column headers for data.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A clean DataFrame of the log data.
+    """
+    with open(log_filepath, "r") as f:
+        initial_column_headers = tuple(initial_column_headers)
+        textlines = f.readlines()
+        delimiter = _determine_delimiter(textlines, initial_column_headers)
+        content_indices = []
+        cleaned_textlines = [line for line in textlines if line != "\n"]
+        for indx, line in enumerate(cleaned_textlines):
+            # Get the starting index of the data columns
+            if line.startswith(f"{delimiter}".join(initial_column_headers)):
+                content_indices.append(indx)
+            # Get one more than the final index of the data colums
+            # More flexible, checks to see if line has at least one digit, which is likely a data line
+            elif content_indices and not any(
+                element.isdigit() or _is_float(element)
+                for element in line.split(f"{delimiter}")
+            ):
+                content_indices.append(indx)
+                break
+
+        start_indx = content_indices[0]
+        stop_indx = (
+            content_indices[1] if len(content_indices) > 1 else len(cleaned_textlines)
+        )
+
+        text = "".join(cleaned_textlines[start_indx:stop_indx])
+        df = pd.read_csv(io.StringIO(text, newline=None), sep=delimiter)
+
+    return df
+
+
 def load_eprime_log(
     log_filepath: str | Path,
     convert_to_seconds: list[str] = None,
-    initial_column_headers: str = ("ExperimentName", "Subject"),
+    initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
 ) -> pd.DataFrame:
     """
     Loads EPrime 3 log file as a Pandas Dataframe.
 
     .. important::
-       If the log file extension is "edat3", use :func:`nifti2bids.parsers.convert_edat3_to_tsv`
-       to convert it to text form. If exporting manually, remove the checkmark from
-       the "Unicode" field. The type of text file the edat file is exported as is irrelevent.
+       - If the log file extension is "edat3", use :func:`nifti2bids.parsers.convert_edat3_to_tsv`
+         to convert it to text form. If exporting manually, remove the checkmark from
+         the "Unicode" field. The type of text file the edat file is exported as is irrelevent.
+
+       - Data are assumed to have at least one element that is an digit or float
+       during parsing.
 
     Parameters
     ----------
@@ -163,18 +224,8 @@ def load_eprime_log(
     assert (
         not Path(log_filepath).suffix == ".edat3"
     ), "`log_filepath` cannot be a file with the '.edat3' extension."
-    with open(log_filepath, "r") as f:
-        initial_column_headers = tuple(initial_column_headers)
-        textlines = f.readlines()
-        delimiter = _determine_delimiter(textlines, initial_column_headers)
-        cleaned_textlines = [line for line in textlines if line != "\n"]
-        for indx, line in enumerate(cleaned_textlines):
-            if line.startswith(f"{delimiter}".join(initial_column_headers)):
-                start_indx = indx
-                break
 
-        text = "".join(cleaned_textlines[start_indx:])
-        df = pd.read_csv(io.StringIO(text, newline=None), sep=delimiter)
+    df = _text_to_df(log_filepath, initial_column_headers)
 
     return (
         df
@@ -192,7 +243,8 @@ def load_presentation_log(
     Loads Presentation log file as a Pandas Dataframe.
 
     .. important::
-        Assumes that first column contains digits for proper parsing.
+        Data are assumed to have at least one element that is an digit or float
+        during parsing.
 
     Parameters
     ----------
@@ -210,29 +262,7 @@ def load_presentation_log(
     pandas.Dataframe
         A Pandas dataframe of the data.
     """
-    with open(log_filepath, "r") as f:
-        initial_column_headers = tuple(initial_column_headers)
-        textlines = f.readlines()
-        delimiter = _determine_delimiter(textlines, initial_column_headers)
-        content_indices = []
-        cleaned_textlines = [line for line in textlines if line != "\n"]
-        for indx, line in enumerate(cleaned_textlines):
-            # Get the starting index of the data columns
-            if line.startswith(f"{delimiter}".join(initial_column_headers)):
-                content_indices.append(indx)
-            # Get one more than the final index of the data colums
-            # Note: the lines for the data contain a trial number
-            elif content_indices and not line.split(f"{delimiter}")[0].isdigit():
-                content_indices.append(indx)
-                break
-
-        start_indx = content_indices[0]
-        stop_indx = (
-            content_indices[1] if len(content_indices) > 1 else len(cleaned_textlines)
-        )
-
-        text = "".join(cleaned_textlines[start_indx:stop_indx])
-        df = pd.read_csv(io.StringIO(text, newline=None), sep=delimiter)
+    df = _text_to_df(log_filepath, initial_column_headers)
 
     return (
         df

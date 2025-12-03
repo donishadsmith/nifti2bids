@@ -341,6 +341,10 @@ class PresentationExtractor:
         The Presentation log as a file path or the Presentation DataFrame
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
 
+        .. important::
+           If a text file is used, data are assumed to have at least one element
+           that is an digit or float during parsing.
+
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
@@ -436,9 +440,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
 
         .. important::
-           If a text file, assumes that first column contains digits for
-           proper parsing.
-
+           If a text file is used, data are assumed to have at least one element
+           that is an digit or float during parsing.
 
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
@@ -558,8 +561,8 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
 
         .. important::
-           If a text file, assumes that first column contains digits for
-           proper parsing.
+           If a text file is used, data are assumed to have at least one element
+           that is an digit or float during parsing.
 
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
@@ -722,6 +725,10 @@ class EPrimeBlockExtractor(BlockExtractor):
     log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
         The Eprime log as a file path or the Eprime DataFrame
         returned by :code:`nifti2bids.parsers.load_eprime_log`.
+
+        .. important::
+           If a text file is used, data are assumed to have at least one element
+           that is an digit or float during parsing.
 
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
@@ -893,6 +900,10 @@ class EPrimeEventExtractor(EventExtractor):
     log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
         The Eprime log as a file path or the Eprime DataFrame
         returned by :code:`nifti2bids.parsers.load_eprime_log`.
+
+        .. important::
+           If a text file is used, data are assumed to have at least one element
+           that is an digit or float during parsing.
 
     trial_types: :obj:`tuple[str]`
         The names of the trial types (i.e "congruentleft", "seen").
