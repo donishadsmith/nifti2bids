@@ -8,7 +8,6 @@ from typing import Literal, Optional
 
 import pandas as pd
 
-from nifti2bids._helpers import list_to_str
 from nifti2bids.io import _copy_file, glob_contents
 from nifti2bids.parsers import load_eprime_log, load_presentation_log, _convert_time
 
@@ -103,7 +102,7 @@ def _strip_none_entities(bids_filename: str | Path) -> str:
 
     Example
     -------
-    >>> from bidsrep.io import _strip_none_entities
+    >>> from nifti2bids.bids import _strip_none_entities
     >>> bids_filename = "sub-101_ses-None_task-flanker_bold.nii.gz"
     >>> _strip_none_entities(bids_filename)
         "sub-101_task-flanker_bold.nii.gz"
