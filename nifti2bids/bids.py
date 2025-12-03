@@ -612,6 +612,10 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         """
         Extract the response for each event.
 
+        .. important::
+           NaN means that no response was recorded for the trial
+           (i.e. "miss").
+
         Returns
         -------
         list[str]
