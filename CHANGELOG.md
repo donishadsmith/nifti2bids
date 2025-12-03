@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.3.1] - 2025-12-02
+- Fix default value issue
+
 ## [0.3.0] - 2025-12-02
 - Add new parameters to the Presentation Extractor classes
 

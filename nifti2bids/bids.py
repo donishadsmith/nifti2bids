@@ -463,7 +463,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         ``log_or_df`` is a file path.
     """
 
-    def extract_onsets(self, scanner_start_time: Optional[float | int]) -> list[float]:
+    def extract_onsets(
+        self, scanner_start_time: Optional[float | int] = None
+    ) -> list[float]:
         """
         Extract the onset times for each event.
 
@@ -578,7 +580,9 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         ``log_or_df`` is a file path.
     """
 
-    def extract_onsets(self, scanner_start_time: Optional[float | int]) -> list[float]:
+    def extract_onsets(
+        self, scanner_start_time: Optional[float | int] = None
+    ) -> list[float]:
         """
         Extract the onset times for each event.
 
