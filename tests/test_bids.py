@@ -114,7 +114,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
 
     scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
     onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
-    durations = extractor.extract_durations(rest_block_code="rest")
+    durations = extractor.extract_durations(rest_block_code="rest", quit_code="quit")
     trial_types = extractor.extract_trial_types()
 
     df = pd.DataFrame(
@@ -184,22 +184,24 @@ def test_EPrimeBlockExtractor(tmp_dir):
 
     expected_df = pd.DataFrame(
         {
-            "onset": [10.0, 30.0, 50.0],
-            "duration": [20.0, 20.0, 0],
-            "trial_type": ["A", "B", "Rest"],
+            "onset": [10.0, 30.0],
+            "duration": [20.0, 20.0],
+            "trial_type": ["A", "B"],
         }
     )
 
     extractor = EPrimeBlockExtractor(
         log_or_df=filename,
-        trial_types=["A", "B", "Rest"],
+        trial_types=["A", "B"],
         onset_column_name="Data.OnsetTime",
         procedure_column_name="Procedure",
         convert_to_seconds=["Data.OnsetTime"],
     )
 
     onsets = extractor.extract_onsets(scanner_start_time=0)
-    durations = extractor.extract_durations()
+    durations = extractor.extract_durations(
+        rest_block_code="Rest", rest_code_frequency="variable"
+    )
     trial_types = extractor.extract_trial_types()
 
     df = pd.DataFrame(

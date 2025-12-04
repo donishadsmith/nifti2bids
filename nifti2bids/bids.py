@@ -299,8 +299,10 @@ def _get_starting_block_indices(
 def _get_next_block_index(
     trial_series: pd.Series,
     curr_row_indx: int,
-    rest_block_code: str,
+    rest_block_code: Optional[str],
+    rest_code_frequency: Literal["fixed", "variable"],
     trial_types: tuple[str],
+    quit_code: Optional[str] = None,
 ) -> int:
     """
     Get the starting index for each block.
@@ -316,10 +318,21 @@ def _get_next_block_index(
     rest_block_code: :obj:`str` or :obj:`None`
         The name of the rest block.
 
+    rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
+        Frequency of the rest block. For "fixed", the rest code is assumed to
+        appear between each trial or at least each trial. For "variable",
+        it is assumed that the rest code does not appear between each
+        trial.
+
     trial_types: :obj:`tuple[str]`
-        The names of the trial types. Only used when ``rest_block_code``.
-        When used, identifies the indices of all trial types minus
-        the indices corresponding to the current trial type.
+        The names of the trial types. When used, identifies
+        the indices of all trial types minus the indices
+        corresponding to the current trial type. Used when
+        ``rest_block_code`` is not None and ``rest_code_frequency``
+        is not "fixed".
+
+    quit_code: :obj:`str` or :obj:`None`, default=None
+        The quit code. Ideally, this should be a unique code.
 
     Returns
     -------
@@ -330,13 +343,22 @@ def _get_next_block_index(
     filtered_trial_series = trial_series[trial_series.index > curr_row_indx]
     filtered_trial_series = filtered_trial_series.astype(str)
 
-    if rest_block_code:
+    if rest_block_code and rest_code_frequency == "fixed":
+        target_codes = [rest_block_code] + ([quit_code] if quit_code else [])
         next_block_indxs = filtered_trial_series[
-            filtered_trial_series == rest_block_code
+            filtered_trial_series.isin(tuple(target_codes))
         ].index.tolist()
     else:
         target_block_names = set(tuple(trial_types))
         target_block_names.discard(curr_trial)
+        additional_codes = []
+        additional_codes += (
+            [rest_block_code]
+            if rest_block_code and rest_code_frequency == "variable"
+            else []
+        )
+        additional_codes += [quit_code] if quit_code else []
+        target_block_names = tuple(list(target_block_names) + additional_codes)
         next_block_indxs = filtered_trial_series[
             filtered_trial_series.isin(target_block_names)
         ].index.tolist()
@@ -551,7 +573,12 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         """
         return self._extract_onsets(self.starting_block_indices, scanner_start_time)
 
-    def extract_durations(self, rest_block_code: Optional[str] = None) -> list[float]:
+    def extract_durations(
+        self,
+        rest_block_code: Optional[str] = None,
+        rest_code_frequency: Literal["fixed", "variable"] = "fixed",
+        quit_code: Optional[str] = None,
+    ) -> list[float]:
         """
         Extract the duration for each block.
 
@@ -564,13 +591,31 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             The name of the code for the rest block. Used when a resting state
             block is between the events to compute the correct block duration.
             If None, the block duration will be computed based on the starting
-            index of the trial types given by ``trial_types``.
+            index of the trial types given by ``trial_types``. If specified
+            and ``rest_code_frequency`` is "variable", will be used with
+            ``trial_types`` to compute the correct duration.
+
+        rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
+            Frequency of the rest block. For "fixed", the rest code is assumed to
+            appear between each trial or at least each trial. For "variable",
+            it is assumed that the rest code does not appear between each
+            trial.
+
+        quit_code: :obj:`str` or :obj:`None`, default=None,
+            The quit code. Suggest to use in cases when a quit code, as opposed
+            to a rest code is, is preceeded by a trial block. Ideally, this should
+            be a unique code.
 
         Returns
         -------
         list[float]
             A list of durations for each block.
         """
+        assert rest_code_frequency in [
+            "fixed",
+            "variable",
+        ], "`rest_code_frequency` must be either 'fixed' or 'variable'."
+
         durations = []
         for row_indx in self.starting_block_indices:
             row = self.df.loc[row_indx, :]
@@ -578,7 +623,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
                 trial_series=self.df[self.trial_column_name],
                 curr_row_indx=row_indx,
                 rest_block_code=rest_block_code,
+                rest_code_frequency=rest_code_frequency,
                 trial_types=self.trial_types,
+                quit_code=quit_code,
             )
             block_end_row = self.df.loc[block_end_indx, :]
             durations.append((block_end_row["Time"] - row["Time"]))
@@ -926,7 +973,11 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         """
         return self._extract_onsets(self.starting_block_indices, scanner_start_time)
 
-    def extract_durations(self, rest_block_code: Optional[str] = None) -> list[float]:
+    def extract_durations(
+        self,
+        rest_block_code: Optional[str] = None,
+        rest_code_frequency: Literal["fixed", "variable"] = "fixed",
+    ) -> list[float]:
         """
         Extract the duration for each block.
 
@@ -939,13 +990,26 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             The name of the code for the rest block. Used when a resting state
             block is between the events to compute the correct block duration.
             If None, the block duration will be computed based on the starting
-            index of the trial types given by ``trial_types``.
+            index of the trial types given by ``trial_types``. If specified
+            and ``rest_code_frequency`` is "variable", will be used with
+            ``trial_types`` to compute the correct duration.
+
+        rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
+            Frequency of the rest block. For "fixed", the rest code is assumed to
+            appear between each trial or at least each trial. For "variable",
+            it is assumed that the rest code does not appear between each
+            trial.
 
         Returns
         -------
         list[float]
             A list of durations for each block.
         """
+        assert rest_code_frequency in [
+            "fixed",
+            "variable",
+        ], "`rest_code_frequency` must be either 'fixed' or 'variable'."
+
         durations = []
         for row_indx in self.starting_block_indices:
             row = self.df.loc[row_indx, :]
@@ -953,6 +1017,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                 trial_series=self.df[self.procedure_column_name],
                 curr_row_indx=row_indx,
                 rest_block_code=rest_block_code,
+                rest_code_frequency=rest_code_frequency,
                 trial_types=self.trial_types,
             )
             block_end_row = self.df.loc[block_end_indx, :]

@@ -273,7 +273,7 @@ BLOCK_PRESENTATION_DATA = [
     [
         "14",
         "Picture",
-        "rest",
+        "quit",
         "500000",
         "0",
         "1",

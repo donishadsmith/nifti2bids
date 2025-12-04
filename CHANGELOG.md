@@ -4,6 +4,10 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.3.6] - 2025-12-04
+- Add parameters for rest code frequency and quit code to block extractors for better duration
+computation
+
 ## [0.3.5] - 2025-12-03
 - Iterate over filtered indices instead of entire dataframe
 - In the block extractor for E-Prime, put onset_column_name in init for
