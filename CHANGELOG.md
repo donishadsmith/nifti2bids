@@ -4,6 +4,11 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.3.5] - 2025-12-03
+- Iterate over filtered indices instead of entire dataframe
+- In the block extractor for E-Prime, put onset_column_name in init for
+consistency
+
 ## [0.3.4] - 2025-12-03
 - Replace use_first_pulse with scanner_trigger_code and scanner_event_code
 - Improve series filtering code

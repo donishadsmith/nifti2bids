@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Literal, Optional
 
 import pandas as pd
+import numpy as np
 
 from nifti2bids.logging import setup_logger
 from nifti2bids.io import _copy_file, glob_contents
@@ -250,7 +251,52 @@ def _process_log_or_df(
     return df
 
 
-def _get_next_block_indx(
+def _get_starting_block_indices(
+    log_df: pd.DataFrame, trial_column_name: str, trial_types: tuple[str]
+) -> list[int]:
+    """
+    Get starting indices for blocks.
+
+    Parameters
+    ----------
+    log_df: :obj:`pandas.DataFrame`
+        DataFrame of neurobehavioral log data.
+
+    trial_column_name: :obj:`str`
+        Name of the column containing the trial information.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types.
+
+    Returns
+    -------
+    list[int]
+        The starting index of each block.
+    """
+    trial_series = log_df[trial_column_name]
+
+    # Get the starting index for each block via grouping indices with the same
+    trial_list = trial_series.tolist()
+    starting_block_indices = []
+    current_index = 0
+    for _, group in itertools.groupby(trial_list):
+        starting_block_indices.append(current_index)
+        current_index += len(list(group))
+
+    starting_block_indices = set(starting_block_indices)
+    for trial_type in trial_series.unique():
+        if trial_type not in trial_types:
+            trial_indxs = trial_series[trial_series == trial_type].index.tolist()
+            starting_block_indices = starting_block_indices.difference(trial_indxs)
+
+    # Remove empty
+    missing_indices = trial_series[trial_series.isna()].index.tolist()
+    starting_block_indices = starting_block_indices.difference(missing_indices)
+
+    return sorted(list(starting_block_indices))
+
+
+def _get_next_block_index(
     trial_series: pd.Series,
     curr_row_indx: int,
     rest_block_code: str,
@@ -275,10 +321,6 @@ def _get_next_block_indx(
         When used, identifies the indices of all trial types minus
         the indices corresponding to the current trial type.
 
-        .. important::
-           ``trial_types=("congruent", "incongruent")`` will identify
-           all trial types beginning with "congruent" and "incongruent"
-
     Returns
     -------
     int
@@ -302,7 +344,6 @@ def _get_next_block_indx(
     return next_block_indxs[0] if next_block_indxs else curr_row_indx
 
 
-# TODO: Do more refactoring to refine code
 class LogExtractor(ABC):
     """Abstract Base Class for Extractors."""
 
@@ -327,7 +368,7 @@ class EventExtractor(LogExtractor):
     """Abstract Base Class for Event Extractors."""
 
     @abstractmethod
-    def extract_responses():
+    def extract_responses(self):
         """Extract responses for each trial."""
 
 
@@ -337,59 +378,6 @@ class PresentationExtractor:
 
     Provides shared initialization and extraction logic for both block
     and event design extractors.
-
-    Parameters
-    ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
-        The Presentation log as a file path or the Presentation DataFrame
-        returned by :code:`nifti2bids.parsers.load_presentation_log`.
-
-        .. important::
-           If a text file is used, data are assumed to have at least one element
-           that is an digit or float during parsing.
-
-    trial_types: :obj:`tuple[str]`
-        The names of the trial types (i.e "congruentleft", "seen").
-
-    scanner_event_type: :obj:`str`
-        The event type in the "Event Type" column the scanner
-        trigger is listed under (e.g., "Pulse", "Response", "Picture", etc).
-
-    scanner_trigger_code: :obj:`str`
-        Code listed under "Code" for the scanner start (e.g., "54", "99", "trigger).
-        Used with ``scanner_event_type`` to compute the onset
-        times of the trials relative to the scanner start time then
-        clip the dataframe to ensure that no trials
-        before the start of the scanner is initiated.
-
-        .. note::
-           Uses the first index of the rows in the dataframe with values
-           provided for ``scanner_event_type`` and ``scanner_trigger_code``.
-
-    trial_column_name: :obj:`str`, default="Code"
-        Name of the column containing the trial types.
-
-    use_first_pulse: :obj:`bool`, default=True
-        Uses the timing of the first pulse as the start time for the scanner,
-        which is used to compute the onset times of the trials relative
-        to the scanner start time.
-
-        .. note::
-           If set to False, a scanner start time can be supplied to
-           ``self.extract_onsets``.
-
-        .. important::
-           If not using this option, it is advised to clip the dataframe so that
-           trials before the scanner onset are not included.
-
-    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
-        Convert the time resolution of the specified columns from 0.1ms to seconds.
-
-        .. note:: Recommend time resolution of the "Time" column to be converted.
-
-    initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
-        The initial column headers for data. Only used when
-        ``log_or_df`` is a file path.
     """
 
     def __init__(
@@ -423,7 +411,8 @@ class PresentationExtractor:
         if scanner_start_index_list:
             scanner_start_index = scanner_start_index_list[0]
             self.scanner_start_time = df.loc[scanner_start_index, "Time"]
-            self.df = df.loc[(scanner_start_index + 1) :, :]
+            df = df.loc[(scanner_start_index + 1) :, :]
+            self.df = df.reset_index(inplace=False)
         else:
             LGR.warning(
                 f"No scanner trigger under 'Event Type': {self.scanner_event_type} "
@@ -433,7 +422,7 @@ class PresentationExtractor:
             self.df = df
 
     def _extract_onsets(
-        self, scanner_start_time: Optional[float | int] = None
+        self, row_indices: list[str], scanner_start_time: Optional[float | int]
     ) -> list[float]:
         """Extract onset times for each block or event."""
         if scanner_start_time:
@@ -446,28 +435,14 @@ class PresentationExtractor:
                 "did not identify a time."
             )
 
-        onsets = []
-        for _, row in self.df.iterrows():
-            if (
-                row["Event Type"] == "Picture"
-                and row[self.trial_column_name] in self.trial_types
-            ):
-                onset = row["Time"] - self.scanner_start_time
-                onsets.append(onset)
+        return [
+            self.df.loc[index, "Time"] - self.scanner_start_time
+            for index in row_indices
+        ]
 
-        return onsets
-
-    def _extract_trial_types(self) -> list[str]:
+    def _extract_trial_types(self, row_indices: list[int]) -> list[str]:
         """Extract trial types for each block or event."""
-        trial_types = []
-        for _, row in self.df.iterrows():
-            if (
-                row["Event Type"] == "Picture"
-                and row[self.trial_column_name] in self.trial_types
-            ):
-                trial_types.append(row[self.trial_column_name])
-
-        return trial_types
+        return [self.df.loc[index, self.trial_column_name] for index in row_indices]
 
 
 class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
@@ -526,6 +501,30 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         ``log_or_df`` is a file path.
     """
 
+    def __init__(
+        self,
+        log_or_df,
+        trial_types,
+        scanner_event_type,
+        scanner_trigger_code,
+        trial_column_name="Code",
+        convert_to_seconds=None,
+        initial_column_headers=("Trial", "Event Type"),
+    ):
+        super().__init__(
+            log_or_df,
+            trial_types,
+            scanner_event_type,
+            scanner_trigger_code,
+            trial_column_name,
+            convert_to_seconds,
+            initial_column_headers,
+        )
+
+        self.starting_block_indices = _get_starting_block_indices(
+            self.df, self.trial_column_name, self.trial_types
+        )
+
     def extract_onsets(
         self, scanner_start_time: Optional[float | int] = None
     ) -> list[float]:
@@ -550,7 +549,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         list[float]
             A list of onset times for each block.
         """
-        return self._extract_onsets(scanner_start_time=scanner_start_time)
+        return self._extract_onsets(self.starting_block_indices, scanner_start_time)
 
     def extract_durations(self, rest_block_code: Optional[str] = None) -> list[float]:
         """
@@ -573,19 +572,16 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             A list of durations for each block.
         """
         durations = []
-        for row_indx, row in self.df.iterrows():
-            if (
-                row["Event Type"] == "Picture"
-                and row[self.trial_column_name] in self.trial_types
-            ):
-                block_end_indx = _get_next_block_indx(
-                    trial_series=self.df[self.trial_column_name],
-                    curr_row_indx=row_indx,
-                    rest_block_code=rest_block_code,
-                    trial_types=self.trial_types,
-                )
-                block_end_row = self.df.loc[block_end_indx, :]
-                durations.append((block_end_row["Time"] - row["Time"]))
+        for row_indx in self.starting_block_indices:
+            row = self.df.loc[row_indx, :]
+            block_end_indx = _get_next_block_index(
+                trial_series=self.df[self.trial_column_name],
+                curr_row_indx=row_indx,
+                rest_block_code=rest_block_code,
+                trial_types=self.trial_types,
+            )
+            block_end_row = self.df.loc[block_end_indx, :]
+            durations.append((block_end_row["Time"] - row["Time"]))
 
         return durations
 
@@ -598,7 +594,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         list[str]
             A list of trial types for each block.
         """
-        return self._extract_trial_types()
+        return self._extract_trial_types(self.starting_block_indices)
 
 
 class PresentationEventExtractor(PresentationExtractor, EventExtractor):
@@ -657,6 +653,31 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         ``log_or_df`` is a file path.
     """
 
+    def __init__(
+        self,
+        log_or_df,
+        trial_types,
+        scanner_event_type,
+        scanner_trigger_code,
+        trial_column_name="Code",
+        convert_to_seconds=None,
+        initial_column_headers=("Trial", "Event Type"),
+    ):
+        super().__init__(
+            log_or_df,
+            trial_types,
+            scanner_event_type,
+            scanner_trigger_code,
+            trial_column_name,
+            convert_to_seconds,
+            initial_column_headers,
+        )
+
+        trial_series = self.df.loc[
+            self.df[self.trial_column_name].isin(trial_types), self.trial_column_name
+        ]
+        self.event_trial_indices = trial_series.index.tolist()
+
     def extract_onsets(
         self, scanner_start_time: Optional[float | int] = None
     ) -> list[float]:
@@ -681,7 +702,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         list[float]
             A list of onset times for each event.
         """
-        return self._extract_onsets(scanner_start_time=scanner_start_time)
+        return self._extract_onsets(self.event_trial_indices, scanner_start_time)
 
     def _extract_durations_and_responses(self) -> tuple[list[float], list[str]]:
         """
@@ -704,25 +725,21 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         trial and the starting time of the subsequent stimuli.
         """
         durations, responses = [], []
-        for row_indx, row in self.df.iterrows():
-            if (
-                row["Event Type"] == "Picture"
-                and row[self.trial_column_name] in self.trial_types
-            ):
-                trial_num = row["Trial"]
-                response_row = self.df[
-                    (self.df["Trial"] == trial_num)
-                    & (self.df["Event Type"] == "Response")
-                ]
-                if not response_row.empty:
-                    duration = response_row.iloc[0]["Time"] - row["Time"]
-                    response = row["Stim Type"]
-                else:
-                    duration = self.df.loc[(row_indx + 1), "Time"] - row["Time"]
-                    response = "nan"
+        for row_indx in self.event_trial_indices:
+            row = self.df.loc[row_indx, :]
+            trial_num = row["Trial"]
+            response_row = self.df[
+                (self.df["Trial"] == trial_num) & (self.df["Event Type"] == "Response")
+            ]
+            if not response_row.empty:
+                duration = response_row.iloc[0]["Time"] - row["Time"]
+                response = row["Stim Type"]
+            else:
+                duration = self.df.loc[(row_indx + 1), "Time"] - row["Time"]
+                response = "nan"
 
-                durations.append(duration)
-                responses.append(response)
+            durations.append(duration)
+            responses.append(response)
 
         return durations, responses
 
@@ -753,7 +770,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         list[str]
             A list of trial types for each event.
         """
-        return self._extract_trial_types()
+        return self._extract_trial_types(self.event_trial_indices)
 
     def extract_responses(self) -> list[str]:
         """
@@ -777,7 +794,50 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         return responses
 
 
-class EPrimeBlockExtractor(BlockExtractor):
+class EPrimeExtractor:
+    """
+    Base class for E-Prime 3 log extractors.
+
+    Provides shared initialization and extraction logic for both block
+    and event design extractors.
+    """
+
+    def __init__(
+        self,
+        log_or_df: str | Path | pd.DataFrame,
+        trial_types: tuple[str],
+        onset_column_name: str,
+        procedure_column_name: str,
+        convert_to_seconds: Optional[list[str]] = None,
+        initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+    ):
+
+        self.df = _process_log_or_df(
+            log_or_df,
+            convert_to_seconds,
+            initial_column_headers,
+            divisor=1000,
+            software="E-Prime",
+        )
+        self.trial_types = trial_types
+        self.onset_column_name = onset_column_name
+        self.procedure_column_name = procedure_column_name
+
+    def _extract_onsets(
+        self, row_indices: list[str], scanner_start_time: Optional[float | int]
+    ) -> list[float]:
+        """Extract onset times for each block or event."""
+        return [
+            self.df.loc[index, self.onset_column_name] - scanner_start_time
+            for index in row_indices
+        ]
+
+    def _extract_trial_types(self, row_indices: list[int]) -> list[str]:
+        """Extract trial types for each block or event."""
+        return [self.df.loc[index, self.procedure_column_name] for index in row_indices]
+
+
+class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     """
     Extract onsets, durations, and trial types from E-Prime 3 logs using a block design.
 
@@ -826,44 +886,25 @@ class EPrimeBlockExtractor(BlockExtractor):
 
     def __init__(
         self,
-        log_or_df: str | Path | pd.DataFrame,
-        trial_types: tuple[str],
-        onset_column_name: str,
-        procedure_column_name: str,
-        convert_to_seconds: Optional[list[str]] = None,
-        initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+        log_or_df,
+        trial_types,
+        onset_column_name,
+        procedure_column_name,
+        convert_to_seconds=None,
+        initial_column_headers=("ExperimentName", "Subject"),
     ):
-
-        self.df = _process_log_or_df(
+        super().__init__(
             log_or_df,
+            trial_types,
+            onset_column_name,
+            procedure_column_name,
             convert_to_seconds,
             initial_column_headers,
-            divisor=1000,
-            software="E-Prime",
         )
-        self.trial_types = trial_types
-        self.onset_column_name = onset_column_name
-        self.procedure_column_name = procedure_column_name
 
-        trials_list = self.df[self.procedure_column_name].tolist()
-        # Get the starting index for each block via grouping indices with the same
-        # trial type
-        starting_block_indices = []
-        current_index = 0
-        for _, group in itertools.groupby(trials_list):
-            starting_block_indices.append(current_index)
-            current_index += len(list(group))
-
-        for trial_type in self.df[self.procedure_column_name].unique():
-            if trial_type not in trial_types:
-                trial_indxs = self.df[
-                    self.df[self.procedure_column_name] == trial_type
-                ].index.to_list()
-                starting_block_indices = set(starting_block_indices).difference(
-                    trial_indxs
-                )
-
-        self.starting_block_indices = sorted(list(starting_block_indices))
+        self.starting_block_indices = _get_starting_block_indices(
+            self.df, self.procedure_column_name, self.trial_types
+        )
 
     def extract_onsets(self, scanner_start_time: float | int) -> list[float]:
         """
@@ -883,15 +924,7 @@ class EPrimeBlockExtractor(BlockExtractor):
         list[float]
             A list of onset times for each block.
         """
-        onsets = []
-        for row_indx, row in self.df.iterrows():
-            if row[self.procedure_column_name] in self.trial_types:
-                if row_indx not in self.starting_block_indices:
-                    continue
-
-                onsets.append((row[self.onset_column_name] - scanner_start_time))
-
-        return onsets
+        return self._extract_onsets(self.starting_block_indices, scanner_start_time)
 
     def extract_durations(self, rest_block_code: Optional[str] = None) -> list[float]:
         """
@@ -914,11 +947,9 @@ class EPrimeBlockExtractor(BlockExtractor):
             A list of durations for each block.
         """
         durations = []
-        for row_indx, row in self.df.iterrows():
-            if row_indx not in self.starting_block_indices:
-                continue
-
-            block_end_indx = _get_next_block_indx(
+        for row_indx in self.starting_block_indices:
+            row = self.df.loc[row_indx, :]
+            block_end_indx = _get_next_block_index(
                 trial_series=self.df[self.procedure_column_name],
                 curr_row_indx=row_indx,
                 rest_block_code=rest_block_code,
@@ -942,17 +973,10 @@ class EPrimeBlockExtractor(BlockExtractor):
         list[str]
             A list of trial types for each block.
         """
-        trial_types = []
-        for row_indx, row in self.df.iterrows():
-            if row_indx not in self.starting_block_indices:
-                continue
-
-            trial_types.append(row[self.procedure_column_name])
-
-        return trial_types
+        return self._extract_trial_types(self.starting_block_indices)
 
 
-class EPrimeEventExtractor(EventExtractor):
+class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     """
     Extract onsets, durations, and trial types from E-Prime 3 logs using an event design.
 
@@ -981,6 +1005,9 @@ class EPrimeEventExtractor(EventExtractor):
             to compute the correct duration. These rows can then be dropped
             from the events DataFrame.
 
+    onset_column_name: :obj:`str`
+        The name of the column containing stimulus onset time.
+
     procedure_column_name: :obj:`str`
         The name of the column containing the procedure names.
 
@@ -998,27 +1025,31 @@ class EPrimeEventExtractor(EventExtractor):
 
     def __init__(
         self,
-        log_or_df: str | Path | pd.DataFrame,
-        trial_types: tuple[str],
-        procedure_column_name: str,
-        convert_to_seconds: Optional[list[str]] = None,
-        initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+        log_or_df,
+        trial_types,
+        onset_column_name,
+        procedure_column_name,
+        convert_to_seconds=None,
+        initial_column_headers=("ExperimentName", "Subject"),
     ):
-
-        self.df = _process_log_or_df(
+        super().__init__(
             log_or_df,
+            trial_types,
+            onset_column_name,
+            procedure_column_name,
             convert_to_seconds,
             initial_column_headers,
-            divisor=1000,
-            software="E-Prime",
         )
-        self.trial_types = trial_types
-        self.procedure_column_name = procedure_column_name
+
+        trial_series = self.df.loc[
+            self.df[self.procedure_column_name].isin(trial_types),
+            self.procedure_column_name,
+        ]
+        self.event_trial_indices = trial_series.index.tolist()
 
     def extract_onsets(
         self,
         scanner_start_time: float | int,
-        onset_column_name: str,
     ) -> list[float]:
         """
         Extract the onset times for each event.
@@ -1032,20 +1063,12 @@ class EPrimeEventExtractor(EventExtractor):
             The scanner start time. Used to compute onset relative to
             the start of the scan.
 
-        onset_column_name: :obj:`str`
-            The name of the column containing stimulus onset time.
-
         Returns
         -------
         list[float]
             A list of onset times for each event.
         """
-        onsets = []
-        for _, row in self.df.iterrows():
-            if row[self.procedure_column_name] in self.trial_types:
-                onsets.append((row[onset_column_name] - scanner_start_time))
-
-        return onsets
+        return self._extract_onsets(self.event_trial_indices, scanner_start_time)
 
     def extract_durations(self, duration_column_name: str) -> list[float]:
         """
@@ -1063,12 +1086,10 @@ class EPrimeEventExtractor(EventExtractor):
         list[float]
             A list of durations for each event.
         """
-        durations = []
-        for _, row in self.df.iterrows():
-            if row[self.procedure_column_name] in self.trial_types:
-                durations.append(row[duration_column_name])
-
-        return durations
+        return [
+            self.df.loc[index, duration_column_name]
+            for index in self.event_trial_indices
+        ]
 
     def extract_trial_types(self) -> list[str]:
         """
@@ -1079,12 +1100,7 @@ class EPrimeEventExtractor(EventExtractor):
         list[str]
             A list of trial types for each event.
         """
-        trial_types = []
-        for _, row in self.df.iterrows():
-            if row[self.procedure_column_name] in self.trial_types:
-                trial_types.append(row[self.procedure_column_name])
-
-        return trial_types
+        return self._extract_trial_types(self.event_trial_indices)
 
     def extract_responses(self, accuracy_column_name: str) -> list[str]:
         """
@@ -1108,18 +1124,18 @@ class EPrimeEventExtractor(EventExtractor):
         When no response is given the response will be assigned "nan".
         """
         responses = []
-        for _, row in self.df.iterrows():
-            if row[self.procedure_column_name] in self.trial_types:
-                try:
-                    response_val = int(row[accuracy_column_name])
-                except:
-                    response_val = "nan"
+        for row_indx in self.event_trial_indices:
+            row = self.df.loc[row_indx, :]
+            try:
+                response_val = int(row[accuracy_column_name])
+            except ValueError:
+                response_val = "nan"
 
-                if response_val != "nan":
-                    response = {"0": "incorrect", "1": "correct"}.get(str(response_val))
-                else:
-                    response = "nan"
+            if response_val != "nan":
+                response = {"0": "incorrect", "1": "correct"}.get(str(response_val))
+            else:
+                response = "nan"
 
-                responses.append(response)
+            responses.append(response)
 
         return responses

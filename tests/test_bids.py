@@ -234,13 +234,12 @@ def test_EPrimeEventExtractor(tmp_dir):
     extractor = EPrimeEventExtractor(
         log_or_df=filename,
         trial_types=["A", "B", "Rest"],
+        onset_column_name="Data.OnsetTime",
         procedure_column_name="Procedure",
         convert_to_seconds=["Data.OnsetTime", "Data.RT"],
     )
 
-    onsets = extractor.extract_onsets(
-        onset_column_name="Data.OnsetTime", scanner_start_time=0
-    )
+    onsets = extractor.extract_onsets(scanner_start_time=0)
     durations = extractor.extract_durations(duration_column_name="Data.RT")
     trial_types = extractor.extract_trial_types()
     responses = extractor.extract_responses(accuracy_column_name="Data.ACC")

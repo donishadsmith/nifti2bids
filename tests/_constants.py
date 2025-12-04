@@ -298,6 +298,20 @@ BLOCK_PRESENTATION_DATA = [
         "other",
         "0",
     ],
+    [
+        "16",
+        "Picture",
+        "NaN",
+        "520000",
+        "0",
+        "1",
+        "179500",
+        "1",
+        "0",
+        "180000",
+        "other",
+        "0",
+    ],
 ]
 
 EVENT_PRESENTATION_DATA = [
@@ -430,7 +444,7 @@ EVENT_PRESENTATION_DATA = [
     [
         "6",
         "Quit",
-        "99",
+        "NaN",
         "233444",
         "1386",
         "1",
@@ -465,4 +479,5 @@ EPRIME_DATA = [
     ["ThisExperiment", "1", "30000", "1000", "1", "B"],
     ["ThisExperiment", "1", "40000", "1000", "1", "B"],
     ["ThisExperiment", "1", "50000", "1000", "nan", "Rest"],
+    ["ThisExperiment", "1", "50000", "1000", "nan", "nan"],
 ]

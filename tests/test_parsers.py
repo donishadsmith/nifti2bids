@@ -60,7 +60,7 @@ def test_load_eprime_log(create_eprime_logfile):
     """Test for ``load_eprime_log`` function."""
     src_file = create_eprime_logfile
     df = load_eprime_log(src_file)
-    assert len(df) == 5
+    assert len(df) == 6
     assert df.loc[0, "Data.OnsetTime"] == 10000
 
     df = load_eprime_log(src_file, convert_to_seconds=["Data.OnsetTime"])
