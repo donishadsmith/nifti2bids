@@ -53,7 +53,7 @@ EPrime and Presentation logs
 - Add new parameter for parser functions
 
 ## [0.2.5] - 2025-11-27
-- Add Eprime 3 parser
+- Add E-Prime 3 parser
 - Convert the `convert_to_seconds` from bool to a iterable
 - Add `convert_to_seconds` to the presentation to events function
 

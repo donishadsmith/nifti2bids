@@ -471,12 +471,6 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     """
     Extract onsets, durations, and trial types from Presentation logs using a block design.
 
-    .. warning::
-       - May not capture all edge cases.
-       - If duration is fixed, it may be best to simply changed all
-         values of "duration" in the events DataFrame to that
-         fixed value.
-
     Parameters
     ----------
     log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
@@ -647,12 +641,6 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     """
     Extract onsets, durations, and trial types from Presentation logs using an event design.
-
-    .. warning::
-       - May not capture all edge cases.
-       - If duration is fixed, it may be best to simply changed all
-         values of "duration" in the events DataFrame to that
-         fixed value.
 
     Parameters
     ----------
@@ -888,12 +876,6 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     """
     Extract onsets, durations, and trial types from E-Prime 3 logs using a block design.
 
-    .. warning::
-        - May not capture all edge cases.
-        - If duration is fixed, it may be best to simply changed all
-          values of "duration" in the events DataFrame to that
-          fixed value.
-
     Parameters
     ----------
     log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
@@ -1044,12 +1026,6 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     """
     Extract onsets, durations, and trial types from E-Prime 3 logs using an event design.
-
-    .. warning::
-        - May not capture all edge cases.
-        - If duration is fixed, it may be best to simply changed all
-          values of "duration" in the events DataFrame to that
-          fixed value.
 
     Parameters
     ----------
