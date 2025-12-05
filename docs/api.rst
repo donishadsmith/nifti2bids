@@ -3,7 +3,7 @@ API
 
 :mod:`nifti2bids.bids`
 ----------------------
-Module for initializing and creating BIDs compliant files.
+Module for initializing and creating BIDS compliant files.
 
 .. currentmodule:: nifti2bids.bids
 
@@ -89,8 +89,8 @@ from NIfTIs.
 
 :mod:`nifti2bids.parsers`
 --------------------------
-Module containing functions to parse logs from stimulus
-Presentation and EPrime 3 software.
+Module containing functions to parse raw logs from stimulus
+Presentation and E-Prime 3 software.
 
 .. currentmodule:: nifti2bids.parsers
 
