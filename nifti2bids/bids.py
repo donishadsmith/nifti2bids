@@ -515,6 +515,23 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>> from nifti2bids.bids import PresentationBlockExtractor
+    >>> extractor = PresentationBlockExtractor(
+    ...     log_file,
+    ...     trial_types=("Face", "Place"),
+    ...     scanner_event_type="Pulse",
+    ...     scanner_trigger_code="99",
+    ...     convert_to_seconds=["Time"],
+    ... )
+    >>> events = {"onset": None, "duration": None, "trial_type": None}
+    >>> events["onset"] = extractor.extract_onsets()
+    >>> events["duration"] = extractor.extract_durations(rest_block_code="crosshair")
+    >>> events["trial_type"] = extractor.extract_trial_types()
+    >>> df = pd.DataFrame(events)
     """
 
     def __init__(
@@ -686,6 +703,24 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>> from nifti2bids.bids import PresentationEventExtractor
+    >>> extractor = PresentationEventExtractor(
+    ...     log_file,
+    ...     trial_types=("congruentleft", "congruentright", "incongruentleft", "incongruentright", "nogo"),
+    ...     scanner_event_type="Pulse",
+    ...     scanner_trigger_code="99",
+    ...     convert_to_seconds=["Time"],
+    ... )
+    >>> events = {"onset": None, "duration": None, "trial_type": None, "response": None}
+    >>> events["onset"] = extractor.extract_onsets()
+    >>> events["duration"] = extractor.extract_durations()
+    >>> events["trial_type"] = extractor.extract_trial_types()
+    >>> events["response"] = extractor.extract_responses()
+    >>> df = pd.DataFrame(events)
     """
 
     def __init__(
@@ -911,6 +946,23 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>> from nifti2bids.bids import EPrimeBlockExtractor
+    >>> extractor = EPrimeBlockExtractor(
+    ...     log_file,
+    ...     trial_types=("Face", "Place"),
+    ...     onset_column_name="Stimulus.OnsetTime",
+    ...     procedure_column_name="Procedure",
+    ...     convert_to_seconds=["Stimulus.OnsetTime"],
+    ... )
+    >>> events = {"onset": None, "duration": None, "trial_type": None}
+    >>> events["onset"] = extractor.extract_onsets(scanner_start_time=10.0)
+    >>> events["duration"] = extractor.extract_durations(rest_block_code="Rest")
+    >>> events["trial_type"] = extractor.extract_trial_types()
+    >>> df = pd.DataFrame(events)
     """
 
     def __init__(
@@ -1062,6 +1114,24 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>> from nifti2bids.bids import EPrimeEventExtractor
+    >>> extractor = EPrimeEventExtractor(
+    ...     log_file,
+    ...     trial_types=("Congruent", "Incongruent"),
+    ...     onset_column_name="Stimulus.OnsetTime",
+    ...     procedure_column_name="Procedure",
+    ...     convert_to_seconds=["Stimulus.OnsetTime", "Stimulus.RT"],
+    ... )
+    >>> events = {"onset": None, "duration": None, "trial_type": None, "response": None}
+    >>> events["onset"] = extractor.extract_onsets(scanner_start_time=10.0)
+    >>> events["duration"] = extractor.extract_durations(duration_column_name="Stimulus.RT")
+    >>> events["trial_type"] = extractor.extract_trial_types()
+    >>> events["response"] = extractor.extract_responses(accuracy_column_name="Stimulus.ACC")
+    >>> df = pd.DataFrame(events)
     """
 
     def __init__(

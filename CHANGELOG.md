@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.3.6.post1] - 2025-12-05
+- Improve docs
+
 ## [0.3.6] - 2025-12-04
 - Add parameters for rest code frequency and quit code to block extractors for better duration
 computation
