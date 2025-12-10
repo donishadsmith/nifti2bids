@@ -250,7 +250,7 @@ def load_eprime_log(
     return (
         df
         if not convert_to_seconds
-        else _convert_time(df, convert_to_seconds, divisor=1000)
+        else _convert_time(df, convert_to_seconds, divisor=1e3)
     )
 
 
@@ -295,5 +295,5 @@ def load_presentation_log(
     return (
         df
         if not convert_to_seconds
-        else _convert_time(df, convert_to_seconds, divisor=10000)
+        else _convert_time(df, convert_to_seconds, divisor=1e4)
     )
