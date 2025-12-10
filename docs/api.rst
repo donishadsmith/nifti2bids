@@ -99,6 +99,6 @@ Presentation and E-Prime 3 software.
    :nosignatures:
    :toctree: generated/
 
-   convert_edat3_to_tsv
+   convert_edat3_to_text
    load_eprime_log
    load_presentation_log

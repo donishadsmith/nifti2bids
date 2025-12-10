@@ -1,6 +1,6 @@
 import csv, io, tempfile, subprocess, sys
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import pandas as pd
 
@@ -43,7 +43,7 @@ def _convert_time(
 
     Parameters
     ----------
-    presentation_df: :obj:`DataFrame`
+    presentation_df: :obj:`pandas.DataFrame`
         Pandas Dataframe of the Presentation log
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
@@ -75,13 +75,14 @@ def _convert_time(
     return df
 
 
-def convert_edat3_to_tsv(
+def convert_edat3_to_text(
     edat_path: str | Path,
     dst_path: Optional[str | Path] = None,
+    format: Literal["csv", "tsv"] = "csv",
     return_dst_path: bool = False,
 ) -> str | None:
     """
-    Converts a file with an "edat3" extension to a TSV file.
+    Converts a file with an "edat3" extension to a text file.
 
     .. warning::
        - Program is opened and closed rapidly, which results in white flashes.
@@ -93,8 +94,11 @@ def convert_edat3_to_tsv(
         Absolute path to the Eprime file with an "edat3" extension.
 
     dst_path: :obj:`str` or :obj:`Path`, default=None
-        Absolute path to the output TSV file that the edat3 file will be converted to.
-        If None, the TSV file will be saved in the same folder as the edat3 file.
+        Absolute path to the output CSV file that the edat3 file will be converted to.
+        If None, the CSV file will be saved in the same folder as the edat3 file.
+
+    format: :obj:`Literal["csv", "tsv"], default="csv"
+        The file extension.
 
     return_dst_path: :obj:`bool`, default=False
         Returns the destination path if True.
@@ -116,8 +120,16 @@ def convert_edat3_to_tsv(
             f"EPrime 3 must be installed to use the following program {EDATAAID_PATH}."
         )
 
-    dst_path = dst_path if dst_path else str(edat_path).replace(".edat3", ".tsv")
-    control_file = EDATAAID_CONTROL_FILE.format(edat_path=edat_path, dst_path=dst_path)
+    assert (format := format.lower()) in [
+        "csv",
+        "tsv",
+    ], f"`format` must be 'csv' or 'tsv'."
+
+    delimiter_dict = {"csv": ",", "tsv": "\t"}
+    dst_path = dst_path if dst_path else str(edat_path).replace(".edat3", f".{format}")
+    control_file = EDATAAID_CONTROL_FILE.format(
+        edat_path=edat_path, dst_path=dst_path, delimiter=delimiter_dict[format]
+    )
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmpfile:
         tmpfile.write(control_file)
 
@@ -200,7 +212,7 @@ def load_eprime_log(
          the "Unicode" field. The type of text file the edat file is exported as is irrelevent.
 
        - Data are assumed to have at least one element that is an digit or float
-       during parsing.
+         during parsing.
 
     Parameters
     ----------
@@ -219,7 +231,15 @@ def load_eprime_log(
     Returns
     -------
     pandas.Dataframe
-        A Pandas dataframe of the data.
+        A Pandas DataFrame of the data.
+
+    Note
+    ----
+    This function works by first identifying the line containing the column headers specified in
+    ``initial_column_headers`` and using that line to extract the delimiter (assumed to be the
+    delimiter for the data). After, all blank lines are removed then the remaining lines in the
+    log file is iterated through to identify the boundaries of the experimental log data.
+    Data is assumed to to contain at least one digit or float (which includes NaN).
     """
     assert (
         not Path(log_filepath).suffix == ".edat3"
@@ -260,7 +280,15 @@ def load_presentation_log(
     Returns
     -------
     pandas.Dataframe
-        A Pandas dataframe of the data.
+        A Pandas DataFrame of the data.
+
+    Note
+    ----
+    This function works by first identifying the line containing the column headers specified in
+    ``initial_column_headers`` and using that line to extract the delimiter (assumed to be the
+    delimiter for the data). After, all blank lines are removed then the remaining lines in the
+    log file is iterated through to identify the boundaries of the experimental log data.
+    Data is assumed to to contain at least one digit or float (which includes NaN).
     """
     df = _text_to_df(log_filepath, initial_column_headers)
 

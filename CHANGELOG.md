@@ -4,6 +4,11 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.4.0] - 2025-12-10
+- Change ``convert_edat3_to_tsv`` to ``convert_edat3_to_text``
+- Add a ``format`` parameter to ``convert_edat3_to_text`` to allow tsv and csv
+- In ``convert_edat3_to_text``, default to csv
+
 ## [0.3.6.post1] - 2025-12-05
 - Improve docs
 

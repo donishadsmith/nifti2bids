@@ -309,8 +309,8 @@ def _get_next_block_index(
 
     Parameters
     ----------
-    trial_series: :obj:`pd.Series`
-        A pandas Series of the column containing the trail type information.
+    trial_series: :obj:`pandas.Series`
+        A Pandas Series of the column containing the trial type information.
 
     curr_row_indx: :obj:`int`
         The current row index.
@@ -473,7 +473,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
     Parameters
     ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The Presentation log as a file path or the Presentation DataFrame
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
 
@@ -661,7 +661,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
 
     Parameters
     ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The Presentation log as a file path or the Presentation DataFrame
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
 
@@ -913,7 +913,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
     Parameters
     ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The Eprime log as a file path or the Eprime DataFrame
         returned by :code:`nifti2bids.parsers.load_eprime_log`.
 
@@ -1081,7 +1081,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
     Parameters
     ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The Eprime log as a file path or the Eprime DataFrame
         returned by :code:`nifti2bids.parsers.load_eprime_log`.
 

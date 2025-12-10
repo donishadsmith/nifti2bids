@@ -17,7 +17,8 @@ def create_presentation_logfile(tmp_dir):
         "\n",
         "1\tPicture\tcrosshairF\t151281\t151235\t1\t78633\t1\t0\t79789\tother\t1\n",
         "1.0\tPort Input\t54.0\t1.51495\t1.51450\t2.0\n",
-        "\n",
+        "NaN\tNaN\tNaN",
+        "" "\n",
         "Event Type\tCode\tTime\tTTime\tUncertainty\tDuration\tUncertainty\tReqTime\tReqDur\tStim Type\tPair Index\n",
         "Some random text",
     ]
@@ -45,11 +46,15 @@ def create_eprime_logfile(tmp_dir):
 
 def test_load_presentation_log(create_presentation_logfile):
     """Test for ``load_presentation_log`` function."""
+    import math
+
     src_file = create_presentation_logfile
     df = load_presentation_log(src_file)
-    assert len(df) == 2
+    assert len(df) == 3
     assert all(col in PRESENTATION_COLUMNS for col in df.columns)
-    assert df["Event Type"].values.tolist() == ["Picture", "Port Input"]
+    assert df["Event Type"].values.tolist()[:-1] == ["Picture", "Port Input"]
+    assert math.isnan(df["Event Type"].values.tolist()[-1])
+
     assert df.loc[0, "Time"] == 151281
 
     df = load_presentation_log(src_file, convert_to_seconds=["Time"])
