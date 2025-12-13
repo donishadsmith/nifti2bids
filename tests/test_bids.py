@@ -184,30 +184,31 @@ def test_EPrimeBlockExtractor(tmp_dir):
 
     expected_df = pd.DataFrame(
         {
-            "onset": [10.0, 30.0],
+            "onset": [0.0, 20.0],
             "duration": [20.0, 20.0],
             "trial_type": ["A", "B"],
         }
     )
 
-    extractor = EPrimeBlockExtractor(
-        log_or_df=filename,
-        trial_types=["A", "B"],
-        onset_column_name="Data.OnsetTime",
-        procedure_column_name="Procedure",
-        convert_to_seconds=["Data.OnsetTime"],
-    )
+    for column, scanner_start_time in [(None, 10.0), ("PleaseWait", None)]:
+        extractor = EPrimeBlockExtractor(
+            log_or_df=filename,
+            trial_types=["A", "B"],
+            onset_column_name="Data.OnsetTime",
+            procedure_column_name="Procedure",
+            trigger_column_name=column,
+            convert_to_seconds=["Data.OnsetTime", "PleaseWait"],
+        )
 
-    onsets = extractor.extract_onsets(scanner_start_time=0)
-    durations = extractor.extract_durations(
-        rest_block_code="Rest", rest_code_frequency="variable"
-    )
-    trial_types = extractor.extract_trial_types()
-
-    df = pd.DataFrame(
-        {"onset": onsets, "duration": durations, "trial_type": trial_types}
-    )
-    assert_frame_equal(df, expected_df)
+        onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
+        durations = extractor.extract_durations(
+            rest_block_code="Rest", rest_code_frequency="variable"
+        )
+        trial_types = extractor.extract_trial_types()
+        df = pd.DataFrame(
+            {"onset": onsets, "duration": durations, "trial_type": trial_types}
+        )
+        assert_frame_equal(df, expected_df)
 
 
 def test_EPrimeEventExtractor(tmp_dir):
@@ -220,7 +221,7 @@ def test_EPrimeEventExtractor(tmp_dir):
 
     expected_df = pd.DataFrame(
         {
-            "onset": [10.0, 20.0, 30.0, 40.0, 50.0],
+            "onset": [0.0, 10.0, 20.0, 30.0, 40.0],
             "duration": [1.0, 1.0, 1.0, 1.0, 1.0],
             "trial_type": ["A", "A", "B", "B", "Rest"],
             "responses": [
@@ -233,25 +234,27 @@ def test_EPrimeEventExtractor(tmp_dir):
         }
     )
 
-    extractor = EPrimeEventExtractor(
-        log_or_df=filename,
-        trial_types=["A", "B", "Rest"],
-        onset_column_name="Data.OnsetTime",
-        procedure_column_name="Procedure",
-        convert_to_seconds=["Data.OnsetTime", "Data.RT"],
-    )
+    for column, scanner_start_time in [(None, 10.0), ("PleaseWait", None)]:
+        extractor = EPrimeEventExtractor(
+            log_or_df=filename,
+            trial_types=["A", "B", "Rest"],
+            onset_column_name="Data.OnsetTime",
+            procedure_column_name="Procedure",
+            trigger_column_name=column,
+            convert_to_seconds=["Data.OnsetTime", "Data.RT", "PleaseWait"],
+        )
 
-    onsets = extractor.extract_onsets(scanner_start_time=0)
-    durations = extractor.extract_durations(duration_column_name="Data.RT")
-    trial_types = extractor.extract_trial_types()
-    responses = extractor.extract_responses(accuracy_column_name="Data.ACC")
+        onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
+        durations = extractor.extract_durations(duration_column_name="Data.RT")
+        trial_types = extractor.extract_trial_types()
+        responses = extractor.extract_responses(accuracy_column_name="Data.ACC")
 
-    df = pd.DataFrame(
-        {
-            "onset": onsets,
-            "duration": durations,
-            "trial_type": trial_types,
-            "responses": responses,
-        }
-    )
-    assert_frame_equal(df, expected_df)
+        df = pd.DataFrame(
+            {
+                "onset": onsets,
+                "duration": durations,
+                "trial_type": trial_types,
+                "responses": responses,
+            }
+        )
+        assert_frame_equal(df, expected_df)

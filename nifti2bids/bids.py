@@ -510,7 +510,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
-        .. note:: Recommend time resolution of the "Time" column to be converted.
+        .. important:: Recommend time resolution of the "Time" column to be converted.
 
     initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
@@ -698,7 +698,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
-        .. note:: Recommend time resolution of the "Time" column to be converted.
+        .. important:: Recommend time resolution of the "Time" column to be converted.
 
     initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
@@ -878,6 +878,7 @@ class EPrimeExtractor:
         trial_types: tuple[str],
         onset_column_name: str,
         procedure_column_name: str,
+        trigger_column_name: Optional[None] = None,
         convert_to_seconds: Optional[list[str]] = None,
         initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
     ):
@@ -892,13 +893,30 @@ class EPrimeExtractor:
         self.trial_types = trial_types
         self.onset_column_name = onset_column_name
         self.procedure_column_name = procedure_column_name
+        self.trigger_column_name = trigger_column_name
+
+        if self.trigger_column_name:
+            self.scanner_start_time = (
+                self.df[self.trigger_column_name].dropna(inplace=False).unique()[0]
+            )
+        else:
+            self.scanner_start_time = None
 
     def _extract_onsets(
         self, row_indices: list[str], scanner_start_time: Optional[float | int]
     ) -> list[float]:
         """Extract onset times for each block or event."""
+        if scanner_start_time:
+            self.scanner_start_time = scanner_start_time
+
+        if not self.scanner_start_time:
+            raise ValueError(
+                "``trigger_column_name`` was not supplied and ``scanner_start_time`` must be given."
+                "did not identify a time."
+            )
+
         return [
-            self.df.loc[index, self.onset_column_name] - scanner_start_time
+            self.df.loc[index, self.onset_column_name] - self.scanner_start_time
             for index in row_indices
         ]
 
@@ -936,12 +954,18 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     procedure_column_name: :obj:`str`
         The name of the column containing the procedure names.
 
+    trigger_column_name: :obj:`str` or :obj:`None`, default=None
+        The name of the column containing the scanner start time (likely
+        the column that records the please wait time). If None,
+        the scanner start time will need to be given when using
+        ``self.extract_onsets``.
+
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from milliseconds to seconds.
 
-        .. note::
-           Recommend time resolution of the columns containing the onset time
-           be converted to seconds.
+        .. important::
+           Recommend time resolution of the columns containing the onset time and scanner
+           start time (``trigger_column_name``) be converted to seconds.
 
     initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
@@ -956,10 +980,11 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     ...     trial_types=("Face", "Place"),
     ...     onset_column_name="Stimulus.OnsetTime",
     ...     procedure_column_name="Procedure",
-    ...     convert_to_seconds=["Stimulus.OnsetTime"],
+    ...     trigger_start_time="PleaseWait",
+    ...     convert_to_seconds=["Stimulus.OnsetTime", "PleaseWait"],
     ... )
     >>> events = {"onset": None, "duration": None, "trial_type": None}
-    >>> events["onset"] = extractor.extract_onsets(scanner_start_time=10.0)
+    >>> events["onset"] = extractor.extract_onsets()
     >>> events["duration"] = extractor.extract_durations(rest_block_code="Rest")
     >>> events["trial_type"] = extractor.extract_trial_types()
     >>> df = pd.DataFrame(events)
@@ -971,6 +996,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         trial_types,
         onset_column_name,
         procedure_column_name,
+        trigger_column_name=None,
         convert_to_seconds=None,
         initial_column_headers=("ExperimentName", "Subject"),
     ):
@@ -979,6 +1005,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             trial_types,
             onset_column_name,
             procedure_column_name,
+            trigger_column_name,
             convert_to_seconds,
             initial_column_headers,
         )
@@ -987,7 +1014,9 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             self.df, self.procedure_column_name, self.trial_types
         )
 
-    def extract_onsets(self, scanner_start_time: float | int) -> list[float]:
+    def extract_onsets(
+        self, scanner_start_time: Optional[float | int] = None
+    ) -> list[float]:
         """
         Extract the onset times for each block.
 
@@ -996,9 +1025,11 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         Parameters
         ----------
-        scanner_start_time: :obj:`float` or :obj:`int`
+        scanner_start_time: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
             The scanner start time. Used to compute onset relative to
             the start of the scan.
+
+            .. note:: Does not need to be given if ``trigger_column_name`` was provided.
 
         Returns
         -------
@@ -1104,12 +1135,19 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     procedure_column_name: :obj:`str`
         The name of the column containing the procedure names.
 
+    trigger_column_name: :obj:`str` or :obj:`None`, default=None
+        The name of the column containing the scanner start time (likely
+        the column that records the please wait time). If None,
+        the scanner start time will need to be given when using
+        ``self.extract_onsets``.
+
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from milliseconds to seconds.
 
-        .. note::
-           Recommend time resolution of the columns containing the onset time
-           and reaction time be converted to seconds.
+        .. important::
+           Recommend time resolution of the columns containing the onset time,
+           reaction time (duration), and scanner onset time (``trigger_column_name``)
+           be converted to seconds.
 
     initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
@@ -1124,10 +1162,11 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     ...     trial_types=("Congruent", "Incongruent"),
     ...     onset_column_name="Stimulus.OnsetTime",
     ...     procedure_column_name="Procedure",
-    ...     convert_to_seconds=["Stimulus.OnsetTime", "Stimulus.RT"],
+    ...     trigger_start_time="PleaseWait",
+    ...     convert_to_seconds=["Stimulus.OnsetTime", "Stimulus.RT", "PleaseWait"],
     ... )
     >>> events = {"onset": None, "duration": None, "trial_type": None, "response": None}
-    >>> events["onset"] = extractor.extract_onsets(scanner_start_time=10.0)
+    >>> events["onset"] = extractor.extract_onsets()
     >>> events["duration"] = extractor.extract_durations(duration_column_name="Stimulus.RT")
     >>> events["trial_type"] = extractor.extract_trial_types()
     >>> events["response"] = extractor.extract_responses(accuracy_column_name="Stimulus.ACC")
@@ -1140,6 +1179,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         trial_types,
         onset_column_name,
         procedure_column_name,
+        trigger_column_name=None,
         convert_to_seconds=None,
         initial_column_headers=("ExperimentName", "Subject"),
     ):
@@ -1148,6 +1188,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             trial_types,
             onset_column_name,
             procedure_column_name,
+            trigger_column_name,
             convert_to_seconds,
             initial_column_headers,
         )
@@ -1160,7 +1201,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
     def extract_onsets(
         self,
-        scanner_start_time: float | int,
+        scanner_start_time: Optional[float | int] = None,
     ) -> list[float]:
         """
         Extract the onset times for each event.
@@ -1170,9 +1211,11 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
         Parameters
         ----------
-        scanner_start_time: :obj:`float` or :obj:`int`
+        scanner_start_time: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
             The scanner start time. Used to compute onset relative to
             the start of the scan.
+
+            .. note:: Does not need to be given if ``trigger_column_name`` was provided.
 
         Returns
         -------

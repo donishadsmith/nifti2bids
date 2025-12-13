@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.5.0] - 2025-12-12
+- Add parameter for trigger column for E-Prime classes
+
 ## [0.4.0] - 2025-12-10
 - Change ``convert_edat3_to_tsv`` to ``convert_edat3_to_text``
 - Add a ``format`` parameter to ``convert_edat3_to_text`` to allow tsv and csv
