@@ -955,10 +955,10 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         The name of the column containing the procedure names.
 
     trigger_column_name: :obj:`str` or :obj:`None`, default=None
-        The name of the column containing the scanner start time (likely
-        the column that records the please wait time). If None,
-        the scanner start time will need to be given when using
-        ``self.extract_onsets``.
+        The name of the column containing the scanner start time.
+        Uses the first value that is not NaN as the scanner start
+        time. If None, the scanner start time will need to be
+        given when using ``self.extract_onsets``.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from milliseconds to seconds.
@@ -980,8 +980,8 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     ...     trial_types=("Face", "Place"),
     ...     onset_column_name="Stimulus.OnsetTime",
     ...     procedure_column_name="Procedure",
-    ...     trigger_start_time="PleaseWait",
-    ...     convert_to_seconds=["Stimulus.OnsetTime", "PleaseWait"],
+    ...     trigger_start_time="EndTime",
+    ...     convert_to_seconds=["Stimulus.OnsetTime", "EndTime"],
     ... )
     >>> events = {"onset": None, "duration": None, "trial_type": None}
     >>> events["onset"] = extractor.extract_onsets()
@@ -1136,10 +1136,10 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         The name of the column containing the procedure names.
 
     trigger_column_name: :obj:`str` or :obj:`None`, default=None
-        The name of the column containing the scanner start time (likely
-        the column that records the please wait time). If None,
-        the scanner start time will need to be given when using
-        ``self.extract_onsets``.
+        The name of the column containing the scanner start time.
+        Uses the first value that is not NaN as the scanner start
+        time. If None, the scanner start time will need to be
+        given when using ``self.extract_onsets``.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from milliseconds to seconds.
@@ -1162,8 +1162,8 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     ...     trial_types=("Congruent", "Incongruent"),
     ...     onset_column_name="Stimulus.OnsetTime",
     ...     procedure_column_name="Procedure",
-    ...     trigger_start_time="PleaseWait",
-    ...     convert_to_seconds=["Stimulus.OnsetTime", "Stimulus.RT", "PleaseWait"],
+    ...     trigger_start_time="EndTime",
+    ...     convert_to_seconds=["Stimulus.OnsetTime", "Stimulus.RT", "EndTime"],
     ... )
     >>> events = {"onset": None, "duration": None, "trial_type": None, "response": None}
     >>> events["onset"] = extractor.extract_onsets()

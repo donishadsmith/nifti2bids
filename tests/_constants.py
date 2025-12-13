@@ -469,7 +469,7 @@ EPRIME_DATA = [
     [
         "ExperimentName",
         "Subject",
-        "PleaseWait",
+        "EndTime",
         "Data.OnsetTime",
         "Data.RT",
         "Data.ACC",

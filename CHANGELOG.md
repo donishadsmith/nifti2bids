@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.5.0.post1] - 2025-12-12
+- Doc fix
+
 ## [0.5.0] - 2025-12-12
 - Add parameter for trigger column for E-Prime classes
 

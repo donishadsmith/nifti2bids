@@ -190,14 +190,14 @@ def test_EPrimeBlockExtractor(tmp_dir):
         }
     )
 
-    for column, scanner_start_time in [(None, 10.0), ("PleaseWait", None)]:
+    for column, scanner_start_time in [(None, 10.0), ("EndTime", None)]:
         extractor = EPrimeBlockExtractor(
             log_or_df=filename,
             trial_types=["A", "B"],
             onset_column_name="Data.OnsetTime",
             procedure_column_name="Procedure",
             trigger_column_name=column,
-            convert_to_seconds=["Data.OnsetTime", "PleaseWait"],
+            convert_to_seconds=["Data.OnsetTime", "EndTime"],
         )
 
         onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
@@ -234,14 +234,14 @@ def test_EPrimeEventExtractor(tmp_dir):
         }
     )
 
-    for column, scanner_start_time in [(None, 10.0), ("PleaseWait", None)]:
+    for column, scanner_start_time in [(None, 10.0), ("EndTime", None)]:
         extractor = EPrimeEventExtractor(
             log_or_df=filename,
             trial_types=["A", "B", "Rest"],
             onset_column_name="Data.OnsetTime",
             procedure_column_name="Procedure",
             trigger_column_name=column,
-            convert_to_seconds=["Data.OnsetTime", "Data.RT", "PleaseWait"],
+            convert_to_seconds=["Data.OnsetTime", "Data.RT", "EndTime"],
         )
 
         onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
