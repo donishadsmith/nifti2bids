@@ -98,7 +98,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
 
     expected_df = pd.DataFrame(
         {
-            "onset": [1.0, 35.0],
+            "onset": [0.0, 34.0] if scanner_start_time is None else [1.0, 35.0],
             "duration": [14.0, 14.0],
             "trial_type": ["indoor", "indoor"],
         }
@@ -110,6 +110,8 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
         convert_to_seconds=["Time"],
         scanner_event_type="Pulse",
         scanner_trigger_code="99",
+        n_discarded_volumes=1 if scanner_start_time is None else 0,
+        tr=1 if scanner_start_time is None else None,
     )
 
     scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
@@ -134,16 +136,17 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
     expected_df = pd.DataFrame(
         {
             "onset": [7.9107, 10.8965],
-            "duration": [0.7058, 0.6720],
+            "duration": [0.5, 0.5],
             "trial_type": ["incongruentright", "congruentleft"],
-            "response": ["hit", "hit"],
+            "reaction_time": [0.7058, float("nan")],
+            "response": ["hit", "nan"],
         }
     )
 
     extractor = PresentationEventExtractor(
         log_or_df=filename,
         trial_types=["incongruentright", "congruentleft"],
-        convert_to_seconds=["Time"],
+        convert_to_seconds=["Time", "Duration"],
         scanner_event_type="Pulse",
         scanner_trigger_code="99",
     )
@@ -152,6 +155,7 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
     onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
     durations = extractor.extract_durations()
     trial_types = extractor.extract_trial_types()
+    reaction_times = extractor.extract_reaction_times()
     responses = extractor.extract_responses()
 
     df = pd.DataFrame(
@@ -159,6 +163,7 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
             "onset": onsets,
             "duration": durations,
             "trial_type": trial_types,
+            "reaction_time": reaction_times,
             "response": responses,
         }
     )
@@ -182,15 +187,14 @@ def test_EPrimeBlockExtractor(tmp_dir):
 
     _create_eprime_logfile(tmp_dir.name, "block")
 
-    expected_df = pd.DataFrame(
-        {
-            "onset": [0.0, 20.0],
-            "duration": [20.0, 20.0],
-            "trial_type": ["A", "B"],
-        }
-    )
-
     for column, scanner_start_time in [(None, 10.0), ("EndTime", None)]:
+        expected_df = pd.DataFrame(
+            {
+                "onset": [-1.0, 19.0] if column else [0.0, 20.0],
+                "duration": [20.0, 20.0],
+                "trial_type": ["A", "B"],
+            }
+        )
         extractor = EPrimeBlockExtractor(
             log_or_df=filename,
             trial_types=["A", "B"],
@@ -198,6 +202,8 @@ def test_EPrimeBlockExtractor(tmp_dir):
             procedure_column_name="Procedure",
             trigger_column_name=column,
             convert_to_seconds=["Data.OnsetTime", "EndTime"],
+            n_discarded_volumes=1 if column else 0,
+            tr=1 if column else None,
         )
 
         onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
@@ -224,7 +230,8 @@ def test_EPrimeEventExtractor(tmp_dir):
             "onset": [0.0, 10.0, 20.0, 30.0, 40.0],
             "duration": [1.0, 1.0, 1.0, 1.0, 1.0],
             "trial_type": ["A", "A", "B", "B", "Rest"],
-            "responses": [
+            "reaction_time": [0.5, 0.5, 0.5, 0.5, float("nan")],
+            "response": [
                 "correct",
                 "incorrect",
                 "correct",
@@ -241,12 +248,20 @@ def test_EPrimeEventExtractor(tmp_dir):
             onset_column_name="Data.OnsetTime",
             procedure_column_name="Procedure",
             trigger_column_name=column,
-            convert_to_seconds=["Data.OnsetTime", "Data.RT", "EndTime"],
+            convert_to_seconds=[
+                "Data.OnsetTime",
+                "Data.OffsetTime",
+                "Data.RT",
+                "EndTime",
+            ],
         )
 
         onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
-        durations = extractor.extract_durations(duration_column_name="Data.RT")
+        durations = extractor.extract_durations(offset_column_name="Data.OffsetTime")
         trial_types = extractor.extract_trial_types()
+        reaction_times = extractor.extract_reaction_times(
+            reaction_time_column_name="Data.RT"
+        )
         responses = extractor.extract_responses(accuracy_column_name="Data.ACC")
 
         df = pd.DataFrame(
@@ -254,7 +269,8 @@ def test_EPrimeEventExtractor(tmp_dir):
                 "onset": onsets,
                 "duration": durations,
                 "trial_type": trial_types,
-                "responses": responses,
+                "reaction_time": reaction_times,
+                "response": responses,
             }
         )
         assert_frame_equal(df, expected_df)

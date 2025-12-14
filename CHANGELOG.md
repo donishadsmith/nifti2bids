@@ -4,6 +4,11 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.6.0] - 2025-12-13
+- For PresentationEventExtractor, make duration the "Duration" column
+- For event extractors, create reaction time functions and improve logic
+- ``duration_column_name`` changed to ``offset_column_name``
+
 ## [0.5.0.post1] - 2025-12-12
 - Doc string fix
 

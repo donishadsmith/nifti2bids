@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Literal, Optional
 
 import pandas as pd
-import numpy as np
 
 from nifti2bids.logging import setup_logger
 from nifti2bids.io import _copy_file, glob_contents
@@ -390,8 +389,12 @@ class EventExtractor(LogExtractor):
     """Abstract Base Class for Event Extractors."""
 
     @abstractmethod
+    def extract_reaction_times(self):
+        """Extract reaction time for each trial."""
+
+    @abstractmethod
     def extract_responses(self):
-        """Extract responses for each trial."""
+        """Extract response for each trial."""
 
 
 class PresentationExtractor:
@@ -411,6 +414,8 @@ class PresentationExtractor:
         trial_column_name: str = "Code",
         convert_to_seconds: Optional[list[str]] = None,
         initial_column_headers: tuple[str] = ("Trial", "Event Type"),
+        n_discarded_volumes: int = 0,
+        tr: Optional[float | int] = None,
     ):
 
         df = _process_log_or_df(
@@ -433,7 +438,7 @@ class PresentationExtractor:
         if scanner_start_index_list:
             scanner_start_index = scanner_start_index_list[0]
             self.scanner_start_time = df.loc[scanner_start_index, "Time"]
-            df = df.loc[(scanner_start_index + 1) :, :]
+            df = df.loc[scanner_start_index:, :]
             self.df = df.reset_index(inplace=False)
         else:
             LGR.warning(
@@ -442,6 +447,21 @@ class PresentationExtractor:
             )
             self.scanner_start_time = None
             self.df = df
+
+        self.n_discarded_volumes = n_discarded_volumes
+        self.tr = tr
+        if self.n_discarded_volumes > 0:
+            if not self.tr:
+                raise ValueError(
+                    "``tr`` must be provided when ``n_discarded_volumes`` is greater than 0."
+                )
+
+            if not self.scanner_start_time:
+                raise ValueError(
+                    "``scanner_start_time`` is None so time shift cannot be added."
+                )
+
+            self.scanner_start_time += self.n_discarded_volumes * self.tr
 
     def _extract_onsets(
         self, row_indices: list[str], scanner_start_time: Optional[float | int]
@@ -516,6 +536,58 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
+    n_discarded_volumes: :obj:`int`, default=0
+        Number of non-steady state scans discarded by the scanner at the start of the sequence.
+
+        .. important::
+           - Only used when ``trigger_column_name`` is specified.
+           - Only set this parameter if scanner trigger is sent **before** these volumes are
+             acquired so that the start time of the first retained volume is shifted forward
+             by (``n_discarded_volumes * tr``). If the scanner sends trigger **after**
+             discarding the volumes, do not set this parameter.
+             `Explanation from Neurostars <https://neurostars.org/t/how-to-sync-time-from-e-prime-behavior-data-with-fmri/6887>`_.
+
+    tr: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        The repetition time provided in seconds if data was converted to seconds or
+        in ten thousand seconds if not converted.
+
+    Attributes
+    ----------
+    df: :obj:`pandas.DataFrame`
+        DataFrame containing the log data. If the scanner trigger is identified
+        using ``scanner_event_type`` and ``scanner_trigger_code``, then rows
+        preceeding the first scanner are dropped and the index is reset.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types.
+
+    scanner_event_type: :obj:`str`
+        Event type of scanner trigger.
+
+    scanner_trigger_code: :obj:`str`
+        Code for the scanner trigger.
+
+    trial_column_name: :obj:`str`
+        Name of column containing the trial types.
+
+    n_discarded_scans: :obj:`int`
+        Number of non-steady state scans discarded by scanner.
+
+    tr: :obj:`float`, :obj:`int`, or :obj:`None`
+        The repetition time.
+
+    scanner_start_time :obj:`float` or :obj:`None`
+        Time when scanner sends the pulse. If ``n_discarded_volumes``
+        is not 0 and ``tr`` is specified, then this time will be
+        shifted forward (``scanner_start_time = scanner_start_time + n_discarded_volumes * tr ``)
+        to reflect the time when the first steady state volume was retained. Otherwise, the time
+        extracted from the log data is assumed to be the time when the first steady state
+        volume was retained.
+
+    starting_block_indices: :obj:`list[int]`
+        The indices of when each trial block of interest (specified by ``trial_types``)
+        begins.
+
     Example
     -------
     >>> import pandas as pd
@@ -543,6 +615,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         trial_column_name="Code",
         convert_to_seconds=None,
         initial_column_headers=("Trial", "Event Type"),
+        n_discarded_volumes=0,
+        tr=None,
     ):
         super().__init__(
             log_or_df,
@@ -552,6 +626,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             trial_column_name,
             convert_to_seconds,
             initial_column_headers,
+            n_discarded_volumes,
+            tr,
         )
 
         self.starting_block_indices = _get_starting_block_indices(
@@ -657,7 +733,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
 class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     """
-    Extract onsets, durations, and trial types from Presentation logs using an event design.
+    Extract onsets, durations, trial types, reaction times, and responses
+    from Presentation logs using an event design.
 
     Parameters
     ----------
@@ -685,8 +762,8 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         Code listed under "Code" for the scanner start (e.g., "54", "99", "trigger).
         Used with ``scanner_event_type`` to compute the onset
         times of the trials relative to the scanner start time then
-        clip the dataframe to ensure that no trials
-        before the start of the scanner is initiated.
+        clip the dataframe to ensure that no trials before the start
+        of the scanner is initiated.
 
         .. note::
            Uses the first index of the rows in the dataframe with values
@@ -698,11 +775,65 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
-        .. important:: Recommend time resolution of the "Time" column to be converted.
+        .. important::
+           Recommend time resolution of the "Time" column and "Duration" column
+           to be converted.
 
     initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
+
+    n_discarded_volumes: :obj:`int`, default=0
+        Number of non-steady state scans discarded by the scanner at the start of the sequence.
+
+        .. important::
+           - Only used when ``trigger_column_name`` is specified.
+           - Only set this parameter if scanner trigger is sent **before** these volumes are
+             acquired so that the start time of the first retained volume is shifted forward
+             by (``n_discarded_volumes * tr``). If the scanner sends trigger **after**
+             discarding the volumes, do not set this parameter.
+             `Explanation from Neurostars <https://neurostars.org/t/how-to-sync-time-from-e-prime-behavior-data-with-fmri/6887>`_.
+
+    tr: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        The repetition time provided in seconds if data was converted to seconds or
+        in ten thousand seconds if not converted.
+
+    Attributes
+    ----------
+    df: :obj:`pandas.DataFrame`
+        DataFrame containing the log data. If the scanner trigger is identified
+        using ``scanner_event_type`` and ``scanner_trigger_code``, then rows
+        preceeding the first scanner are dropped and the index is reset.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types.
+
+    scanner_event_type: :obj:`str`
+        Event type of scanner trigger.
+
+    scanner_trigger_code: :obj:`str`
+        Code for the scanner trigger.
+
+    trial_column_name: :obj:`str`
+        Name of column containing the trial types.
+
+    n_discarded_scans: :obj:`int`
+        Number of non-steady state scans discarded by scanner.
+
+    tr: :obj:`float`, :obj:`int`, or :obj:`None`
+        The repetition time.
+
+    scanner_start_time :obj:`float` or :obj:`None`
+        Time when scanner sends the pulse. If ``n_discarded_volumes``
+        is not 0 and ``tr`` is specified, then this time will be
+        shifted forward (``scanner_start_time = scanner_start_time + n_discarded_volumes * tr ``)
+        to reflect the time when the first steady state volume was retained. Otherwise, the time
+        extracted from the log data is assumed to be the time when the first steady state
+        volume was retained.
+
+    event_trial_indices: :obj:`list[int]`
+        The indices of when each trial event of interest (specified by ``trial_types``)
+        begins.
 
     Example
     -------
@@ -715,10 +846,11 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     ...     scanner_trigger_code="99",
     ...     convert_to_seconds=["Time"],
     ... )
-    >>> events = {"onset": None, "duration": None, "trial_type": None, "response": None}
+    >>> events = {"onset": None, "duration": None, "trial_type": None, "reaction_time": None, "response": None}
     >>> events["onset"] = extractor.extract_onsets()
     >>> events["duration"] = extractor.extract_durations()
     >>> events["trial_type"] = extractor.extract_trial_types()
+    >>> events["reaction_time"] = extractor.extract_reaction_times()
     >>> events["response"] = extractor.extract_responses()
     >>> df = pd.DataFrame(events)
     """
@@ -732,6 +864,8 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         trial_column_name="Code",
         convert_to_seconds=None,
         initial_column_headers=("Trial", "Event Type"),
+        n_discarded_volumes=0,
+        tr=None,
     ):
         super().__init__(
             log_or_df,
@@ -741,6 +875,8 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
             trial_column_name,
             convert_to_seconds,
             initial_column_headers,
+            n_discarded_volumes,
+            tr,
         )
 
         trial_series = self.df.loc[
@@ -774,12 +910,12 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         """
         return self._extract_onsets(self.event_trial_indices, scanner_start_time)
 
-    def _extract_durations_and_responses(self) -> tuple[list[float], list[str]]:
+    def _extract_rt_and_responses(self) -> tuple[list[float], list[str]]:
         """
-        Extract durations and responses for each event.
+        Extracts and reaction time and responses for each event.
 
-        Duration is computed as the difference between the event stimulus
-        and the response. When no response is given, the duration is the
+        Reaction time is computed as the difference between the event stimulus
+        and the response. When no response is given, the reaction is the
         difference between the starting time of that trial and the starting
         time of the subsequent stimuli.
 
@@ -794,7 +930,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         reaction time is the difference between the starting time of that
         trial and the starting time of the subsequent stimuli.
         """
-        durations, responses = [], []
+        reaction_times, responses = [], []
         for row_indx in self.event_trial_indices:
             row = self.df.loc[row_indx, :]
             trial_num = row["Trial"]
@@ -802,34 +938,28 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
                 (self.df["Trial"] == trial_num) & (self.df["Event Type"] == "Response")
             ]
             if not response_row.empty:
-                duration = response_row.iloc[0]["Time"] - row["Time"]
+                reaction_time = float(response_row.iloc[0]["Time"] - row["Time"])
                 response = row["Stim Type"]
             else:
-                duration = self.df.loc[(row_indx + 1), "Time"] - row["Time"]
+                reaction_time = float("nan")
                 response = "nan"
 
-            durations.append(duration)
+            reaction_times.append(reaction_time)
             responses.append(response)
 
-        return durations, responses
+        return reaction_times, responses
 
     def extract_durations(self) -> list[float]:
         """
-        Extract the duration for each event.
-
-        Duration is computed as the difference between the event stimulus
-        and the response. When no response is given, the duration is the
-        difference between the starting time of that trial and the starting
-        time of the subsequent stimuli.
+        Extract the duration for each event. Will extract the duration from the
+        "Duration" column.
 
         Returns
         -------
         list[float]
             A list of durations for each event.
         """
-        durations, _ = self._extract_durations_and_responses()
-
-        return durations
+        return self.df.loc[self.event_trial_indices, "Duration"].tolist()
 
     def extract_trial_types(self) -> list[str]:
         """
@@ -841,6 +971,17 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
             A list of trial types for each event.
         """
         return self._extract_trial_types(self.event_trial_indices)
+
+    def extract_reaction_times(self) -> list[float]:
+        """
+        Extract the reaction time for each event.
+
+        Reaction time is computed as the difference between the trial onset and the time
+        the response if recorded. If no reponse is recorded, then the reaction time is NaN
+        """
+        reaction_times, _ = self._extract_rt_and_responses()
+
+        return reaction_times
 
     def extract_responses(self) -> list[str]:
         """
@@ -859,7 +1000,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         ----
         When no response is given the response will be assigned "nan".
         """
-        _, responses = self._extract_durations_and_responses()
+        _, responses = self._extract_rt_and_responses()
 
         return responses
 
@@ -881,6 +1022,8 @@ class EPrimeExtractor:
         trigger_column_name: Optional[None] = None,
         convert_to_seconds: Optional[list[str]] = None,
         initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+        n_discarded_volumes: int = 0,
+        tr: Optional[float | int] = None,
     ):
 
         self.df = _process_log_or_df(
@@ -901,6 +1044,21 @@ class EPrimeExtractor:
             )
         else:
             self.scanner_start_time = None
+
+        self.n_discarded_volumes = n_discarded_volumes
+        self.tr = tr
+        if self.n_discarded_volumes > 0:
+            if not self.tr:
+                raise ValueError(
+                    "``tr`` must be provided when ``n_discarded_volumes`` is greater than 0."
+                )
+
+            if not self.scanner_start_time:
+                raise ValueError(
+                    "``scanner_start_time`` is None so time shift cannot be added."
+                )
+
+            self.scanner_start_time += self.n_discarded_volumes * self.tr
 
     def _extract_onsets(
         self, row_indices: list[str], scanner_start_time: Optional[float | int]
@@ -943,10 +1101,10 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         The names of the trial types (i.e "congruentleft", "seen").
 
         .. note::
-            Depending on the way your Eprime data is structured, for block
-            design the rest block may have to be included as a "trial_type"
-            to compute the correct duration. These rows can then be dropped
-            from the events DataFrame.
+           Depending on the way your Eprime data is structured, for block
+           design the rest block may have to be included as a "trial_type"
+           to compute the correct duration. These rows can then be dropped
+           from the events DataFrame.
 
     onset_column_name: :obj:`str`
         The name of the column containing stimulus onset time.
@@ -970,6 +1128,56 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
+
+    n_discarded_volumes: :obj:`int`, default=0
+        Number of non-steady state scans discarded by the scanner at the start of the sequence.
+
+        .. important::
+           - Only used when ``trigger_column_name`` is specified.
+           - Only set this parameter if scanner trigger is sent **before** these volumes are
+             acquired so that the start time of the first retained volume is shifted forward
+             by (``n_discarded_volumes * tr``). If the scanner sends trigger **after**
+             discarding the volumes, do not set this parameter.
+             `Explanation from Neurostars <https://neurostars.org/t/how-to-sync-time-from-e-prime-behavior-data-with-fmri/6887>`_.
+
+    tr: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        The repetition time provided in seconds if data was converted to seconds or
+        in milliseconds if not converted.
+
+    Attributes
+    ----------
+    df: :obj:`pandas.DataFrame`
+        DataFrame containing the log data.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types.
+
+    onset_column_name: :obj:`str`
+        Name of column containing the onset time.
+
+    procedure_column_name: :obj:`str`
+        Name of column containing the trial types.
+
+    trigger_column_name :obj:`str` or :obj:`str`
+        Name of column containing time when scanner sent pulse/scanner start time.
+
+    n_discarded_scans: :obj:`int`
+        Number of non-steady state scans discarded by scanner.
+
+    tr: :obj:`float`, :obj:`int`, or :obj:`None`
+        The repetition time.
+
+    scanner_start_time :obj:`float` or :obj:`None`
+        Time when scanner sends the pulse. If ``n_discarded_volumes``
+        is not 0 and ``tr`` is specified, then this time will be
+        shifted forward (``scanner_start_time = scanner_start_time + n_discarded_volumes * tr ``)
+        to reflect the time when the first steady state volume was retained. Otherwise, the time
+        extracted from the log data is assumed to be the time when the first steady state
+        volume was retained.
+
+    starting_block_indices: :obj:`list[int]`
+        The indices of when each trial block of interest (specified by ``trial_types``)
+        begins.
 
     Example
     -------
@@ -999,6 +1207,8 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         trigger_column_name=None,
         convert_to_seconds=None,
         initial_column_headers=("ExperimentName", "Subject"),
+        n_discarded_volumes=0,
+        tr=None,
     ):
         super().__init__(
             log_or_df,
@@ -1008,6 +1218,8 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             trigger_column_name,
             convert_to_seconds,
             initial_column_headers,
+            n_discarded_volumes,
+            tr,
         )
 
         self.starting_block_indices = _get_starting_block_indices(
@@ -1108,7 +1320,8 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
 class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     """
-    Extract onsets, durations, and trial types from E-Prime 3 logs using an event design.
+    Extract onsets, durations, trial types, reaction times, and responses
+    from E-Prime 3 logs using an event design.
 
     Parameters
     ----------
@@ -1145,13 +1358,63 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         Convert the time resolution of the specified columns from milliseconds to seconds.
 
         .. important::
-           Recommend time resolution of the columns containing the onset time,
-           reaction time (duration), and scanner onset time (``trigger_column_name``)
+           Recommend time resolution of the columns containing the onset times,
+           offset times (duration), reaction times, and scanner onset time (``trigger_column_name``)
            be converted to seconds.
 
     initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
+
+    n_discarded_volumes: :obj:`int`, default=0
+        Number of non-steady state scans discarded by the scanner at the start of the sequence.
+
+        .. important::
+           - Only used when ``trigger_column_name`` is specified.
+           - Only set this parameter if scanner trigger is sent **before** these volumes are
+             acquired so that the start time of the first retained volume is shifted forward
+             by (``n_discarded_volumes * tr``). If the scanner sends trigger **after**
+             discarding the volumes, do not set this parameter.
+             `Explanation from Neurostars <https://neurostars.org/t/how-to-sync-time-from-e-prime-behavior-data-with-fmri/6887>`_.
+
+    tr: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        The repetition time provided in seconds if data was converted to seconds or
+        in milliseconds if not converted.
+
+    Attributes
+    ----------
+    df: :obj:`pandas.DataFrame`
+        DataFrame containing the log data.
+
+    trial_types: :obj:`tuple[str]`
+        The names of the trial types.
+
+    onset_column_name: :obj:`str`
+        Name of column containing the onset time.
+
+    procedure_column_name: :obj:`str`
+        Name of column containing the trial types.
+
+    trigger_column_name :obj:`str` or :obj:`str`
+        Name of column containing time when scanner sent pulse/scanner start time.
+
+    n_discarded_scans: :obj:`int`
+        Number of non-steady state scans discarded by scanner.
+
+    tr: :obj:`float`, :obj:`int`, or :obj:`None`
+        The repetition time.
+
+    scanner_start_time :obj:`float` or :obj:`None`
+        Time when scanner sends the pulse. If ``n_discarded_volumes``
+        is not 0 and ``tr`` is specified, then this time will be
+        shifted forward (``scanner_start_time = scanner_start_time + n_discarded_volumes * tr ``)
+        to reflect the time when the first steady state volume was retained. Otherwise, the time
+        extracted from the log data is assumed to be the time when the first steady state
+        volume was retained.
+
+    event_trial_indices: :obj:`list[int]`
+        The indices of when each trial event of interest (specified by ``trial_types``)
+        begins.
 
     Example
     -------
@@ -1163,12 +1426,13 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     ...     onset_column_name="Stimulus.OnsetTime",
     ...     procedure_column_name="Procedure",
     ...     trigger_start_time="EndTime",
-    ...     convert_to_seconds=["Stimulus.OnsetTime", "Stimulus.RT", "EndTime"],
+    ...     convert_to_seconds=["Stimulus.OnsetTime", "Stimulus.OffsetTime", "EndTime"],
     ... )
-    >>> events = {"onset": None, "duration": None, "trial_type": None, "response": None}
+    >>> events = {"onset": None, "duration": None, "trial_type": None, "reaction_time": None,  "response": None}
     >>> events["onset"] = extractor.extract_onsets()
-    >>> events["duration"] = extractor.extract_durations(duration_column_name="Stimulus.RT")
+    >>> events["duration"] = extractor.extract_durations(offset_column_name="Stimulus.OffsetTime")
     >>> events["trial_type"] = extractor.extract_trial_types()
+    >>> events["reaction_time"] = extractor.extract_reaction_times(reaction_time_column_name="Stimulus.RT")
     >>> events["response"] = extractor.extract_responses(accuracy_column_name="Stimulus.ACC")
     >>> df = pd.DataFrame(events)
     """
@@ -1182,6 +1446,8 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         trigger_column_name=None,
         convert_to_seconds=None,
         initial_column_headers=("ExperimentName", "Subject"),
+        n_discarded_volumes=0,
+        tr=None,
     ):
         super().__init__(
             log_or_df,
@@ -1191,6 +1457,8 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             trigger_column_name,
             convert_to_seconds,
             initial_column_headers,
+            n_discarded_volumes,
+            tr,
         )
 
         trial_series = self.df.loc[
@@ -1215,7 +1483,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             The scanner start time. Used to compute onset relative to
             the start of the scan.
 
-            .. note:: Does not need to be given if ``trigger_column_name`` was provided.
+            .. note:: Does not need to be given if ``trigger_column_name`` was set.
 
         Returns
         -------
@@ -1224,16 +1492,16 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         """
         return self._extract_onsets(self.event_trial_indices, scanner_start_time)
 
-    def extract_durations(self, duration_column_name: str) -> list[float]:
+    def extract_durations(self, offset_column_name: str) -> list[float]:
         """
         Extract the duration for each event.
 
-        Duration is typically the reaction time for event-related designs.
-
         Parameters
         ----------
-        duration_column_name: :obj:`str`
-            The name of the column containing the duration or reaction time.
+        offset_column_name: :obj:`str`
+            The name of the column containing the offset time of trial.
+            Duration is computed as the difference between the trial onset
+            time and the trial offset time.
 
         Returns
         -------
@@ -1241,7 +1509,8 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             A list of durations for each event.
         """
         return [
-            self.df.loc[index, duration_column_name]
+            self.df.loc[index, offset_column_name]
+            - self.df.loc[index, self.onset_column_name]
             for index in self.event_trial_indices
         ]
 
@@ -1255,6 +1524,15 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             A list of trial types for each event.
         """
         return self._extract_trial_types(self.event_trial_indices)
+
+    def extract_reaction_times(self, reaction_time_column_name: str) -> list[float]:
+        """
+        Extract the reaction time for each event.
+        """
+        return [
+            self.df.loc[index, reaction_time_column_name]
+            for index in self.event_trial_indices
+        ]
 
     def extract_responses(self, accuracy_column_name: str) -> list[str]:
         """
