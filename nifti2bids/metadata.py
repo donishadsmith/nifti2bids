@@ -865,7 +865,12 @@ def get_file_creation_date(path: str | Path, date_fmt: str) -> str:
     str
         File creation date.
     """
-    timestamp = Path(path).stat().st_birthtime
+    stat = Path(path).stat()
+    if hasattr(stat, "st_birthtime"):
+        timestamp = Path(path).stat().st_birthtime
+    else:
+        timestamp = Path(path).stat().st_ctime
+
     converted_timestamp = datetime.datetime.fromtimestamp(timestamp)
 
     return converted_timestamp.strftime(date_fmt)
