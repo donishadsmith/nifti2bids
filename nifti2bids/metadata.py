@@ -686,6 +686,9 @@ def create_slice_timing(
     Parker, David, et al. "Optimal Slice Timing Correction and Its Interaction with
     FMRI Parameters and Artifacts." Medical Image Analysis, vol. 35, Jan. 2017, pp. 434–445,
     https://doi.org/10.1016/j.media.2016.08.006. Accessed 28 Jan. 2022.
+
+    SPM/Slice Timing - Wikibooks, open books for an open world. (2022). Wikibooks.org.
+    https://en.wikibooks.org/wiki/SPM/Slice_Timing
     """
     slice_ordering_func = {
         "sequential": _create_sequential_order,

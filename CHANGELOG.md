@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.6.2.post1] - 2025-12-14
+- Add doc string resource
+
 ## [0.6.2] - 2025-12-14
 - Datetime fix for older Python versions
 
