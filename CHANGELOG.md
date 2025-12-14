@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.6.2.post2] - 2025-12-14
+- Clean doc string
+
 ## [0.6.2.post1] - 2025-12-14
 - Add doc string resource
 

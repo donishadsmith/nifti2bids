@@ -602,6 +602,8 @@ def create_slice_timing(
     Create slice timing dictionary mapping the slice index to its
     acquisition time.
 
+    .. important:: For Philips, single-package is assumed.
+
     Parameters
     ----------
     nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
@@ -616,15 +618,12 @@ def create_slice_timing(
         determines the slice axis using metadata ("slice_end")
         from the NIfTI header.
 
-    slice_acquisition_method: :obj:`Literal["sequential", "interleaved", "central"]`, default="interleaved"
+    slice_acquisition_method: :obj:`Literal["sequential", "interleaved", "central", "reversed_central"]`, default="interleaved"
         Method used for acquiring slices.
 
         .. note::
            - "interleaved" is the common interleaving pattern (e.g [0, 2, 4, 6, 1, 3, 5, 7]),
-             which is also equivalent to Philips' "default". The "interleaved_sqrt_step"
-             is an method where slices are acquired by a step factor equivalent
-             to the rounded square root of the total slices (this method is Philips' "interleaved"
-             mode).
+             which is also equivalent to Philips' "default".
 
            - "central" is an order for Philips scanners that collect the middle slice first,
              then the remaining slices are selected in a ping pong order (e.g. [2, 1, 3, 0, 4] or
@@ -646,8 +645,8 @@ def create_slice_timing(
         If slices for interleaved acquisition were collected by acquiring the
         "even" or "odd" slices first. For "philips" (the interleaved implementation
         by Philips'), slices are acquired by a step factor equivalent to the rounded
-        square root of the total slices.
-        mode).
+        square root of the total slices mode (e.g. [0, 3, 6, 9, 1, 4, 7, 2, 5, 8];
+        rounded sqrt of 10 is 3).
 
         .. important::
            Philips' "default" mode is equivalent to "interleave" with the pattern
