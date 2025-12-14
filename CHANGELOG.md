@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.6.1] - 2025-12-14
+- New function to get file creation date
+
 ## [0.6.0] - 2025-12-13
 - For PresentationEventExtractor, make duration the "Duration" column
 - For event extractors, create reaction time functions and improve logic

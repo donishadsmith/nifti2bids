@@ -812,7 +812,7 @@ def parse_date_from_path(path: str | Path, date_fmt: str) -> str | None:
     Parameters
     ----------
     path: :obj:`str` or :obj:`Path`
-        The absolute path or name of file or folder.
+        The absolute path, name of file, or folder.
 
     date_fmt: :obj:`str`
         The expected format of the date.
@@ -846,6 +846,29 @@ def parse_date_from_path(path: str | Path, date_fmt: str) -> str | None:
             break
 
     return date_str
+
+
+def get_file_creation_date(path: str | Path, date_fmt: str) -> str:
+    """
+    Get creation date of a file
+
+    Parameters
+    ----------
+    path: :obj:`str` or :obj:`Path`
+        Path to file.
+
+    date_fmt: :obj:`str`
+        The expected format of the date.
+
+    Returns
+    -------
+    str
+        File creation date.
+    """
+    timestamp = Path(path).stat().st_birthtime
+    converted_timestamp = datetime.datetime.fromtimestamp(timestamp)
+
+    return converted_timestamp.strftime(date_fmt)
 
 
 def get_entity_value(filename: str | Path, entity: str) -> str | None:
