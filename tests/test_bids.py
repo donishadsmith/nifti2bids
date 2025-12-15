@@ -106,23 +106,57 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
 
     extractor = PresentationBlockExtractor(
         log_or_df=filename,
-        trial_types=["indoor"],
+        block_cue_codes=["indoor"],
         convert_to_seconds=["Time"],
         scanner_event_type="Pulse",
         scanner_trigger_code="99",
         n_discarded_volumes=1 if scanner_start_time is None else 0,
         tr=1 if scanner_start_time is None else None,
+        rest_block_code="rest",
+        quit_code="quit",
     )
 
     scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
     onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
-    durations = extractor.extract_durations(rest_block_code="rest", quit_code="quit")
+    durations = extractor.extract_durations()
     trial_types = extractor.extract_trial_types()
 
     df = pd.DataFrame(
         {"onset": onsets, "duration": durations, "trial_type": trial_types}
     )
     assert_frame_equal(df, expected_df)
+
+
+def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
+    """Test for ``PresentationBlockExtractor.extract_mean_reaction_times`` and ``extract_mean_accuracies``."""
+    filename = Path(tmp_dir.name) / "block.txt"
+    _create_presentation_logfile(tmp_dir.name, "block")
+
+    extractor = PresentationBlockExtractor(
+        log_or_df=filename,
+        block_cue_codes=["indoor"],
+        convert_to_seconds=["Time"],
+        scanner_event_type="Pulse",
+        scanner_trigger_code="99",
+        rest_block_code="rest",
+        quit_code="quit",
+    )
+
+    mean_rts = extractor.extract_mean_reaction_times()
+    assert len(mean_rts) == 2
+    # Block 1: Mean = (1.5 + 1.2 + 1.6 + 1.1) / 4 = 1.35s
+    assert mean_rts[0] == pytest.approx(1.35, rel=1e-2)
+    # Block 2: Mean = (1.5 + 1.1 + 1.6) / 3 = 1.400s
+    assert mean_rts[1] == pytest.approx(1.400, rel=1e-2)
+
+    # Test mean accuracies
+    response_map = {"hit": 1, "miss": 0}
+    mean_accs = extractor.extract_mean_accuracies(response_map=response_map)
+    assert len(mean_accs) == 2
+    # Block 1
+    assert mean_accs[0] == 1.0
+    # Block 2 is missing one response (1 + 1 + 1 + 0) = 0.75
+    assert mean_accs[1] == 0.75
 
 
 @pytest.mark.parametrize("scanner_start_time", [None, 94621])
@@ -139,7 +173,8 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
             "duration": [0.5, 0.5],
             "trial_type": ["incongruentright", "congruentleft"],
             "reaction_time": [0.7058, float("nan")],
-            "response": ["hit", "nan"],
+            "response": ["hit", float("nan")],
+            "accuracy": [1, float("nan")],
         }
     )
 
@@ -157,6 +192,7 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
     trial_types = extractor.extract_trial_types()
     reaction_times = extractor.extract_reaction_times()
     responses = extractor.extract_responses()
+    accuracies = extractor.extract_accuracies({"hit": 1})
 
     df = pd.DataFrame(
         {
@@ -165,6 +201,7 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
             "trial_type": trial_types,
             "reaction_time": reaction_times,
             "response": responses,
+            "accuracy": accuracies,
         }
     )
     assert_frame_equal(df, expected_df)
@@ -197,24 +234,67 @@ def test_EPrimeBlockExtractor(tmp_dir):
         )
         extractor = EPrimeBlockExtractor(
             log_or_df=filename,
-            trial_types=["A", "B"],
+            block_cue_codes=["A", "B"],
             onset_column_name="Data.OnsetTime",
             procedure_column_name="Procedure",
             trigger_column_name=column,
             convert_to_seconds=["Data.OnsetTime", "EndTime"],
             n_discarded_volumes=1 if column else 0,
             tr=1 if column else None,
+            rest_block_code="Rest",
+            rest_code_frequency="variable",
         )
 
         onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
-        durations = extractor.extract_durations(
-            rest_block_code="Rest", rest_code_frequency="variable"
-        )
+        durations = extractor.extract_durations()
         trial_types = extractor.extract_trial_types()
         df = pd.DataFrame(
             {"onset": onsets, "duration": durations, "trial_type": trial_types}
         )
         assert_frame_equal(df, expected_df)
+
+
+def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
+    """
+    Test for ``extract_mean_reaction_times`` and ``extract_mean_accuracies`` in
+    ``EPrimeBlockExtractor``."""
+    filename = Path(tmp_dir.name) / "block.txt"
+    _create_eprime_logfile(tmp_dir.name, "block")
+
+    extractor = EPrimeBlockExtractor(
+        log_or_df=filename,
+        block_cue_codes=["A", "B"],
+        onset_column_name="Data.OnsetTime",
+        procedure_column_name="Procedure",
+        trigger_column_name="EndTime",
+        convert_to_seconds=["Data.OnsetTime", "Data.RT", "EndTime"],
+        rest_block_code="Rest",
+        rest_code_frequency="variable",
+    )
+
+    mean_rts = extractor.extract_mean_reaction_times(
+        reaction_time_column_name="Data.RT",
+        subject_response_column="Data.RESP",
+        correct_response_column="Data.CRESP",
+        response_type="correct",
+        response_trial_codes=("A", "B"),
+    )
+    assert len(mean_rts) == 2
+    # Block A
+    assert mean_rts[0] == 0.5
+    # Block B
+    assert mean_rts[1] == 0.5
+
+    mean_accs = extractor.extract_mean_accuracies(
+        subject_response_column="Data.RESP",
+        correct_response_column="Data.CRESP",
+        response_trial_codes=("A", "B"),
+    )
+    assert len(mean_accs) == 2
+    # Block A
+    assert mean_accs[0] == 0.5
+    # Block B
+    assert mean_accs[1] == 1.0
 
 
 def test_EPrimeEventExtractor(tmp_dir):
@@ -231,13 +311,7 @@ def test_EPrimeEventExtractor(tmp_dir):
             "duration": [1.0, 1.0, 1.0, 1.0, 1.0],
             "trial_type": ["A", "A", "B", "B", "Rest"],
             "reaction_time": [0.5, 0.5, 0.5, 0.5, float("nan")],
-            "response": [
-                "correct",
-                "incorrect",
-                "correct",
-                "correct",
-                "nan",
-            ],
+            "response": [1, 0, 1, 1, 1],
         }
     )
 
@@ -262,7 +336,10 @@ def test_EPrimeEventExtractor(tmp_dir):
         reaction_times = extractor.extract_reaction_times(
             reaction_time_column_name="Data.RT"
         )
-        responses = extractor.extract_responses(accuracy_column_name="Data.ACC")
+        responses = extractor.extract_accuracies(
+            subject_response_column="Data.RESP",
+            correct_response_column="Data.CRESP",
+        )
 
         df = pd.DataFrame(
             {

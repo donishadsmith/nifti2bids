@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Literal, Optional
 
 import pandas as pd
+import numpy as np
 
 from ._constants import EDATAAID_PATH, EDATAAID_CONTROL_FILE
 
@@ -140,8 +141,8 @@ def convert_edat3_to_text(
     return dst_path if return_dst_path else None
 
 
-def _is_float(value) -> bool:
-    """Checks if value is a float."""
+def _is_float(value: str) -> bool:
+    """Checks if string value is a float."""
     try:
         float(value)
         return True
@@ -246,6 +247,7 @@ def load_eprime_log(
     ), "`log_filepath` cannot be a file with the '.edat3' extension."
 
     df = _text_to_df(log_filepath, initial_column_headers)
+    df.replace("", np.nan, inplace=True)
 
     return (
         df
@@ -291,6 +293,7 @@ def load_presentation_log(
     Data is assumed to to contain at least one digit or float (which includes NaN).
     """
     df = _text_to_df(log_filepath, initial_column_headers)
+    df.replace("", np.nan, inplace=True)
 
     return (
         df
