@@ -4,9 +4,11 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
-## [0.7.0] - 2025-12-14
+## [0.7.0] - 2025-12-15
 - Change ``trial_types`` parameters to ``block_cue_codes`` for block extractors
 - Compute mean accuracy and reaction times for blocks
+- Add accuracy to Presentation event extractor
+- Change ``extract_responses`` to ``extract_accuracies`` for E-Prime event extractor
 - Fix issue when scanner start time is 0
 
 ## [0.6.2.post2] - 2025-12-14
