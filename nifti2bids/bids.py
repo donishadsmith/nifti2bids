@@ -78,7 +78,7 @@ def create_bids_file(
     There are additional entities that can be used that are
     not included in this function.
     """
-    bids_filename = f"sub-{subj_id}_ses-{ses_id}_task-{task_id}_" f"run-{run_id}_{desc}"
+    bids_filename = f"sub-{subj_id}_ses-{ses_id}_task-{task_id}_run-{run_id}_{desc}"
     bids_filename = _strip_none_entities(bids_filename)
 
     ext = f"{str(src_file).partition('.')[-1]}"
