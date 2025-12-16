@@ -21,7 +21,7 @@ LGR = setup_logger(__name__)
 
 
 def create_bids_file(
-    nifti_file: str | Path,
+    src_file: str | Path,
     subj_id: str | int,
     desc: str,
     ses_id: Optional[str | int] = None,
@@ -36,8 +36,8 @@ def create_bids_file(
 
     Parameters
     ----------
-    nifti_file: :obj:`str` or :obj:`Path`
-        Path to NIfTI image.
+    src_file: :obj:`str` or :obj:`Path`
+        Path to the source file.
 
     sub_id: :obj:`str` or :obj:`int`
         Subject ID (i.e. 01, 101, etc).
@@ -81,15 +81,15 @@ def create_bids_file(
     bids_filename = f"sub-{subj_id}_ses-{ses_id}_task-{task_id}_" f"run-{run_id}_{desc}"
     bids_filename = _strip_none_entities(bids_filename)
 
-    ext = f"{str(nifti_file).partition('.')[-1]}"
+    ext = f"{str(src_file).partition('.')[-1]}"
     bids_filename += f"{ext}"
     bids_filename = (
-        Path(nifti_file).parent / bids_filename
+        Path(src_file).parent / bids_filename
         if dst_dir is None
         else Path(dst_dir) / bids_filename
     )
 
-    _copy_file(nifti_file, bids_filename, remove_src_file)
+    _copy_file(src_file, bids_filename, remove_src_file)
 
     return bids_filename if return_bids_filename else None
 
