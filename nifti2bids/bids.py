@@ -247,12 +247,14 @@ def _process_log_or_df(
         )
     elif convert_to_seconds:
         df = _convert_time(
-            log_or_df, convert_to_seconds=convert_to_seconds, divisor=divisor
+            log_or_df.copy(deep=True),
+            convert_to_seconds=convert_to_seconds,
+            divisor=divisor,
         )
     else:
         df = log_or_df
 
-    return df.replace("", np.nan, inplace=False).copy(deep=True)
+    return df.replace("", np.nan, inplace=False)
 
 
 def _get_starting_block_indices(

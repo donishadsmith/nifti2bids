@@ -88,6 +88,35 @@ def _create_presentation_logfile(dst_dir, design):
             file.write("\t".join(line) + "\n")
 
 
+def test_dataframe_copy():
+    """Test to ensure original dataframe is not modified"""
+    from nifti2bids.bids import _process_log_or_df
+    from pandas.testing import assert_frame_equal
+
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [5, 6, 7]})
+    new_df = _process_log_or_df(
+        df,
+        convert_to_seconds=["A"],
+        initial_column_headers=None,
+        divisor=10,
+        software=None,
+    )
+
+    assert df["A"].values.tolist() == [1, 2, 3]
+    assert new_df["A"].values.tolist() == [0.1, 0.2, 0.3]
+    assert not id(df) == id(new_df)
+
+    new_df = _process_log_or_df(
+        df,
+        convert_to_seconds=None,
+        initial_column_headers=None,
+        divisor=None,
+        software=None,
+    )
+
+    assert not id(df) == id(new_df)
+
+
 @pytest.mark.parametrize("scanner_start_time", [None, 10000])
 def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
     """Test for ``PresentationBlockExtractor``."""
