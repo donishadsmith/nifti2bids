@@ -81,7 +81,7 @@ def convert_edat3_to_text(
     dst_path: Optional[str | Path] = None,
     format: Literal["csv", "tsv"] = "csv",
     return_dst_path: bool = False,
-) -> str | None:
+) -> Path | None:
     """
     Converts a file with an "edat3" extension to a text file.
 
@@ -106,7 +106,7 @@ def convert_edat3_to_text(
 
     Returns
     -------
-    str or None
+    Path or None
         Returns the destination path if ``return_dst_path`` is True.
     """
     assert (
@@ -138,7 +138,7 @@ def convert_edat3_to_text(
 
     Path(tmpfile.name).unlink()
 
-    return dst_path if return_dst_path else None
+    return Path(dst_path) if return_dst_path else None
 
 
 def _is_float(value: str) -> bool:
