@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.7.1] - 2025-12-15
+- Add ability for blocks to start at cue or stimulus for onset and duration
+
 ## [0.7.0] - 2025-12-15
 - Change ``trial_types`` parameters to ``block_cue_codes`` for block extractors
 - Compute mean accuracy and reaction times for blocks

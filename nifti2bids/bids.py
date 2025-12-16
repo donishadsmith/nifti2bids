@@ -472,7 +472,10 @@ class PresentationExtractor:
             self.scanner_start_time += self.n_discarded_volumes * self.tr
 
     def _extract_onsets(
-        self, row_indices: list[str], scanner_start_time: Optional[float | int]
+        self,
+        row_indices: list[str],
+        scanner_start_time: Optional[float | int],
+        start_at_cue: bool = True,
     ) -> list[float]:
         """Extract onset times for each block or event."""
         if scanner_start_time is not None:
@@ -485,8 +488,9 @@ class PresentationExtractor:
                 "did not identify a time."
             )
 
+        row_shift = 0 if start_at_cue else 1
         return [
-            self.df.loc[index, "Time"] - self.scanner_start_time
+            self.df.loc[index + row_shift, "Time"] - self.scanner_start_time
             for index in row_indices
         ]
 
@@ -691,7 +695,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         )
 
     def extract_onsets(
-        self, scanner_start_time: Optional[float | int] = None
+        self,
+        scanner_start_time: Optional[float | int] = None,
+        start_at_cue: bool = True,
     ) -> list[float]:
         """
         Extract the onset times for each event.
@@ -709,28 +715,42 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
                the ``self.scanner_event_code`` and ``self.scanner_trigger_code`` does
                not return an index.
 
+        start_at_cue: :obj:`bool`, default=True
+            Onset timing for block starts at the cue if True. If False, onset timing
+            starts at first stimulus (assumed to be one row down).
+
         Returns
         -------
         list[float]
             A list of onset times for each block.
         """
-        return self._extract_onsets(self.starting_block_indices, scanner_start_time)
+        return self._extract_onsets(
+            self.starting_block_indices, scanner_start_time, start_at_cue
+        )
 
-    def extract_durations(self) -> list[float]:
+    def extract_durations(self, start_at_cue: bool = True) -> list[float]:
         """
         Extract the duration for each block.
 
         Duration is computed as the difference between the start of the block
         and the start of the next block (either a rest block or some task block).
 
+        Parameters
+        ----------
+        start_at_cue: :obj:`bool`, default=True
+            Duration of a block is the difference between the start of the block cues if True.
+            If False, duration is the difference between the start of the first stimulus
+            (assumed to be one row down) and the subsequent cue.
+
         Returns
         -------
         list[float]
             A list of durations for each block.
         """
+        row_shift = 0 if start_at_cue else 1
         durations = []
         for block_start_indx in self.starting_block_indices:
-            block_start_row = self.df.loc[block_start_indx, :]
+            block_start_row = self.df.loc[block_start_indx + row_shift, :]
             block_end_indx = _get_next_block_index(
                 trial_series=self.df[self.trial_column_name],
                 block_start_indx=block_start_indx,
@@ -1331,7 +1351,10 @@ class EPrimeExtractor:
             self.scanner_start_time += self.n_discarded_volumes * self.tr
 
     def _extract_onsets(
-        self, row_indices: list[str], scanner_start_time: Optional[float | int]
+        self,
+        row_indices: list[str],
+        scanner_start_time: Optional[float | int],
+        start_at_cue: bool = True,
     ) -> list[float]:
         """Extract onset times for each block or event."""
         if scanner_start_time is not None:
@@ -1343,8 +1366,10 @@ class EPrimeExtractor:
                 "or due to a non-NaN value could not be extracted from ``trigger_column_name``."
             )
 
+        row_shift = 0 if start_at_cue else 1
         return [
-            self.df.loc[index, self.onset_column_name] - self.scanner_start_time
+            self.df.loc[index + row_shift, self.onset_column_name]
+            - self.scanner_start_time
             for index in row_indices
         ]
 
@@ -1547,7 +1572,9 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         )
 
     def extract_onsets(
-        self, scanner_start_time: Optional[float | int] = None
+        self,
+        scanner_start_time: Optional[float | int] = None,
+        start_at_cue: bool = True,
     ) -> list[float]:
         """
         Extract the onset times for each block.
@@ -1563,28 +1590,42 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
             .. note:: Does not need to be given if ``trigger_column_name`` was provided.
 
+        start_at_cue: :obj:`bool`, default=True
+            Onset timing for block starts at the cue if True. If False, onset timing
+            starts at first stimulus (assumed to be one row down).
+
         Returns
         -------
         list[float]
             A list of onset times for each block.
         """
-        return self._extract_onsets(self.starting_block_indices, scanner_start_time)
+        return self._extract_onsets(
+            self.starting_block_indices, scanner_start_time, start_at_cue
+        )
 
-    def extract_durations(self) -> list[float]:
+    def extract_durations(self, start_at_cue: bool = True) -> list[float]:
         """
         Extract the duration for each block.
 
         Duration is computed as the difference between the start of the block
         and the start of the next block (either a rest block or some task block).
 
+        Parameters
+        ----------
+        start_at_cue: :obj:`bool`, default=True
+            Duration of a block is the difference between the start of the block cues if True.
+            If False, duration is the difference between the start of the first stimulus
+            (assumed to be one row down) and the subsequent cue.
+
         Returns
         -------
         list[float]
             A list of durations for each block.
         """
+        row_shift = 0 if start_at_cue else 1
         durations = []
         for block_start_indx in self.starting_block_indices:
-            block_start_row = self.df.loc[block_start_indx, :]
+            block_start_row = self.df.loc[block_start_indx + row_shift, :]
             block_end_indx = _get_next_block_index(
                 trial_series=self.df[self.procedure_column_name],
                 block_start_indx=block_start_indx,
