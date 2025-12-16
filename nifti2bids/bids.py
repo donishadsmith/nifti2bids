@@ -252,7 +252,7 @@ def _process_log_or_df(
     else:
         df = log_or_df
 
-    return df.replace("", np.nan, inplace=False)
+    return df.replace("", np.nan, inplace=False).copy(deep=True)
 
 
 def _get_starting_block_indices(

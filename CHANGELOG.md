@@ -6,6 +6,7 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 ## [0.7.3] - 2025-12-16
 - Fix ``convert_edat3_to_text`` not returning path
+- Fix dataframe copy issue
 
 ## [0.7.2] - 2025-12-16
 - Update parameter name for create bids file
