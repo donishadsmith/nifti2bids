@@ -45,6 +45,8 @@ def _has_handler(logger):
 
     Checks the root logger and module logger.
 
+    Parameters
+    ----------
     logger: :obj:`Logger`
         A logging object.
 
