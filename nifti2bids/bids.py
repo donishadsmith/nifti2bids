@@ -1191,10 +1191,6 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         -------
         tuple[list[float], list[str]]
             A tuple containing a list of durations and a list of responses.
-
-        Note
-        ----
-        When no response is given the response will be assigned "nan".
         """
         reaction_times, responses = [], []
         for row_indx in self.event_trial_indices:
@@ -1208,7 +1204,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
                 response = row["Stim Type"]
             else:
                 reaction_time = float("nan")
-                response = float("nan")
+                response = row["Stim Type"]
 
             reaction_times.append(reaction_time)
             responses.append(response)
@@ -1257,18 +1253,10 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         """
         Extract the response for each event.
 
-        .. important::
-           NaN means that no response was recorded for the trial
-           (i.e. "miss").
-
         Returns
         -------
         list[str]
             A list of responses for each event.
-
-        Note
-        ----
-        When no response is given the response will be assigned "nan".
         """
         _, responses = self._extract_rt_and_responses()
 
@@ -1276,22 +1264,22 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
 
     def extract_accuracies(
         self,
-        response_map: dict[str, int],
-    ) -> list[int]:
+        response_map: dict[str, int | str],
+    ) -> list[int] | list[str]:
         """
         Extract the accuracy (correct or incorrect) for each event.
 
         Parameters
         ----------
-        response_map: :obj:`dict[str, int]`
+        response_map: :obj:`dict[str, int | str]`
             A dictionary mapping response codes, from "Stim Type" column
             (ie. "hit", "miss", "other", "false alarm", "incorrect"), to accuracy
-            values (0 for incorrect, 1 for correct).
+            values (e.g., 0 for incorrect, 1 for correct).
 
         Returns
         -------
-        list[int]
-            A list of accuracy values for each event (0 = incorrect, 1 = correct).
+        list[int] or list[str]
+            A list of accuracy values for each event (e.g., 0 = incorrect, 1 = correct).
         """
         _, responses = self._extract_rt_and_responses()
 

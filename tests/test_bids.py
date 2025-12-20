@@ -202,8 +202,8 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
             "duration": [0.5, 0.5],
             "trial_type": ["incongruentright", "congruentleft"],
             "reaction_time": [0.7058, float("nan")],
-            "response": ["hit", float("nan")],
-            "accuracy": [1, float("nan")],
+            "response": ["hit", "miss"],
+            "accuracy": [1, 0],
         }
     )
 
@@ -221,7 +221,7 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
     trial_types = extractor.extract_trial_types()
     reaction_times = extractor.extract_reaction_times()
     responses = extractor.extract_responses()
-    accuracies = extractor.extract_accuracies({"hit": 1})
+    accuracies = extractor.extract_accuracies({"hit": 1, "miss": 0})
 
     df = pd.DataFrame(
         {

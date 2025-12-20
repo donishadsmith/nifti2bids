@@ -4,6 +4,10 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.7.5] - 2025-12-19
+- For `PresentationBlockExtractor`, return the response as recorded by
+Presentation regardless if participant responded or not.
+
 ## [0.7.4] - 2025-12-16
 - Fix dataframe copy issue
 
