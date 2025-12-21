@@ -8,6 +8,7 @@ from typing import Iterable, Literal, Optional
 import pandas as pd
 import numpy as np
 
+from nifti2bids._helpers import iterable_to_str
 from nifti2bids.logging import setup_logger
 from nifti2bids.io import _copy_file, glob_contents
 from nifti2bids.parsers import (
@@ -282,7 +283,7 @@ def _validate_no_cue_conflicts(
 
     if conflicting_codes:
         raise ValueError(
-            f"Conflicting codes found: {conflicting_codes}. "
+            f"Conflicting codes found: {iterable_to_str(conflicting_codes)}. "
             "A code cannot be in 'block_cue_names' and also be assigned to "
             "``rest_block_code`` or ``quit_code``. To include rest/quit "
             "intervals in the output, add them to ``block_cue_names`` instead."
@@ -2706,3 +2707,85 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             responses.append(response)
 
         return responses
+
+
+def add_instruction_timing(
+    event_df: pd.DataFrame,
+    instruction_duration: int | float,
+    instruction_suffix: str = "_instruction",
+    exclude_trial_types: Optional[Iterable[str]] = None,
+) -> pd.DataFrame:
+    """
+    Add instruction trials to a BIDS compliant events DataFrame.
+
+    Splits each trial into an instruction period and a task period by creating
+    a new instruction row before each trial. The instruction row has the specified
+    duration, and the task row's onset is shifted forward and duration reduced
+    accordingly.
+
+    Parameters
+    ----------
+    event_df: :obj:`pd.DataFrame`
+        A BIDS compliant events DataFrame. Must contain "onset", "duration",
+        and "trial_type" columns.
+
+    instruction_duration: :obj:`int` or :obj:`float`
+        Duration of the instruction trial to add before each trial type.
+
+    instruction_suffix: :obj:`str`, default="_instruction"
+        Suffix to append to trial type names for instruction trials.
+
+    exclude_trial_types: :obj:`Iterable[str]` or :obj:`None`, default=None
+        Trial types to exclude from instruction splitting. These trials
+        will be kept as-is without an instruction trial added.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A new DataFrame with instruction trials added, sorted by onset.
+
+    Note
+    ----
+    For instruction trials, all columns other than "onset", "duration", and
+    "trial_type" are set to NaN.
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>> from nifti2bids.bids import add_instruction_timing
+    >>> events_df = pd.DataFrame({
+    ...     "onset": [0.0, 10.0, 20.0],
+    ...     "duration": [10.0, 10.0, 10.0],
+    ...     "trial_type": ["Face", "Place", "Rest"],
+    ... })
+    >>> new_events_df = add_instruction_timing(
+    ...     events_df,
+    ...     instruction_duration=2.0,
+    ...     exclude_trial_types=["Rest"],
+    ... )
+    >>> print(new_events_df)
+    """
+    required_columns = ("onset", "duration", "trial_type")
+    if not all(col in event_df.columns for col in required_columns):
+        raise ValueError(
+            f"`event_df` must contain the following columns: {iterable_to_str(required_columns)}."
+        )
+
+    exclude_trial_types = list(exclude_trial_types) if exclude_trial_types else []
+
+    mask = ~event_df["trial_type"].isin(exclude_trial_types)
+    trials_to_split = event_df[mask].copy()
+    trials_to_keep = event_df[~mask].copy()
+
+    instructions = trials_to_split.copy()
+    instructions["duration"] = instruction_duration
+    instructions["trial_type"] = instructions["trial_type"] + instruction_suffix
+    instructions[trials_to_split.columns.difference(required_columns)] = float("nan")
+
+    tasks = trials_to_split.copy()
+    tasks["onset"] = tasks["onset"] + instruction_duration
+    tasks["duration"] = tasks["duration"] - instruction_duration
+
+    new_df = pd.concat([instructions, tasks, trials_to_keep], ignore_index=True)
+
+    return new_df.sort_values(by="onset").reset_index(inplace=False, drop=True)

@@ -11,6 +11,7 @@ from nifti2bids.bids import (
     PresentationEventExtractor,
     EPrimeBlockExtractor,
     EPrimeEventExtractor,
+    add_instruction_timing,
 )
 from ._constants import (
     BLOCK_PRESENTATION_DATA_NO_CUE,
@@ -507,3 +508,48 @@ def test_EPrimeEventExtractor(tmp_dir):
             }
         )
         assert_frame_equal(df, expected_df)
+
+
+def test_add_instruction_timing():
+    """Test for ``add_instruction_timing``."""
+    from pandas.testing import assert_frame_equal
+
+    events_df = pd.DataFrame(
+        {
+            "onset": [0.0, 10.0, 20.0],
+            "duration": [10.0, 10.0, 10.0],
+            "trial_type": ["Face", "Place", "Rest"],
+        }
+    )
+
+    new_events_df = add_instruction_timing(
+        events_df,
+        instruction_duration=2.0,
+        exclude_trial_types=["Rest"],
+    )
+
+    expected_df = pd.DataFrame(
+        {
+            "onset": [0.0, 2.0, 10.0, 12.0, 20.0],
+            "duration": [2.0, 8.0, 2.0, 8.0, 10.0],
+            "trial_type": [
+                "Face_instruction",
+                "Face",
+                "Place_instruction",
+                "Place",
+                "Rest",
+            ],
+        }
+    )
+
+    assert_frame_equal(new_events_df, expected_df)
+
+    events_df_missing = pd.DataFrame(
+        {
+            "onset": [0.0, 10.0],
+            "trial_type": ["Face", "Place"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="must contain"):
+        add_instruction_timing(events_df_missing, instruction_duration=2.0)

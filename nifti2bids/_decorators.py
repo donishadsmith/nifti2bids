@@ -4,7 +4,7 @@ import functools, inspect
 
 from typing import Any, Callable, Optional
 
-from ._helpers import list_to_str
+from ._helpers import iterable_to_str
 from .io import get_nifti_header
 
 
@@ -33,7 +33,7 @@ def check_all_none(parameter_names: list[str]) -> Callable:
             raise NameError(
                 "Error in ``parameter_names`` of decorator. The following "
                 f"parameters are not in the signature of '{func.__name__}': "
-                f"{list_to_str(invalid_params)}."
+                f"{iterable_to_str(invalid_params)}."
             )
 
         @functools.wraps(func)
@@ -44,7 +44,7 @@ def check_all_none(parameter_names: list[str]) -> Callable:
             if all(value is None for value in all_param_values):
                 raise ValueError(
                     "All of the following arguments cannot be None, "
-                    f"one must be specified: {list_to_str(parameter_names)}."
+                    f"one must be specified: {iterable_to_str(parameter_names)}."
                 )
 
             return func(*args, **kwargs)
