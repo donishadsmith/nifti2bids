@@ -20,4 +20,4 @@ presentation software such as Presentation and EPrime
 simulate -- Simulate a basic NIfTI image for testing purposes
 """
 
-__version__ = "0.7.5"
+__version__ = "0.8.0"

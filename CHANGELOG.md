@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.8.0] - 2025-12-20
+- Several changes and additions made to the BlockExtractor classes, including parameter name changes, removing the ``start_at_cue`` and replacing it with ``separate_cue_as_instruction``, and additional parameters to separate instruction cues from the start stimulus
+
 ## [0.7.5] - 2025-12-19
 - For `PresentationBlockExtractor`, return the response as recorded by Presentation regardless if participant responded or not
 

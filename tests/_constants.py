@@ -13,7 +13,7 @@ PRESENTATION_COLUMNS = [
     "Pair Index",
 ]
 
-BLOCK_PRESENTATION_DATA = [
+BLOCK_PRESENTATION_DATA_NO_CUE = [
     [
         "Trial",
         "Event Type",
@@ -300,6 +300,96 @@ BLOCK_PRESENTATION_DATA = [
     ],
 ]
 
+BLOCK_PRESENTATION_DATA_WITH_CUE = [
+    [
+        "Trial",
+        "Event Type",
+        "Code",
+        "Time",
+        "TTime",
+        "Uncertainty",
+        "Duration",
+        "Uncertainty",
+        "ReqTime",
+        "ReqDur",
+        "Stim Type",
+        "Pair Index",
+    ],
+    ["1", "Pulse", "99", "100000", "0", "1", "nan", "nan", "nan", "nan", "nan", "nan"],
+    ["2", "Picture", "A", "100000", "0", "1", "9500", "1", "0", "10000", "other", "0"],
+    [
+        "3",
+        "Picture",
+        "stim1",
+        "110000",
+        "0",
+        "1",
+        "29500",
+        "1",
+        "0",
+        "29600",
+        "miss",
+        "1",
+    ],
+    [
+        "3",
+        "Response",
+        "1",
+        "115000",
+        "5000",
+        "1",
+        "nan",
+        "nan",
+        "nan",
+        "nan",
+        "nan",
+        "nan",
+    ],
+    ["4", "Picture", "B", "200000", "0", "1", "9500", "1", "0", "10000", "other", "0"],
+    [
+        "5",
+        "Picture",
+        "stim1",
+        "210000",
+        "0",
+        "1",
+        "29500",
+        "1",
+        "0",
+        "29600",
+        "hit",
+        "2",
+    ],
+    [
+        "5",
+        "Response",
+        "1",
+        "215000",
+        "5000",
+        "1",
+        "nan",
+        "nan",
+        "nan",
+        "nan",
+        "nan",
+        "nan",
+    ],
+    [
+        "6",
+        "Picture",
+        "rest",
+        "300000",
+        "0",
+        "1",
+        "9500",
+        "1",
+        "0",
+        "10000",
+        "other",
+        "0",
+    ],
+]
+
 EVENT_PRESENTATION_DATA = [
     [
         "Trial",
@@ -429,7 +519,7 @@ EVENT_PRESENTATION_DATA = [
     ],
 ]
 
-EPRIME_DATA = [
+EPRIME_DATA_NO_CUE = [
     [
         "STRING",
         "STRING",
@@ -444,7 +534,7 @@ EPRIME_DATA = [
     [
         "ExperimentName",
         "Subject",
-        "EndTime",
+        "TriggerStart",
         "Data.OnsetTime",
         "Data.OffsetTime",
         "Data.RT",
@@ -453,9 +543,40 @@ EPRIME_DATA = [
         "Procedure",
     ],
     ["ThisExperiment", "1", "10000", "10000", "11000", "500", "1", "1", "A"],
-    ["ThisExperiment", "1", "10000", "20000", "21000", "500", "2", "1", "A"],
+    ["ThisExperiment", "1", "10000", "20000", "21000", "600", "2", "1", "A"],
     ["ThisExperiment", "1", "10000", "30000", "31000", "500", "1", "1", "B"],
-    ["ThisExperiment", "1", "10000", "40000", "41000", "500", "1", "1", "B"],
+    ["ThisExperiment", "1", "10000", "40000", "41000", "700", "1", "1", "B"],
     ["ThisExperiment", "1", "10000", "50000", "51000", "nan", "nan", "nan", "Rest"],
     ["ThisExperiment", "1", "10000", "60000", "61000", "nan", "nan", "nan", "nan"],
+]
+
+
+EPRIME_DATA_WITH_CUE = [
+    [
+        "STRING",
+        "STRING",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "STRING",
+        "STRING",
+        "STRING",
+        "STRING",
+    ],
+    [
+        "ExperimentName",
+        "Subject",
+        "TriggerStart",
+        "Data.OnsetTime",
+        "Data.RT",
+        "Data.RESP",
+        "Data.CRESP",
+        "Procedure",
+    ],
+    ["ThisExperiment", "1", "10000", "10000", "0", "NaN", "NaN", "A"],
+    ["ThisExperiment", "1", "10000", "11000", "500", "2", "1", "stim1"],
+    ["ThisExperiment", "1", "10000", "20000", "0", "NaN", "NaN", "B"],
+    ["ThisExperiment", "1", "10000", "21000", "500", "1", "1", "stim1"],
+    ["ThisExperiment", "1", "10000", "30000", "nan", "nan", "nan", "Rest"],
+    ["ThisExperiment", "1", "10000", "40000", "nan", "nan", "nan", "nan"],
 ]

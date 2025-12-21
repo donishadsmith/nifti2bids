@@ -1,6 +1,6 @@
 import csv, io, tempfile, subprocess, sys
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Iterable, Literal, Optional
 
 import pandas as pd
 import numpy as np
@@ -9,7 +9,7 @@ from ._constants import EDATAAID_PATH, EDATAAID_CONTROL_FILE
 
 
 def _determine_delimiter(
-    textlines: list[str], initial_column_headers: tuple[str]
+    textlines: list[str], initial_column_headers: Iterable[str]
 ) -> str:
     """
     Identify the delimiter used for the data based on the
@@ -20,7 +20,7 @@ def _determine_delimiter(
     textlines: :obj:`list[str]`
         The lines of text from the presentation log file.
 
-    initial_column_headers: :obj:`tuple[str]`
+    initial_column_headers: :obj:`Iterable[str]`
         The initial column headers for data.
 
     Returns
@@ -151,7 +151,7 @@ def _is_float(value: str) -> bool:
 
 
 def _text_to_df(
-    log_filepath: str | Path, initial_column_headers: tuple[str]
+    log_filepath: str | Path, initial_column_headers: Iterable[str]
 ) -> pd.DataFrame:
     """
     Convert text to a DataFrame.
@@ -161,7 +161,7 @@ def _text_to_df(
     log_filepath: :obj:`str` or :obj:`Path`
         Path to log data.
 
-    initial_column_headers :obj:`tuple[str]`
+    initial_column_headers :obj:`Iterable[str]`
         The initial column headers for data.
 
     Returns
@@ -202,7 +202,7 @@ def _text_to_df(
 def load_eprime_log(
     log_filepath: str | Path,
     convert_to_seconds: list[str] = None,
-    initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+    initial_column_headers: Iterable[str] = ("ExperimentName", "Subject"),
 ) -> pd.DataFrame:
     """
     Loads EPrime 3 log file as a Pandas Dataframe.
@@ -223,7 +223,7 @@ def load_eprime_log(
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from milliseconds to seconds.
 
-    initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
+    initial_column_headers: :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data.
 
     drop_columns: :obj:`list[str]` or :obj:`None`, default=None
@@ -259,7 +259,7 @@ def load_eprime_log(
 def load_presentation_log(
     log_filepath: str | Path,
     convert_to_seconds: list[str] = None,
-    initial_column_headers: tuple[str] = ("Trial", "Event Type"),
+    initial_column_headers: Iterable[str] = ("Trial", "Event Type"),
 ) -> pd.DataFrame:
     """
     Loads Presentation log file as a Pandas Dataframe.

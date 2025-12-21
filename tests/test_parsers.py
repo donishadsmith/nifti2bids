@@ -4,7 +4,7 @@ import pytest
 
 from nifti2bids.parsers import load_presentation_log, load_eprime_log
 
-from ._constants import PRESENTATION_COLUMNS, EPRIME_DATA
+from ._constants import PRESENTATION_COLUMNS, EPRIME_DATA_NO_CUE
 
 
 @pytest.fixture(autouse=False, scope="function")
@@ -36,7 +36,7 @@ def create_presentation_logfile(tmp_dir):
 def create_eprime_logfile(tmp_dir):
     dst_path = Path(tmp_dir.name) / "sample_log.txt"
     with open(dst_path, "w") as f:
-        for line in EPRIME_DATA:
+        for line in EPRIME_DATA_NO_CUE:
             f.writelines("\t".join(line) + "\n")
 
     yield dst_path

@@ -3,7 +3,7 @@
 import json, itertools
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Iterable, Literal, Optional
 
 import pandas as pd
 import numpy as np
@@ -192,7 +192,7 @@ def create_participant_tsv(
 
     Returns
     -------
-    pd.DataFrame or None
+    pandas.DataFrame or None
         The dataframe if ``return_df`` is True.
     """
     participants = [folder.name for folder in glob_contents(bids_dir, "*sub-*")]
@@ -207,7 +207,7 @@ def create_participant_tsv(
 def _process_log_or_df(
     log_or_df: str | Path | pd.DataFrame,
     convert_to_seconds: list[str] | None,
-    initial_column_headers: tuple[str],
+    initial_column_headers: Iterable[str],
     divisor: float | int,
     software: Literal["Presentation", "E-Prime"],
 ):
@@ -222,7 +222,7 @@ def _process_log_or_df(
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns.
 
-    initial_column_headers: :obj:`tuple[str]`
+    initial_column_headers: :obj:`Iterable[str]`
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
@@ -257,8 +257,40 @@ def _process_log_or_df(
     return df.replace("", np.nan, inplace=False)
 
 
+def _validate_no_cue_conflicts(
+    block_cue_names: Iterable[str],
+    rest_block_code: Optional[str],
+    quit_code: Optional[str],
+) -> None:
+    """
+    Check for overlap between task cues and boundary codes.
+
+    Parameters
+    ----------
+    block_cue_names: :obj:`Iterable[str]`
+        The names of the block cues.
+
+    rest_block_code: :obj:`str`
+        The name of the rest block.
+
+    quit_code: :obj:`str`
+        The quit code.
+    """
+    conflicting_codes = set(block_cue_names).intersection(
+        filter(None, [rest_block_code, quit_code])
+    )
+
+    if conflicting_codes:
+        raise ValueError(
+            f"Conflicting codes found: {conflicting_codes}. "
+            "A code cannot be in 'block_cue_names' and also be assigned to "
+            "``rest_block_code`` or ``quit_code``. To include rest/quit "
+            "intervals in the output, add them to ``block_cue_names`` instead."
+        )
+
+
 def _get_starting_block_indices(
-    log_df: pd.DataFrame, trial_column_name: str, block_cue_codes: tuple[str]
+    log_df: pd.DataFrame, trial_column_name: str, block_cue_names: Iterable[str]
 ) -> list[int]:
     """
     Get starting indices for blocks.
@@ -271,8 +303,8 @@ def _get_starting_block_indices(
     trial_column_name: :obj:`str`
         Name of the column containing the trial information.
 
-    block_cue_codes: :obj:`tuple[str]`
-        The names of the trial types.
+    block_cue_names: :obj:`Iterable[str]`
+        The names of blocks.
 
     Returns
     -------
@@ -291,7 +323,7 @@ def _get_starting_block_indices(
 
     starting_block_indices = set(starting_block_indices)
     for trial_type in trial_series.unique():
-        if trial_type not in block_cue_codes:
+        if trial_type not in block_cue_names:
             trial_indxs = trial_series[trial_series == trial_type].index.tolist()
             starting_block_indices = starting_block_indices.difference(trial_indxs)
 
@@ -304,10 +336,10 @@ def _get_starting_block_indices(
 
 def _get_next_block_index(
     trial_series: pd.Series,
-    block_start_indx: int,
+    block_start_index: int,
     rest_block_code: Optional[str],
     rest_code_frequency: Literal["fixed", "variable"],
-    block_cue_codes: tuple[str],
+    block_cue_names: Iterable[str],
     quit_code: Optional[str] = None,
 ) -> int:
     """
@@ -318,7 +350,7 @@ def _get_next_block_index(
     trial_series: :obj:`pandas.Series`
         A Pandas Series of the column containing the trial type information.
 
-    block_start_indx: :obj:`int`
+    block_start_index: :obj:`int`
         The current row index.
 
     rest_block_code: :obj:`str` or :obj:`None`
@@ -330,9 +362,9 @@ def _get_next_block_index(
         it is assumed that the rest code does not appear between each
         trial.
 
-    block_cue_codes: :obj:`tuple[str]`
-        The names of the trial types. When used, identifies
-        the indices of all trial types minus the indices
+    block_cue_names: :obj:`Iterable[str]`
+        The names of the blocks. When used, identifies
+        the indices of all block names minus the indices
         corresponding to the current trial type. Used when
         ``rest_block_code`` is not None and ``rest_code_frequency``
         is not "fixed".
@@ -345,31 +377,153 @@ def _get_next_block_index(
     int
         The starting index of the next block.
     """
-    curr_trial = trial_series.at[block_start_indx]
-    filtered_trial_series = trial_series[trial_series.index > block_start_indx]
+    curr_trial = trial_series.at[block_start_index]
+    filtered_trial_series = trial_series[trial_series.index > block_start_index]
     filtered_trial_series = filtered_trial_series.astype(str)
 
     if rest_block_code and rest_code_frequency == "fixed":
-        target_codes = [rest_block_code] + ([quit_code] if quit_code else [])
+        target_codes = filter(None, [rest_block_code, quit_code])
         next_block_indxs = filtered_trial_series[
             filtered_trial_series.isin(tuple(target_codes))
         ].index.tolist()
     else:
-        target_block_names = set(tuple(block_cue_codes))
+        target_block_names = set(tuple(block_cue_names))
         target_block_names.discard(curr_trial)
-        additional_codes = []
-        additional_codes += (
-            [rest_block_code]
-            if rest_block_code and rest_code_frequency == "variable"
-            else []
-        )
-        additional_codes += [quit_code] if quit_code else []
-        target_block_names = tuple(list(target_block_names) + additional_codes)
+
+        rest_code = rest_block_code if rest_code_frequency == "variable" else None
+        target_block_names.update(filter(None, [rest_code, quit_code]))
+
         next_block_indxs = filtered_trial_series[
             filtered_trial_series.isin(target_block_names)
         ].index.tolist()
 
-    return next_block_indxs[0] if next_block_indxs else block_start_indx
+    return next_block_indxs[0] if next_block_indxs else block_start_index
+
+
+def _separate_block_from_cue(
+    separate_cue_as_instruction: bool,
+    block_cue_name: str,
+    block_cues_without_instruction: Iterable[str],
+) -> bool:
+    """
+    Determine whether to seperate the block from instruction cue.
+
+    Parameters
+    ----------
+    separate_cue_as_instruction: :obj:`bool`
+        Whether to separate cue as instruction trial.
+
+    block_cue_name: :obj:`str`
+        The name of the block cue.
+
+    block_cues_without_instruction: :obj:`Iterable[str]`
+        Names of the blocks that should not have their cue separated
+        as instruction.
+    """
+    return (
+        separate_cue_as_instruction
+        and block_cue_name not in block_cues_without_instruction
+    )
+
+
+def _extract_block_trial_types(
+    df: pd.DataFrame,
+    starting_block_indices: list[int],
+    trial_column_name: str,
+    separate_cue_as_instruction: bool = False,
+    block_cues_without_instruction: Iterable[str] = (),
+    instruction_suffix: str = "_instruction",
+    drop_instruction_cues: bool = False,
+) -> list[str]:
+    """
+    Extract trial types for each blocks.
+
+    Parameters
+    ----------
+    df: :obj:`pd.DataFrame`
+        DataFrame containing the log data.
+
+    starting_block_indices: :obj:`list[int]`
+        List of row indices to extract trial types from.
+
+    trial_column_name: :obj:`str`
+        Name of the column containing trial type information.
+
+    separate_cue_as_instruction: :obj:`bool`, default=False
+        Whether to separate cue as instruction trial. Will compute timing information
+        from the row index immediately proceeding the row index of the block cue.
+
+    block_cues_without_instruction: :obj:`Iterable[str]` or :obj:`tuple[()], default=()
+        If ``separate_cue_as_instruction`` is True and certain names from
+        ``block_cue_names`` are specified in this parameter, then those
+        blocks will not have their cue separated as instruction and will always start
+        on the row index containing that name.
+
+    instruction_suffix: :obj:`str`, default="_instruction"
+        Suffix to append to trial type names for instruction trials.
+
+    drop_instruction_cues: :obj:`bool`, default=False
+        If True and ``separate_cue_as_instruction`` is True, the instruction
+        trials are not included in the output.
+
+    Returns
+    -------
+    list[str]
+        A list of trial types for each block.
+    """
+    trial_types = []
+    for block_start_index in starting_block_indices:
+        block_cue_name = df.loc[block_start_index, trial_column_name]
+        should_separate_block = _separate_block_from_cue(
+            separate_cue_as_instruction,
+            block_cue_name,
+            block_cues_without_instruction,
+        )
+
+        if should_separate_block and not drop_instruction_cues:
+            trial_types.extend(
+                [f"{block_cue_name}{instruction_suffix}", block_cue_name]
+            )
+        else:
+            trial_types.append(block_cue_name)
+
+    return trial_types
+
+
+def filter_response_trial_names(
+    response_trial_names: Iterable[str] | None,
+    separate_cue_as_instruction: bool,
+    block_cue_names: Iterable[str],
+) -> Iterable[str] | None:
+    """
+    Filter response trials by removing block cue names.
+
+    When ``separate_cue_as_instruction`` is True, block cue names are removed
+    from ``response_trial_names`` since cue rows do not contain responses.
+
+    Parameters
+    ----------
+    response_trial_names: :obj:`Iterable[str]` or :obj:`None`
+        The codes identifying trials to include for response extraction.
+
+    separate_cue_as_instruction: :obj:`bool`
+        Whether cue is being separated as instruction trial.
+
+    block_cue_names: :obj:`Iterable[str]`
+        The names of the block cues to remove from response trial codes.
+
+    Returns
+    -------
+    Iterable[str] or None
+        Filtered response trial codes with block cue names removed,
+        or the original value if ``separate_cue_as_instruction`` is False.
+    """
+    if response_trial_names and separate_cue_as_instruction:
+        response_trial_names = tuple(
+            set(response_trial_names).difference(block_cue_names)
+        )
+
+    return response_trial_names
 
 
 class LogExtractor(ABC):
@@ -419,12 +573,12 @@ class PresentationExtractor:
     def __init__(
         self,
         log_or_df: str | Path | pd.DataFrame,
-        condition_codes: tuple[str],
+        condition_codes: Iterable[str],
         scanner_event_type: str,
         scanner_trigger_code: str,
         trial_column_name: str = "Code",
         convert_to_seconds: Optional[list[str]] = None,
-        initial_column_headers: tuple[str] = ("Trial", "Event Type"),
+        initial_column_headers: Iterable[str] = ("Trial", "Event Type"),
         n_discarded_volumes: int = 0,
         tr: Optional[float | int] = None,
     ):
@@ -449,7 +603,7 @@ class PresentationExtractor:
             scanner_start_index = scanner_start_index_list[0]
             self.scanner_start_time = df.loc[scanner_start_index, "Time"]
             df = df.loc[scanner_start_index:, :]
-            self.df = df.reset_index(inplace=False)
+            self.df = df.reset_index(inplace=False, drop=True)
         else:
             LGR.warning(
                 f"No scanner trigger under 'Event Type': {self.scanner_event_type} "
@@ -473,13 +627,11 @@ class PresentationExtractor:
 
             self.scanner_start_time += self.n_discarded_volumes * self.tr
 
-    def _extract_onsets(
+    def _process_scanner_start_time(
         self,
-        row_indices: list[str],
         scanner_start_time: Optional[float | int],
-        start_at_cue: bool = True,
     ) -> list[float]:
-        """Extract onset times for each block or event."""
+        """Process scanner start time."""
         if scanner_start_time is not None:
             self.scanner_start_time = scanner_start_time
 
@@ -489,16 +641,6 @@ class PresentationExtractor:
                 "since ``self.scanner_event_type`` and ``self.scanner_trigger_code`` "
                 "did not identify a time."
             )
-
-        row_shift = 0 if start_at_cue else 1
-        return [
-            self.df.loc[index + row_shift, "Time"] - self.scanner_start_time
-            for index in row_indices
-        ]
-
-    def _extract_trial_types(self, row_indices: list[int]) -> list[str]:
-        """Extract trial types for each block or event."""
-        return [self.df.loc[index, self.trial_column_name] for index in row_indices]
 
 
 class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
@@ -515,8 +657,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
            If a text file is used, data are assumed to have at least one element
            that is an digit or float during parsing.
 
-    block_cue_codes: :obj:`tuple[str]`
-        The names of the block cue codes (i.e "Face", "Place").
+    block_cue_names: :obj:`Iterable[str]`
+        The names of the block cue names (i.e., "Face", "Place").
 
     trial_column_name: :obj:`str`, default="Code"
         Name of the column containing the trial types.
@@ -541,7 +683,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         .. important:: Recommend time resolution of the "Time" column to be converted.
 
-    initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
+    initial_column_headers: :obj:`Iterable[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
@@ -564,9 +706,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         The name of the code for the rest block. Used when a resting state
         block is between the events to compute the correct block duration.
         If None, the block duration will be computed based on the starting
-        index of the block cue codes given by ``block_cue_codes``. If specified
+        index of the block cue codes given by ``block_cue_names``. If specified
         and ``rest_code_frequency`` is "variable", will be used with
-        ``block_cue_codes`` to compute the correct duration.
+        ``block_cue_names`` to compute the correct duration.
 
     rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
         Frequency of the rest block. For "fixed", the rest code is assumed to
@@ -579,6 +721,47 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         to a rest code, is preceded by a trial block. Ideally, this should
         be a unique code.
 
+    separate_cue_as_instruction: :obj:`bool`, default=False
+        Whether to separate cue as instruction trial. Will compute timing information
+        from the row index immediately proceeding the row index of the block cue.
+
+        .. important::
+            Use this when your log structure has the following stucture, where
+            ``block_cue_names`` are followed by their first stimulus:
+
+            +-------+----------+
+            | Row   | Code     |
+            +=======+==========+
+            | 0     | Face     |
+            +-------+----------+
+            | 1     | stim1    |
+            +-------+----------+
+            | 2     | stim2    |
+            +-------+----------+
+
+            Do **not** use this when every row in the block shares the same code:
+
+            +-------+----------+
+            | Row   | Code     |
+            +=======+==========+
+            | 0     | Face     |
+            +-------+----------+
+            | 1     | Face     |
+            +-------+----------+
+            | 2     | Face     |
+            +-------+----------+
+
+    block_cues_without_instruction: :obj:`Iterable[str]` or :obj:`None`, default=None
+        Block cue names that should not have their cue separated as instruction.
+        Only used when ``separate_cue_as_instruction`` is True. Blocks specified
+        here will always start at the cue row.
+
+    instruction_suffix: :obj:`str`, default="_instruction"
+        Suffix for instruction trial type names.
+
+    drop_instruction_cues: :obj:`bool`, defaut=False
+        Whether to drop instruction cues from output.
+
     Attributes
     ----------
     df: :obj:`pandas.DataFrame`
@@ -586,8 +769,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         using ``scanner_event_type`` and ``scanner_trigger_code``, then rows
         preceding the first scanner are dropped and the index is reset.
 
-    block_cue_codes: :obj:`tuple[str]`
-        The names of the block cue codes.
+    block_cue_names: :obj:`Iterable[str]`
+        The names of the block cue codes (i.e., Face, Place).
 
     scanner_event_type: :obj:`str`
         Event type of scanner trigger.
@@ -613,17 +796,38 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         volume was retained.
 
     starting_block_indices: :obj:`list[int]`
-        The indices of when each trial block of interest (specified by ``block_cue_codes``)
+        The indices of when each trial block of interest (specified by ``block_cue_names``)
         begins.
 
-    rest_block_code: :obj:`str` or :obj:`None`
-        The name of the code for the rest block.
+    rest_block_code: :obj:`str` or :obj:`None`, default=None
+        The name of the code for the rest block. Used when a resting state
+        block is between the events to compute the correct block duration.
+        If None, the block duration will be computed based on the starting
+        index of the block cue codes given by ``block_cue_names``. If specified
+        and ``rest_code_frequency`` is "variable", will be used with
+        ``block_cue_names`` to compute the correct duration.
 
-    rest_code_frequency: :obj:`Literal["fixed", "variable"]`
-        Frequency of the rest block.
+    rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
+        Frequency of the rest block. For "fixed", the rest code is assumed to
+        appear between each block or at least each block. For "variable",
+        it is assumed that the rest code does not appear between each
+        block.
 
     quit_code: :obj:`str` or :obj:`None`
         The quit code.
+
+    separate_cue_as_instruction: :obj:`bool`
+        Whether to separate cue as instruction trial.
+
+    block_cues_without_instruction: :obj:`Iterable[str]`
+        Names of the blocks that should not have their cue separated
+        as instruction.
+
+    instruction_suffix: :obj:`str`
+        Suffix for instruction trial type names.
+
+    drop_instruction_cues: :obj:`bool`
+        Whether to drop instruction cues from output.
 
     Example
     -------
@@ -631,7 +835,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     >>> from nifti2bids.bids import PresentationBlockExtractor
     >>> extractor = PresentationBlockExtractor(
     ...     log_file,
-    ...     block_cue_codes=("Face", "Place"),
+    ...     block_cue_names=("Face", "Place"),
     ...     scanner_event_type="Pulse",
     ...     scanner_trigger_code="99",
     ...     convert_to_seconds=["Time"],
@@ -657,7 +861,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     def __init__(
         self,
         log_or_df,
-        block_cue_codes,
+        block_cue_names,
         scanner_event_type,
         scanner_trigger_code,
         trial_column_name="Code",
@@ -668,10 +872,14 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         rest_block_code=None,
         rest_code_frequency="fixed",
         quit_code=None,
+        separate_cue_as_instruction: bool = False,
+        block_cues_without_instruction: Optional[Iterable[str]] = None,
+        instruction_suffix: str = "_instruction",
+        drop_instruction_cues: bool = False,
     ):
         super().__init__(
             log_or_df,
-            block_cue_codes,
+            block_cue_names,
             scanner_event_type,
             scanner_trigger_code,
             trial_column_name,
@@ -681,7 +889,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             tr,
         )
 
-        self.block_cue_codes = block_cue_codes
+        self.block_cue_names = block_cue_names
 
         assert rest_code_frequency in [
             "fixed",
@@ -693,13 +901,20 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         self.quit_code = quit_code
 
         self.starting_block_indices = _get_starting_block_indices(
-            self.df, self.trial_column_name, self.block_cue_codes
+            self.df, self.trial_column_name, self.block_cue_names
+        )
+
+        self.separate_cue_as_instruction = separate_cue_as_instruction
+        self.block_cues_without_instruction = block_cues_without_instruction or ()
+        self.instruction_suffix = instruction_suffix
+        self.drop_instruction_cues = drop_instruction_cues
+
+        _validate_no_cue_conflicts(
+            self.block_cue_names, self.rest_block_code, self.quit_code
         )
 
     def extract_onsets(
-        self,
-        scanner_start_time: Optional[float | int] = None,
-        start_at_cue: bool = True,
+        self, scanner_start_time: Optional[float | int] = None
     ) -> list[float]:
         """
         Extract the onset times for each event.
@@ -717,53 +932,81 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
                the ``self.scanner_event_code`` and ``self.scanner_trigger_code`` does
                not return an index.
 
-        start_at_cue: :obj:`bool`, default=True
-            Onset timing for block starts at the cue if True. If False, onset timing
-            starts at first stimulus (assumed to be one row down).
-
         Returns
         -------
         list[float]
             A list of onset times for each block.
         """
-        return self._extract_onsets(
-            self.starting_block_indices, scanner_start_time, start_at_cue
-        )
+        self._process_scanner_start_time(scanner_start_time)
 
-    def extract_durations(self, start_at_cue: bool = True) -> list[float]:
+        onsets = []
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.trial_column_name]
+            should_separate_block = _separate_block_from_cue(
+                self.separate_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+
+            row_shift = 1 if should_separate_block else 0
+            block_start_time = (
+                self.df.loc[block_start_index + row_shift, "Time"]
+                - self.scanner_start_time
+            )
+
+            if should_separate_block and not self.drop_instruction_cues:
+                cue_start_time = (
+                    self.df.loc[block_start_index, "Time"] - self.scanner_start_time
+                )
+
+                onsets.extend([cue_start_time, block_start_time])
+            else:
+                onsets.append(block_start_time)
+
+        return onsets
+
+    def extract_durations(self) -> list[float]:
         """
         Extract the duration for each block.
 
         Duration is computed as the difference between the start of the block
         and the start of the next block (either a rest block or some task block).
 
-        Parameters
-        ----------
-        start_at_cue: :obj:`bool`, default=True
-            Duration of a block is the difference between the start of the block cues if True.
-            If False, duration is the difference between the start of the first stimulus
-            (assumed to be one row down) and the subsequent cue.
-
         Returns
         -------
         list[float]
             A list of durations for each block.
         """
-        row_shift = 0 if start_at_cue else 1
         durations = []
-        for block_start_indx in self.starting_block_indices:
-            block_start_row = self.df.loc[block_start_indx + row_shift, :]
-            block_end_indx = _get_next_block_index(
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.trial_column_name]
+            block_end_index = _get_next_block_index(
                 trial_series=self.df[self.trial_column_name],
-                block_start_indx=block_start_indx,
+                block_start_index=block_start_index,
                 rest_block_code=self.rest_block_code,
                 rest_code_frequency=self.rest_code_frequency,
-                block_cue_codes=self.block_cue_codes,
+                block_cue_names=self.block_cue_names,
                 quit_code=self.quit_code,
             )
 
-            block_end_row = self.df.loc[block_end_indx, :]
-            durations.append((block_end_row["Time"] - block_start_row["Time"]))
+            should_separate_block = _separate_block_from_cue(
+                self.separate_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+
+            row_shift = 1 if should_separate_block else 0
+            block_start_time = self.df.loc[block_start_index + row_shift, "Time"]
+            block_end_time = self.df.loc[block_end_index, "Time"]
+            block_duration = block_end_time - block_start_time
+
+            if should_separate_block and not self.drop_instruction_cues:
+                cue_start_time = self.df.loc[block_start_index, "Time"]
+                cue_duration = block_start_time - cue_start_time
+
+                durations.extend([cue_duration, block_duration])
+            else:
+                durations.append(block_duration)
 
         return durations
 
@@ -776,22 +1019,30 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         list[str]
             A list of trial types for each block.
         """
-        return self._extract_trial_types(self.starting_block_indices)
+        return _extract_block_trial_types(
+            df=self.df,
+            starting_block_indices=self.starting_block_indices,
+            trial_column_name=self.trial_column_name,
+            separate_cue_as_instruction=self.separate_cue_as_instruction,
+            block_cues_without_instruction=self.block_cues_without_instruction,
+            instruction_suffix=self.instruction_suffix,
+            drop_instruction_cues=self.drop_instruction_cues,
+        )
 
     def _get_block_trials(
         self,
-        block_start_indx: int,
-        response_trial_codes: Optional[tuple[str]] = None,
+        block_start_index: int,
+        response_trial_names: Optional[Iterable[str]] = None,
     ) -> pd.DataFrame:
         """
-        Get trials within a block. Filtered by ``response_trial_codes`` if not None.
+        Get trials within a block. Filtered by ``response_trial_names`` if not None.
 
         Parameters
         ----------
-        block_start_indx: :obj:`int`
+        block_start_index: :obj:`int`
             The starting index of the block.
 
-        response_trial_codes: :obj:`tuple[str]` or :obj:`None`, default=None
+        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
             trials after the block cue row.
 
@@ -800,26 +1051,26 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         pandas.DataFrame
             DataFrame containing the filtered block trials (reset index).
         """
-        block_end_indx = _get_next_block_index(
+        block_end_index = _get_next_block_index(
             trial_series=self.df[self.trial_column_name],
-            block_start_indx=block_start_indx,
+            block_start_index=block_start_index,
             rest_block_code=self.rest_block_code,
             rest_code_frequency=self.rest_code_frequency,
-            block_cue_codes=self.block_cue_codes,
+            block_cue_names=self.block_cue_names,
             quit_code=self.quit_code,
         )
 
         # Note: iloc excludes end index
-        if response_trial_codes is not None:
-            block_df = self.df.iloc[block_start_indx:block_end_indx, :]
+        if response_trial_names:
+            block_df = self.df.iloc[block_start_index:block_end_index, :]
             block_df = block_df[
-                block_df[self.trial_column_name].isin(response_trial_codes)
+                block_df[self.trial_column_name].isin(response_trial_names)
             ]
         else:
             # Skip first row (cue) since responses are in subsequent rows
-            block_df = self.df.iloc[(block_start_indx + 1) : block_end_indx, :]
+            block_df = self.df.iloc[(block_start_index + 1) : block_end_index, :]
 
-        return block_df.reset_index()
+        return block_df.reset_index(inplace=False, drop=True)
 
     def _extract_rts_and_responses(
         self,
@@ -867,7 +1118,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         self,
         response_map: Optional[dict[str, int]] = None,
         response_type: Literal["correct", "incorrect"] = "correct",
-        response_trial_codes: Optional[tuple[str]] = None,
+        response_trial_names: Optional[Iterable[str]] = None,
     ) -> list[float]:
         """
         Extract mean reaction times for each block.
@@ -885,26 +1136,29 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             Whether to compute mean RT for correct or incorrect trials.
             Only used when ``response_map`` is provided.
 
-        response_trial_codes: :obj:`tuple[str]` or :obj:`None`, default=None
+        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
             trials after the block cue row. For reaction, this should typically
             be set to only include trials where a response is expected
             (e.g., "Go" but not "NoGo").
 
             .. important::
-               In cases such as switch tasks, where ``block_cue_codes`` are
-               non-responsive blocks indicating a switch, then this parameter
-               should include all trial names that are not in ``block_cue_codes``
-               so that reaction time is computed for non-cue codes.
+               - In cases such as switch tasks, where ``block_cue_names`` are
+                 non-responsive blocks indicating a switch, then this parameter
+                 should include all trial names that are not in ``block_cue_names``
+                 so that reaction time is computed for non-cue codes.
+               - If ``separate_cue_as_instruction`` is True, even if a block cue
+                 name is specified in this parameter, it will be ignored.
 
         Returns
         -------
         list[float]
             A list of mean reaction times for each block.
 
-        Notes
-        -----
-        The reaction time is computed for the first response only.
+        Note
+        ----
+        The reaction time is computed for the first response only. Also,
+        if instruction cue is separated, NaN will be assigned for its reaction time.
 
         Example
         -------
@@ -917,9 +1171,14 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         ...     response_type="correct",
         ... )
         """
-        mean_reaction_times = []
-        for block_start_indx in self.starting_block_indices:
-            block_df = self._get_block_trials(block_start_indx, response_trial_codes)
+        response_trial_names = filter_response_trial_names(
+            response_trial_names, self.separate_cue_as_instruction, self.block_cue_names
+        )
+
+        mean_rts = []
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.trial_column_name]
+            block_df = self._get_block_trials(block_start_index, response_trial_names)
             reaction_times, responses = self._extract_rts_and_responses(block_df)
 
             if response_map is not None:
@@ -929,24 +1188,34 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
                     for rt, resp in zip(reaction_times, responses)
                     if response_map.get(resp) == target_correctness
                 ]
-                mean_reaction_times.append(
+                mean_rt = (
                     np.nanmean(filtered_rts)
                     if len(filtered_rts) > 0 and not np.all(np.isnan(filtered_rts))
                     else np.nan
                 )
             else:
-                mean_reaction_times.append(
+                mean_rt = (
                     np.nanmean(reaction_times)
                     if len(reaction_times) > 0 and not np.all(np.isnan(reaction_times))
                     else np.nan
                 )
 
-        return mean_reaction_times
+            should_separate_block = _separate_block_from_cue(
+                self.separate_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+            if should_separate_block and not self.drop_instruction_cues:
+                mean_rts.extend([np.nan, mean_rt])
+            else:
+                mean_rts.append(mean_rt)
+
+        return mean_rts
 
     def extract_mean_accuracies(
         self,
         response_map: dict[str, int],
-        response_trial_codes: Optional[tuple[str]] = None,
+        response_trial_names: Optional[Iterable[str]] = None,
     ) -> list[float]:
         """
         Extract mean accuracy for each block.
@@ -958,43 +1227,62 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             (ie. "hit", "miss", "other", "false alarm", "incorrect"), to accuracy
             values (0 for incorrect, 1 for correct).
 
-        response_trial_codes: :obj:`tuple[str]` or :obj:`None`, default=None
+        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
             trials after the block cue row. For reaction, this should typically
             be set to only include trials where a response is expected
             (e.g., "Go" but not "NoGo").
 
             .. important::
-               In cases such as switch tasks, where ``block_cue_codes`` are
-               non-responsive blocks indicating a switch, then this parameter
-               should include all trial names that are not in ``block_cue_codes``
-               so that reaction time is computed for non-cue codes.
+               - In cases such as switch tasks, where ``block_cue_names`` are
+                 non-responsive blocks indicating a switch, then this parameter
+                 should include all trial names that are not in ``block_cue_names``
+                 so that reaction time is computed for non-cue codes.
+               - If ``separate_cue_as_instruction`` is True, even if a block cue
+                 name is specified in this parameter, it will be ignored.
 
         Returns
         -------
         list[float]
             A list of mean accuracies for each block.
 
+        Note
+        ----
+        If instruction cue is separated, NaN will be assigned for its accuracy.
+
         Example
         -------
         >>> response_map = {"hit": 1, "miss": 0}
         >>> mean_accs = extractor.extract_mean_accuracies(response_map=response_map)
         """
-        mean_accuracies = []
-        for block_start_indx in self.starting_block_indices:
-            block_df = self._get_block_trials(block_start_indx, response_trial_codes)
+        response_trial_names = filter_response_trial_names(
+            response_trial_names, self.separate_cue_as_instruction, self.block_cue_names
+        )
+
+        mean_accs = []
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.trial_column_name]
+            block_df = self._get_block_trials(block_start_index, response_trial_names)
             _, responses = self._extract_rts_and_responses(block_df)
 
             converted_responses = [response_map[resp] for resp in responses]
 
             if len(converted_responses) > 0:
-                mean_accuracies.append(
-                    sum(converted_responses) / len(converted_responses)
-                )
+                mean_acc = sum(converted_responses) / len(converted_responses)
             else:
-                mean_accuracies.append(np.nan)
+                mean_acc = np.nan
 
-        return mean_accuracies
+            should_separate_block = _separate_block_from_cue(
+                self.separate_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+            if should_separate_block and not self.drop_instruction_cues:
+                mean_accs.extend([np.nan, mean_acc])
+            else:
+                mean_accs.append(mean_acc)
+
+        return mean_accs
 
 
 class PresentationEventExtractor(PresentationExtractor, EventExtractor):
@@ -1012,7 +1300,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
            If a text file is used, data are assumed to have at least one element
            that is an digit or float during parsing.
 
-    trial_types: :obj:`tuple[str]`
+    trial_types: :obj:`Iterable[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
         .. note::
@@ -1045,7 +1333,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
            Recommend time resolution of the "Time" column and "Duration" column
            to be converted.
 
-    initial_column_headers: :obj:`tuple[str]`, default=("Trial", "Event Type")
+    initial_column_headers: :obj:`Iterable[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
@@ -1071,7 +1359,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         using ``scanner_event_type`` and ``scanner_trigger_code``, then rows
         preceeding the first scanner are dropped and the index is reset.
 
-    trial_types: :obj:`tuple[str]`
+    trial_types: :obj:`Iterable[str]`
         The names of the trial types.
 
     scanner_event_type: :obj:`str`
@@ -1176,7 +1464,12 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         list[float]
             A list of onset times for each event.
         """
-        return self._extract_onsets(self.event_trial_indices, scanner_start_time)
+        self._process_scanner_start_time(scanner_start_time)
+
+        return [
+            self.df.loc[index, "Time"] - self.scanner_start_time
+            for index in self.event_trial_indices
+        ]
 
     def _extract_rt_and_responses(self) -> tuple[list[float], list[str]]:
         """
@@ -1232,7 +1525,10 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         list[str]
             A list of trial types for each event.
         """
-        return self._extract_trial_types(self.event_trial_indices)
+        return [
+            self.df.loc[index, self.trial_column_name]
+            for index in self.event_trial_indices
+        ]
 
     def extract_reaction_times(self) -> list[float]:
         """
@@ -1297,12 +1593,12 @@ class EPrimeExtractor:
     def __init__(
         self,
         log_or_df: str | Path | pd.DataFrame,
-        condition_codes: tuple[str],
+        condition_codes: Iterable[str],
         onset_column_name: str,
         procedure_column_name: str,
         trigger_column_name: Optional[None] = None,
         convert_to_seconds: Optional[list[str]] = None,
-        initial_column_headers: tuple[str] = ("ExperimentName", "Subject"),
+        initial_column_headers: Iterable[str] = ("ExperimentName", "Subject"),
         n_discarded_volumes: int = 0,
         tr: Optional[float | int] = None,
     ):
@@ -1340,13 +1636,11 @@ class EPrimeExtractor:
 
             self.scanner_start_time += self.n_discarded_volumes * self.tr
 
-    def _extract_onsets(
+    def _process_scanner_start_time(
         self,
-        row_indices: list[str],
         scanner_start_time: Optional[float | int],
-        start_at_cue: bool = True,
     ) -> list[float]:
-        """Extract onset times for each block or event."""
+        """Process scanner start time."""
         if scanner_start_time is not None:
             self.scanner_start_time = scanner_start_time
 
@@ -1355,17 +1649,6 @@ class EPrimeExtractor:
                 "``scanner_start_time`` must be provided either due to ``trigger_column_name`` not being provided "
                 "or due to a non-NaN value could not be extracted from ``trigger_column_name``."
             )
-
-        row_shift = 0 if start_at_cue else 1
-        return [
-            self.df.loc[index + row_shift, self.onset_column_name]
-            - self.scanner_start_time
-            for index in row_indices
-        ]
-
-    def _extract_trial_types(self, row_indices: list[int]) -> list[str]:
-        """Extract trial types for each block or event."""
-        return [self.df.loc[index, self.procedure_column_name] for index in row_indices]
 
 
 class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
@@ -1382,7 +1665,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
            If a text file is used, data are assumed to have at least one element
            that is an digit or float during parsing.
 
-    block_cue_codes: :obj:`tuple[str]`
+    block_cue_names: :obj:`Iterable[str]`
         The names of the block cue codes (i.e. "Face", "Place").
 
     onset_column_name: :obj:`str`
@@ -1404,7 +1687,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
            Recommend time resolution of the columns containing the onset time and scanner
            start time (``trigger_column_name``) be converted to seconds.
 
-    initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
+    initial_column_headers: :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
@@ -1427,9 +1710,9 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         The name of the code for the rest block. Used when a resting state
         block is between the events to compute the correct block duration.
         If None, the block duration will be computed based on the starting
-        index of the block cue codes given by ``block_cue_codes``. If specified
+        index of the block cue codes given by ``block_cue_names``. If specified
         and ``rest_code_frequency`` is "variable", will be used with
-        ``block_cue_codes`` to compute the correct duration.
+        ``block_cue_names`` to compute the correct duration.
 
     rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
         Frequency of the rest block. For "fixed", the rest code is assumed to
@@ -1442,13 +1725,54 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         to a rest code, is preceded by a trial block. Ideally, this should
         be a unique code.
 
+    separate_cue_as_instruction: :obj:`bool`, default=False
+        Whether to separate cue as instruction trial. Will compute timing information
+        from the row index immediately proceeding the row index of the block cue.
+
+        .. important::
+            Use this when your log structure has the following stucture, where
+            ``block_cue_names`` are followed by their first stimulus:
+
+            +-------+----------+
+            | Row   | Code     |
+            +=======+==========+
+            | 0     | Face     |
+            +-------+----------+
+            | 1     | stim1    |
+            +-------+----------+
+            | 2     | stim2    |
+            +-------+----------+
+
+            Do **not** use this when every row in the block shares the same code:
+
+            +-------+----------+
+            | Row   | Code     |
+            +=======+==========+
+            | 0     | Face     |
+            +-------+----------+
+            | 1     | Face     |
+            +-------+----------+
+            | 2     | Face     |
+            +-------+----------+
+
+    block_cues_without_instruction: :obj:`Iterable[str]` or :obj:`None`, default=None
+        Block cue names that should not have their cue separated as instruction.
+        Only used when ``separate_cue_as_instruction`` is True. Blocks specified
+        here will always start at the cue row.
+
+    instruction_suffix: :obj:`str`, default="_instruction"
+        Suffix for instruction trial type names.
+
+    drop_instruction_cues: :obj:`bool`, defaut=False
+        Whether to drop instruction cues from output.
+
     Attributes
     ----------
     df: :obj:`pandas.DataFrame`
         DataFrame containing the log data.
 
-    block_cue_codes: :obj:`tuple[str]`
-        The names of the block cue codes.
+    block_cue_names: :obj:`Iterable[str]`
+        The names of the blocks
 
     onset_column_name: :obj:`str`
         Name of column containing the onset time.
@@ -1474,7 +1798,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         volume was retained.
 
     starting_block_indices: :obj:`list[int]`
-        The indices of when each trial block of interest (specified by ``block_cue_codes``)
+        The indices of when each trial block of interest (specified by ``block_cue_names``)
         begins.
 
     rest_block_code: :obj:`str` or :obj:`None`
@@ -1486,13 +1810,27 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     quit_code: :obj:`str` or :obj:`None`
         The quit code.
 
+    separate_cue_as_instruction: :obj:`bool`
+        Whether to separate cue as instruction trial. Will compute timing information
+        from the row index immediately proceeding the row index of the block cue.
+
+    block_cues_without_instruction: :obj:`Iterable[str]` or :obj:`None`
+        Names of the blocks that should not have their cue separated
+        as instruction.
+
+    instruction_suffix: :obj:`str`
+        Suffix for instruction trial type names.
+
+    drop_instruction_cues: :obj:`bool`
+        Whether to drop instruction cues from output.
+
     Example
     -------
     >>> import pandas as pd
     >>> from nifti2bids.bids import EPrimeBlockExtractor
     >>> extractor = EPrimeBlockExtractor(
     ...     log_file,
-    ...     block_cue_codes=("Face", "Place"),
+    ...     block_cue_names=("Face", "Place"),
     ...     onset_column_name="Stimulus.OnsetTime",
     ...     procedure_column_name="Procedure",
     ...     trigger_column_name="ScannerTrigger.RTTime",
@@ -1509,7 +1847,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     ...     subject_response_column="Stimulus.RESP",
     ...     correct_response_column="Simulus.CRESP",
     ...     response_type="correct",
-    ...     response_trial_codes=("Face")
+    ...     response_trial_names=("Face")
     ... )
     >>> # Mean accuracy across all trial types
     >>> events["mean_accuracy"] = extractor.extract_mean_accuracies(
@@ -1522,7 +1860,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     def __init__(
         self,
         log_or_df,
-        block_cue_codes,
+        block_cue_names,
         onset_column_name,
         procedure_column_name,
         trigger_column_name=None,
@@ -1533,10 +1871,14 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         rest_block_code=None,
         rest_code_frequency="fixed",
         quit_code=None,
+        separate_cue_as_instruction: bool = False,
+        block_cues_without_instruction: Optional[Iterable[str]] = None,
+        instruction_suffix: str = "_instruction",
+        drop_instruction_cues: bool = False,
     ):
         super().__init__(
             log_or_df,
-            block_cue_codes,
+            block_cue_names,
             onset_column_name,
             procedure_column_name,
             trigger_column_name,
@@ -1546,7 +1888,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             tr,
         )
 
-        self.block_cue_codes = block_cue_codes
+        self.block_cue_names = block_cue_names
 
         assert rest_code_frequency in [
             "fixed",
@@ -1558,13 +1900,20 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         self.quit_code = quit_code
 
         self.starting_block_indices = _get_starting_block_indices(
-            self.df, self.procedure_column_name, self.block_cue_codes
+            self.df, self.procedure_column_name, self.block_cue_names
+        )
+
+        self.separate_cue_as_instruction = separate_cue_as_instruction
+        self.block_cues_without_instruction = block_cues_without_instruction or ()
+        self.instruction_suffix = instruction_suffix
+        self.drop_instruction_cues = drop_instruction_cues
+
+        _validate_no_cue_conflicts(
+            self.block_cue_names, self.rest_block_code, self.quit_code
         )
 
     def extract_onsets(
-        self,
-        scanner_start_time: Optional[float | int] = None,
-        start_at_cue: bool = True,
+        self, scanner_start_time: Optional[float | int] = None
     ) -> list[float]:
         """
         Extract the onset times for each block.
@@ -1580,57 +1929,83 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
             .. note:: Does not need to be given if ``trigger_column_name`` was provided.
 
-        start_at_cue: :obj:`bool`, default=True
-            Onset timing for block starts at the cue if True. If False, onset timing
-            starts at first stimulus (assumed to be one row down).
-
         Returns
         -------
         list[float]
             A list of onset times for each block.
         """
-        return self._extract_onsets(
-            self.starting_block_indices, scanner_start_time, start_at_cue
-        )
+        self._process_scanner_start_time(scanner_start_time)
 
-    def extract_durations(self, start_at_cue: bool = True) -> list[float]:
+        onsets = []
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
+            should_separate_block = _separate_block_from_cue(
+                self.separate_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+
+            row_shift = 1 if should_separate_block else 0
+            block_start_time = (
+                self.df.loc[block_start_index + row_shift, self.onset_column_name]
+                - self.scanner_start_time
+            )
+
+            if row_shift and not self.drop_instruction_cues:
+                cue_start_time = (
+                    self.df.loc[block_start_index, self.onset_column_name]
+                    - self.scanner_start_time
+                )
+
+                onsets.extend([cue_start_time, block_start_time])
+            else:
+                onsets.append(block_start_time)
+
+        return onsets
+
+    def extract_durations(self) -> list[float]:
         """
         Extract the duration for each block.
 
         Duration is computed as the difference between the start of the block
         and the start of the next block (either a rest block or some task block).
 
-        Parameters
-        ----------
-        start_at_cue: :obj:`bool`, default=True
-            Duration of a block is the difference between the start of the block cues if True.
-            If False, duration is the difference between the start of the first stimulus
-            (assumed to be one row down) and the subsequent cue.
-
         Returns
         -------
         list[float]
             A list of durations for each block.
         """
-        row_shift = 0 if start_at_cue else 1
         durations = []
-        for block_start_indx in self.starting_block_indices:
-            block_start_row = self.df.loc[block_start_indx + row_shift, :]
-            block_end_indx = _get_next_block_index(
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
+            block_end_index = _get_next_block_index(
                 trial_series=self.df[self.procedure_column_name],
-                block_start_indx=block_start_indx,
+                block_start_index=block_start_index,
                 rest_block_code=self.rest_block_code,
                 rest_code_frequency=self.rest_code_frequency,
-                block_cue_codes=self.block_cue_codes,
+                block_cue_names=self.block_cue_names,
                 quit_code=self.quit_code,
             )
-            block_end_row = self.df.loc[block_end_indx, :]
-            duration = (
-                block_end_row[self.onset_column_name]
-                - block_start_row[self.onset_column_name]
-            )
 
-            durations.append(duration)
+            should_separate_block = _separate_block_from_cue(
+                self.separate_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+            row_shift = 1 if should_separate_block else 0
+            block_start_time = self.df.loc[
+                block_start_index + row_shift, self.onset_column_name
+            ]
+            block_end_time = self.df.loc[block_end_index, self.onset_column_name]
+            block_duration = block_end_time - block_start_time
+
+            if should_separate_block and not self.drop_instruction_cues:
+                cue_start_time = self.df.loc[block_start_index, self.onset_column_name]
+                cue_duration = block_start_time - cue_start_time
+
+                durations.extend([cue_duration, block_duration])
+            else:
+                durations.append(block_duration)
 
         return durations
 
@@ -1643,54 +2018,54 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         list[str]
             A list of trial types for each block.
         """
-        return self._extract_trial_types(self.starting_block_indices)
+        return _extract_block_trial_types(
+            df=self.df,
+            starting_block_indices=self.starting_block_indices,
+            trial_column_name=self.procedure_column_name,
+            separate_cue_as_instruction=self.separate_cue_as_instruction,
+            block_cues_without_instruction=self.block_cues_without_instruction,
+            instruction_suffix=self.instruction_suffix,
+            drop_instruction_cues=self.drop_instruction_cues,
+        )
 
     def _get_block_trials(
         self,
-        block_start_indx: int,
-        response_trial_codes: Optional[tuple[str]] = None,
+        block_start_index: int,
+        response_trial_names: Optional[Iterable[str]] = None,
     ) -> pd.DataFrame:
         """
-        Get trials within a block. Filtered by ``response_trial_codes`` if not None.
+        Get trials within a block. Filtered by ``response_trial_names`` if not None.
 
         Parameters
         ----------
-        block_start_indx: :obj:`int`
+        block_start_index: :obj:`int`
             The starting index of the block.
 
-        response_trial_codes: :obj:`tuple[str]` or :obj:`None`, default=None
-            The codes identifying trials to include. If None, includes all
-            trials after the block cue row. For reaction, this should typically
-            be set to only include trials where a response is expected
-            (e.g., "Go" but not "NoGo").
+        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
+            The codes identifying trials to include.
 
-            .. important::
-               In cases such as switch tasks, where ``block_cue_codes`` are
-               non-responsive blocks indicating a switch, then this parameter
-               should include all trial names that are not in ``block_cue_codes``
-               so that reaction time is computed for non-cue codes.
         Returns
         -------
         pandas.DataFrame
             DataFrame containing the filtered block trials.
         """
-        block_end_indx = _get_next_block_index(
+        block_end_index = _get_next_block_index(
             trial_series=self.df[self.procedure_column_name],
-            block_start_indx=block_start_indx,
+            block_start_index=block_start_index,
             rest_block_code=self.rest_block_code,
             rest_code_frequency=self.rest_code_frequency,
-            block_cue_codes=self.block_cue_codes,
+            block_cue_names=self.block_cue_names,
         )
 
         # Note: iloc excludes end index
-        if response_trial_codes is not None:
-            block_df = self.df.iloc[block_start_indx:block_end_indx, :]
+        if response_trial_names:
+            block_df = self.df.iloc[block_start_index:block_end_index, :]
             block_df = block_df[
-                block_df[self.procedure_column_name].isin(response_trial_codes)
+                block_df[self.procedure_column_name].isin(response_trial_names)
             ]
         else:
             # Skip first row (cue) since responses are in subsequent rows
-            block_df = self.df.iloc[(block_start_indx + 1) : block_end_indx, :]
+            block_df = self.df.iloc[(block_start_index + 1) : block_end_index, :]
 
         return block_df
 
@@ -1754,7 +2129,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         subject_response_column: str,
         correct_response_column: str,
         response_type: Literal["correct", "incorrect"] = "correct",
-        response_trial_codes: Optional[tuple[str]] = None,
+        response_trial_names: Optional[Iterable[str]] = None,
         response_required_only: bool = False,
     ) -> list[float]:
         """
@@ -1780,17 +2155,19 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         response_type: :obj:`Literal["correct", "incorrect"]`, default="correct"
             Whether to compute mean reaction time for correct or incorrect trials.
 
-        response_trial_codes: :obj:`tuple[str]` or :obj:`None`, default=None
+        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
             trials after the block cue row. For reaction, this should typically
             be set to only include trials where a response is expected
             (e.g., "Go" but not "NoGo").
 
             .. important::
-               In cases such as switch tasks, where ``block_cue_codes`` are
-               non-responsive blocks indicating a switch, then this parameter
-               should include all trial names that are not in ``block_cue_codes``
-               so that reaction time is computed for non-cue codes.
+               - In cases such as switch tasks, where ``block_cue_names`` are
+                 non-responsive blocks indicating a switch, then this parameter
+                 should include all trial names that are not in ``block_cue_names``
+                 so that reaction time is computed for non-cue codes.
+               - If ``separate_cue_as_instruction`` is True, even if a block cue
+                 name is specified in this parameter, it will be ignored.
 
         response_required_only: :obj:`bool`, default=False
             Compute reaction times only for trials expecting a response.
@@ -1803,8 +2180,8 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             A list of mean reaction times for each block. Returns NaN for
             blocks with no valid reaction times.
 
-        Notes
-        -----
+        Note
+        ----
         Correctness is determined by comparing ``subject_response_column`` to
         ``correct_response_column``:
 
@@ -1814,6 +2191,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
           false alarm).
 
         Trials with NaN reaction times (due to filtering) are excluded via ``np.nanmean``.
+        Also, if instruction cue is separated, NaN will be assigned for its reaction time.
 
         Example
         -------
@@ -1823,14 +2201,19 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         ...     subject_response_column="Stimulus.RESP",
         ...     correct_response_column="CorrectResponse",
         ...     response_type="correct",
-        ...     response_trial_codes=("Go")
+        ...     response_trial_names=("Go")
         ... )
         """
         target_correctness = response_type == "correct"
         mean_rts = []
 
-        for block_start_indx in self.starting_block_indices:
-            block_df = self._get_block_trials(block_start_indx, response_trial_codes)
+        response_trial_names = filter_response_trial_names(
+            response_trial_names, self.separate_cue_as_instruction, self.block_cue_names
+        )
+
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
+            block_df = self._get_block_trials(block_start_index, response_trial_names)
 
             correctness, block_df = self._compute_trial_correctness(
                 block_df,
@@ -1843,13 +2226,23 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                 filtered_rts = block_df.loc[
                     correctness == target_correctness, reaction_time_column_name
                 ]
-                mean_rts.append(
+                mean_rt = (
                     np.nanmean(filtered_rts)
                     if filtered_rts.size > 0 and not np.all(np.isnan(filtered_rts))
                     else np.nan
                 )
             else:
-                mean_rts.append(np.nan)
+                mean_rt = np.nan
+
+            should_separate_block = _separate_block_from_cue(
+                self.separate_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+            if should_separate_block and not self.drop_instruction_cues:
+                mean_rts.extend([np.nan, mean_rt])
+            else:
+                mean_rts.append(mean_rt)
 
         return mean_rts
 
@@ -1857,7 +2250,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         self,
         subject_response_column: str,
         correct_response_column: str,
-        response_trial_codes: Optional[tuple[str]] = None,
+        response_trial_names: Optional[Iterable[str]] = None,
         response_required_only: bool = False,
     ) -> list[float]:
         """
@@ -1877,15 +2270,17 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             where the subject should not respond should be NaN.
             Usually column name ending in ".CRESP".
 
-        response_trial_codes: :obj:`tuple[str]` or :obj:`None`, default=None
+        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
             trials after the block cue row.
 
             .. important::
-               In cases such as switch tasks, where ``block_cue_codes`` are
-               non-responsive blocks indicating a switch, then this parameter
-               should include all trial names that are not in ``block_cue_codes``
-               so that accuracy is computed only for non-cue codes.
+               - In cases such as switch tasks, where ``block_cue_names`` are
+                 non-responsive blocks indicating a switch, then this parameter
+                 should include all trial names that are not in ``block_cue_names``
+                 so that accuracy is computed only for non-cue codes.
+               - If ``separate_cue_as_instruction`` is True, even if a block cue
+                 name is specified in this parameter, it will be ignored.
 
         response_required_only: :obj:`bool`, default=False
             Compute accuracy only for trials expecting a response.
@@ -1919,6 +2314,8 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         Note: If ``response_required_only`` is True, only accuracy for the first,
         third, and fifth row are computed since those are trials that expect a response.
 
+        Also, if instruction cue is separated, NaN will be assigned for its accuracy.
+
         Example
         -------
         >>> # Get mean accuracy for all trial types
@@ -1930,12 +2327,17 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         >>> mean_accs = extractor.extract_mean_accuracies(
         ...     subject_response_column="Stimulus.RESP",
         ...     correct_response_column="CorrectResponse",
-        ...     response_trial_codes=("Go", "NoGo")
+        ...     response_trial_names=("Go", "NoGo")
         ... )
+
+        Note
+        ----
+        Mean accuracy for instruction cues will be NaN.
         """
         mean_accs = []
-        for block_start_indx in self.starting_block_indices:
-            block_df = self._get_block_trials(block_start_indx, response_trial_codes)
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
+            block_df = self._get_block_trials(block_start_index, response_trial_names)
 
             correctness, _ = self._compute_trial_correctness(
                 block_df,
@@ -1944,7 +2346,15 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                 response_required_only,
             )
 
-            mean_accs.append(correctness.mean())
+            should_separate_block = _separate_block_from_cue(
+                self.separate_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+            if should_separate_block and not self.drop_instruction_cues:
+                mean_accs.extend([np.nan, correctness.mean()])
+            else:
+                mean_accs.append(correctness.mean())
 
         return mean_accs
 
@@ -1964,7 +2374,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
            If a text file is used, data are assumed to have at least one element
            that is an digit or float during parsing.
 
-    trial_types: :obj:`tuple[str]`
+    trial_types: :obj:`Iterable[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
         .. note::
@@ -1993,7 +2403,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
            offset times (duration), reaction times, and scanner onset time (``trigger_column_name``)
            be converted to seconds.
 
-    initial_column_headers: :obj:`tuple[str]`, default=("ExperimentName", "Subject")
+    initial_column_headers: :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
@@ -2017,7 +2427,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     df: :obj:`pandas.DataFrame`
         DataFrame containing the log data.
 
-    trial_types: :obj:`tuple[str]`
+    trial_types: :obj:`Iterable[str]`
         The names of the trial types.
 
     onset_column_name: :obj:`str`
@@ -2057,7 +2467,12 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     ...     onset_column_name="Stimulus.OnsetTime",
     ...     procedure_column_name="Procedure",
     ...     trigger_column_name="ScannerTrigger.RTTime",
-    ...     convert_to_seconds=["Stimulus.OnsetTime", "Stimulus.OffsetTime", "Stimulus.RT", "ScannerTrigger.RTTime"],
+    ...     convert_to_seconds=[
+    ...         "Stimulus.OnsetTime",
+    ...         "Stimulus.OffsetTime",
+    ...         "Stimulus.RT",
+    ...         "ScannerTrigger.RTTime"
+    ...     ],
     ... )
     >>> events = {}
     >>> events["onset"] = extractor.extract_onsets()
@@ -2125,7 +2540,12 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         list[float]
             A list of onset times for each event.
         """
-        return self._extract_onsets(self.event_trial_indices, scanner_start_time)
+        self._process_scanner_start_time(scanner_start_time)
+
+        return [
+            self.df.loc[index, self.onset_column_name] - self.scanner_start_time
+            for index in self.event_trial_indices
+        ]
 
     def extract_durations(self, offset_column_name: str) -> list[float]:
         """
@@ -2158,7 +2578,10 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         list[str]
             A list of trial types for each event.
         """
-        return self._extract_trial_types(self.event_trial_indices)
+        return [
+            self.df.loc[index, self.procedure_column_name]
+            for index in self.event_trial_indices
+        ]
 
     def extract_reaction_times(self, reaction_time_column_name: str) -> list[float]:
         """

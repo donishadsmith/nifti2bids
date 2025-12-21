@@ -12,7 +12,13 @@ from nifti2bids.bids import (
     EPrimeBlockExtractor,
     EPrimeEventExtractor,
 )
-from ._constants import BLOCK_PRESENTATION_DATA, EVENT_PRESENTATION_DATA, EPRIME_DATA
+from ._constants import (
+    BLOCK_PRESENTATION_DATA_NO_CUE,
+    BLOCK_PRESENTATION_DATA_WITH_CUE,
+    EVENT_PRESENTATION_DATA,
+    EPRIME_DATA_NO_CUE,
+    EPRIME_DATA_WITH_CUE,
+)
 
 
 @pytest.mark.parametrize("dst_dir, remove_src_file", ([None, True], [True, False]))
@@ -78,9 +84,8 @@ def test_create_participant_tsv(tmp_dir):
     assert df["participant_id"].values[0] == "sub-01"
 
 
-def _create_presentation_logfile(dst_dir, design):
+def _create_presentation_logfile(dst_dir, data, design):
     dst_dir = Path(dst_dir)
-    data = BLOCK_PRESENTATION_DATA if design == "block" else EVENT_PRESENTATION_DATA
 
     filename = dst_dir / f"{design}.txt"
     with open(filename, mode="w") as file:
@@ -91,7 +96,6 @@ def _create_presentation_logfile(dst_dir, design):
 def test_dataframe_copy():
     """Test to ensure original dataframe is not modified"""
     from nifti2bids.bids import _process_log_or_df
-    from pandas.testing import assert_frame_equal
 
     df = pd.DataFrame({"A": [1, 2, 3], "B": [5, 6, 7]})
     new_df = _process_log_or_df(
@@ -123,7 +127,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
     from pandas.testing import assert_frame_equal
 
     filename = Path(tmp_dir.name) / "block.txt"
-    _create_presentation_logfile(tmp_dir.name, "block")
+    _create_presentation_logfile(tmp_dir.name, BLOCK_PRESENTATION_DATA_NO_CUE, "block")
 
     expected_df = pd.DataFrame(
         {
@@ -135,7 +139,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
 
     extractor = PresentationBlockExtractor(
         log_or_df=filename,
-        block_cue_codes=["indoor"],
+        block_cue_names=["indoor"],
         convert_to_seconds=["Time"],
         scanner_event_type="Pulse",
         scanner_trigger_code="99",
@@ -159,11 +163,11 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
 def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     """Test for ``PresentationBlockExtractor.extract_mean_reaction_times`` and ``extract_mean_accuracies``."""
     filename = Path(tmp_dir.name) / "block.txt"
-    _create_presentation_logfile(tmp_dir.name, "block")
+    _create_presentation_logfile(tmp_dir.name, BLOCK_PRESENTATION_DATA_NO_CUE, "block")
 
     extractor = PresentationBlockExtractor(
         log_or_df=filename,
-        block_cue_codes=["indoor"],
+        block_cue_names=["indoor"],
         convert_to_seconds=["Time"],
         scanner_event_type="Pulse",
         scanner_trigger_code="99",
@@ -188,13 +192,74 @@ def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     assert mean_accs[1] == 0.75
 
 
+@pytest.mark.parametrize("drop_instruction_cues", (True, False))
+def test_PresentationBlockExtractor_instruction_cue_separation(
+    tmp_dir, drop_instruction_cues
+):
+    """Test for ``PresentationBlockExtractor`` to ensure instruction and cues can be separated."""
+    from pandas.testing import assert_frame_equal
+
+    filename = Path(tmp_dir.name) / "block.txt"
+    _create_presentation_logfile(
+        tmp_dir.name, BLOCK_PRESENTATION_DATA_WITH_CUE, "block"
+    )
+
+    extractor = PresentationBlockExtractor(
+        log_or_df=filename,
+        block_cue_names=["A", "B"],
+        convert_to_seconds=["Time"],
+        scanner_event_type="Pulse",
+        scanner_trigger_code="99",
+        rest_block_code="rest",
+        rest_code_frequency="variable",
+        separate_cue_as_instruction=True,
+        block_cues_without_instruction=("B",),
+        drop_instruction_cues=drop_instruction_cues,
+    )
+
+    expected_df = pd.DataFrame(
+        {
+            "onset": [0.0, 1.0, 10.0],
+            "duration": [1.0, 9.0, 10.0],
+            "trial_type": ["A_instruction", "A", "B"],
+            "mean_rt": [float("NaN"), float("NaN"), 0.5],
+            "mean_acc": [float("NaN"), 0.0, 1.0],
+        }
+    )
+
+    onsets = extractor.extract_onsets()
+    durations = extractor.extract_durations()
+    trial_types = extractor.extract_trial_types()
+    response_map = {"hit": 1, "miss": 0}
+    mean_rts = extractor.extract_mean_reaction_times(
+        response_map=response_map,
+        response_type="correct",
+    )
+    mean_accs = extractor.extract_mean_accuracies(response_map=response_map)
+
+    df = pd.DataFrame(
+        {
+            "onset": onsets,
+            "duration": durations,
+            "trial_type": trial_types,
+            "mean_rt": mean_rts,
+            "mean_acc": mean_accs,
+        }
+    )
+
+    if drop_instruction_cues:
+        expected_df = expected_df.drop([0], axis=0).reset_index(drop=True)
+
+    assert_frame_equal(df, expected_df)
+
+
 @pytest.mark.parametrize("scanner_start_time", [None, 94621])
 def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
     """Test for ``PresentationEventExtractor``."""
     from pandas.testing import assert_frame_equal
 
     filename = Path(tmp_dir.name) / "event.txt"
-    _create_presentation_logfile(tmp_dir.name, "event")
+    _create_presentation_logfile(tmp_dir.name, EVENT_PRESENTATION_DATA, "event")
 
     expected_df = pd.DataFrame(
         {
@@ -236,12 +301,12 @@ def test_PresentationEventExtractor(tmp_dir, scanner_start_time):
     assert_frame_equal(df, expected_df)
 
 
-def _create_eprime_logfile(dst_dir, design):
+def _create_eprime_logfile(dst_dir, data, design):
     dst_dir = Path(dst_dir)
 
     filename = dst_dir / f"{design}.txt"
     with open(filename, mode="w") as file:
-        for line in EPRIME_DATA:
+        for line in data:
             file.write("\t".join(line) + "\n")
 
 
@@ -251,9 +316,9 @@ def test_EPrimeBlockExtractor(tmp_dir):
 
     filename = Path(tmp_dir.name) / "block.txt"
 
-    _create_eprime_logfile(tmp_dir.name, "block")
+    _create_eprime_logfile(tmp_dir.name, EPRIME_DATA_NO_CUE, "block")
 
-    for column, scanner_start_time in [(None, 10.0), ("EndTime", None)]:
+    for column, scanner_start_time in [(None, 10.0), ("TriggerStart", None)]:
         expected_df = pd.DataFrame(
             {
                 "onset": [-1.0, 19.0] if column else [0.0, 20.0],
@@ -263,11 +328,11 @@ def test_EPrimeBlockExtractor(tmp_dir):
         )
         extractor = EPrimeBlockExtractor(
             log_or_df=filename,
-            block_cue_codes=["A", "B"],
+            block_cue_names=["A", "B"],
             onset_column_name="Data.OnsetTime",
             procedure_column_name="Procedure",
             trigger_column_name=column,
-            convert_to_seconds=["Data.OnsetTime", "EndTime"],
+            convert_to_seconds=["Data.OnsetTime", "TriggerStart"],
             n_discarded_volumes=1 if column else 0,
             tr=1 if column else None,
             rest_block_code="Rest",
@@ -288,15 +353,15 @@ def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     Test for ``extract_mean_reaction_times`` and ``extract_mean_accuracies`` in
     ``EPrimeBlockExtractor``."""
     filename = Path(tmp_dir.name) / "block.txt"
-    _create_eprime_logfile(tmp_dir.name, "block")
+    _create_eprime_logfile(tmp_dir.name, EPRIME_DATA_NO_CUE, "block")
 
     extractor = EPrimeBlockExtractor(
         log_or_df=filename,
-        block_cue_codes=["A", "B"],
+        block_cue_names=["A", "B"],
         onset_column_name="Data.OnsetTime",
         procedure_column_name="Procedure",
-        trigger_column_name="EndTime",
-        convert_to_seconds=["Data.OnsetTime", "Data.RT", "EndTime"],
+        trigger_column_name="TriggerStart",
+        convert_to_seconds=["Data.OnsetTime", "Data.RT", "TriggerStart"],
         rest_block_code="Rest",
         rest_code_frequency="variable",
     )
@@ -306,18 +371,18 @@ def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
         subject_response_column="Data.RESP",
         correct_response_column="Data.CRESP",
         response_type="correct",
-        response_trial_codes=("A", "B"),
+        response_trial_names=("A", "B"),
     )
     assert len(mean_rts) == 2
     # Block A
     assert mean_rts[0] == 0.5
     # Block B
-    assert mean_rts[1] == 0.5
+    assert mean_rts[1] == 0.6
 
     mean_accs = extractor.extract_mean_accuracies(
         subject_response_column="Data.RESP",
         correct_response_column="Data.CRESP",
-        response_trial_codes=("A", "B"),
+        response_trial_names=("A", "B"),
     )
     assert len(mean_accs) == 2
     # Block A
@@ -326,25 +391,87 @@ def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     assert mean_accs[1] == 1.0
 
 
+@pytest.mark.parametrize("drop_instruction_cues", (True, False))
+def test_EPrimeBlockExtractor_instruction_cue_separation(
+    tmp_dir, drop_instruction_cues
+):
+    """Test for ``EPrimeBlockExtractor`` to ensure instruction and cues can be separated."""
+    from pandas.testing import assert_frame_equal
+
+    filename = Path(tmp_dir.name) / "block.txt"
+    _create_eprime_logfile(tmp_dir.name, EPRIME_DATA_WITH_CUE, "block")
+
+    extractor = EPrimeBlockExtractor(
+        log_or_df=filename,
+        block_cue_names=["A", "B"],
+        onset_column_name="Data.OnsetTime",
+        procedure_column_name="Procedure",
+        trigger_column_name="TriggerStart",
+        convert_to_seconds=["Data.OnsetTime", "Data.RT", "TriggerStart"],
+        rest_block_code="Rest",
+        rest_code_frequency="variable",
+        separate_cue_as_instruction=True,
+        block_cues_without_instruction=("B"),
+    )
+
+    expected_df = pd.DataFrame(
+        {
+            "onset": [0.0, 1.0, 10.0],
+            "duration": [1.0, 9.0, 10.0],
+            "trial_type": ["A_instruction", "A", "B"],
+            "mean_rt": [float("NaN"), float("NaN"), 0.5],
+            "mean_acc": [float("NaN"), 0.0, 1.0],
+        }
+    )
+
+    onsets = extractor.extract_onsets()
+    durations = extractor.extract_durations()
+    trial_types = extractor.extract_trial_types()
+    mean_rts = extractor.extract_mean_reaction_times(
+        reaction_time_column_name="Data.RT",
+        subject_response_column="Data.RESP",
+        correct_response_column="Data.CRESP",
+    )
+    mean_accs = extractor.extract_mean_accuracies(
+        subject_response_column="Data.RESP",
+        correct_response_column="Data.CRESP",
+    )
+
+    df = pd.DataFrame(
+        {
+            "onset": onsets,
+            "duration": durations,
+            "trial_type": trial_types,
+            "mean_rt": mean_rts,
+            "mean_acc": mean_accs,
+        }
+    )
+
+    if drop_instruction_cues:
+        expected_df.drop([0], axis=0).reset_index(inplace=True, drop=True)
+
+    assert_frame_equal(df, expected_df)
+
+
 def test_EPrimeEventExtractor(tmp_dir):
     """Test for ``EPrimeEventExtractor``."""
     from pandas.testing import assert_frame_equal
 
     filename = Path(tmp_dir.name) / "event.txt"
 
-    _create_eprime_logfile(tmp_dir.name, "event")
+    _create_eprime_logfile(tmp_dir.name, EPRIME_DATA_NO_CUE, "event")
 
     expected_df = pd.DataFrame(
         {
             "onset": [0.0, 10.0, 20.0, 30.0, 40.0],
             "duration": [1.0, 1.0, 1.0, 1.0, 1.0],
             "trial_type": ["A", "A", "B", "B", "Rest"],
-            "reaction_time": [0.5, 0.5, 0.5, 0.5, float("nan")],
+            "reaction_time": [0.5, 0.6, 0.5, 0.7, float("nan")],
             "response": [1, 0, 1, 1, 1],
         }
     )
 
-    for column, scanner_start_time in [(None, 10.0), ("EndTime", None)]:
+    for column, scanner_start_time in [(None, 10.0), ("TriggerStart", None)]:
         extractor = EPrimeEventExtractor(
             log_or_df=filename,
             trial_types=["A", "B", "Rest"],
@@ -355,7 +482,7 @@ def test_EPrimeEventExtractor(tmp_dir):
                 "Data.OnsetTime",
                 "Data.OffsetTime",
                 "Data.RT",
-                "EndTime",
+                "TriggerStart",
             ],
         )
 
