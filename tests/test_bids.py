@@ -519,6 +519,7 @@ def test_add_instruction_timing():
             "onset": [0.0, 10.0, 20.0],
             "duration": [10.0, 10.0, 10.0],
             "trial_type": ["Face", "Place", "Rest"],
+            "random": [1, 1, 1],
         }
     )
 
@@ -539,6 +540,7 @@ def test_add_instruction_timing():
                 "Place",
                 "Rest",
             ],
+            "random": [float("nan"), 1, float("nan"), 1, 1],
         }
     )
 
