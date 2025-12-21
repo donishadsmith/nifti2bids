@@ -132,8 +132,6 @@ def create_dataset_description(
 
     Creates a dictionary containing the name and BIDs version of a dataset.
 
-    .. versionadded:: 0.34.1
-
     Parameters
     ----------
     dataset_name: :obj:`str`
