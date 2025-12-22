@@ -2772,15 +2772,15 @@ def add_instruction_timing(
     exclude_trial_types = list(exclude_trial_types) if exclude_trial_types else []
 
     mask = ~event_df["trial_type"].isin(exclude_trial_types)
-    trials_to_split = event_df[mask].copy()
-    trials_to_keep = event_df[~mask].copy()
+    trials_to_split = event_df[mask].copy(deep=True)
+    trials_to_keep = event_df[~mask].copy(deep=True)
 
-    instructions = trials_to_split.copy()
+    instructions = trials_to_split.copy(deep=True)
     instructions["duration"] = instruction_duration
     instructions["trial_type"] = instructions["trial_type"] + instruction_suffix
     instructions[trials_to_split.columns.difference(required_columns)] = float("nan")
 
-    tasks = trials_to_split.copy()
+    tasks = trials_to_split.copy(deep=True)
     tasks["onset"] = tasks["onset"] + instruction_duration
     tasks["duration"] = tasks["duration"] - instruction_duration
 
