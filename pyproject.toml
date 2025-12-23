@@ -10,7 +10,7 @@ name = "nifti2bids"
 dynamic = ["version"]
 license = "MIT"
 authors = [{name = "Donisha Smith", email = "dsmit420@jhu.edu"}]
-description = "Post-hoc BIDS conversion toolkit for unstructured NIfTI datasets."
+description = "Post-hoc BIDS conversion for NIfTI datasets and neurobehavioral logs."
 readme = "README.md"
 requires-python = ">=3.10.0"
 

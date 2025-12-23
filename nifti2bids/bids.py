@@ -1043,7 +1043,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
-            trials after the block cue row.
+            trials after the row index for the block cue.
 
         Returns
         -------
@@ -1076,7 +1076,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         block_df: pd.DataFrame,
     ) -> tuple[list[float], list[str]]:
         """
-        Extract reaction times and responses for Picture events in a block.
+        Extract reaction times and responses for "Picture" events in a block.
 
         Parameters
         ----------
@@ -1137,8 +1137,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
-            trials after the block cue row. For reaction, this should typically
-            be set to only include trials where a response is expected
+            trials after the row index for the block cue. For reaction, this should
+            typically be set to only include trials where a response is expected
             (e.g., "Go" but not "NoGo").
 
             .. important::
@@ -1228,9 +1228,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
-            trials after the block cue row. For reaction, this should typically
-            be set to only include trials where a response is expected
-            (e.g., "Go" but not "NoGo").
+            trials after the row index for the block cue. For reaction, this
+            should typically be set to only include trials where a response is
+            expected (e.g., "Go" but not "NoGo").
 
             .. important::
                - In cases such as switch tasks, where ``block_cue_names`` are
@@ -2073,7 +2073,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         block_df: pd.DataFrame,
         subject_response_column: str,
         correct_response_column: str,
-        response_required_only: bool,
+        response_required_only: bool = False,
     ) -> pd.Series:
         """
         Compute correctness for each trial in a block.
@@ -2093,7 +2093,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         correct_response_column: :obj:`str`
             Column name for correct response.
 
-        response_required_only: :obj:`bool`
+        response_required_only: :obj:`bool`, default=False
             Compute accuracy only for trials expecting a response.
             Non-response trials are assumed to be assigned NaN
             in ``correct_response_column``.
@@ -2156,9 +2156,9 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
-            trials after the block cue row. For reaction, this should typically
-            be set to only include trials where a response is expected
-            (e.g., "Go" but not "NoGo").
+            trials after the row index for the block cue. For reaction, this
+            should typically be set to only include trials where a response
+            is expected (e.g., "Go" but not "NoGo").
 
             .. important::
                - In cases such as switch tasks, where ``block_cue_names`` are
@@ -2271,7 +2271,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
             The codes identifying trials to include. If None, includes all
-            trials after the block cue row.
+            trials after the row index for the block cue.
 
             .. important::
                - In cases such as switch tasks, where ``block_cue_names`` are
@@ -2641,7 +2641,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             where the subject should not respond should be NaN.
             Usually column name ending in ".CRESP".
 
-        response_required_only: :obj:`bool`
+        response_required_only: :obj:`bool`, default=False
             Compute accuracy only for trials expecting a response.
             Non-response trials are assumed to be assigned NaN
             in ``correct_response_column``.

@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.8.2] - 2025-12-22
+- Add False for as default for ``response_required_only`` for ``EPrimeBlockExtractor``
+
 ## [0.8.1] - 2025-12-21
 - Add the ``add_instruction_timing`` function
 
