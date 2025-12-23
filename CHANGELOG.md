@@ -4,6 +4,12 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.9.0] - 2025-12-23
+- Change ``separate_cue_as_instruction`` to ``split_cue_as_instruction``
+- Changed logic for ``response_trial_names`` to not remove rows containing
+a trial type of interest for reaction times and accuracy computations.
+They will instead be included unless ``split_cue_as_instruction`` used
+
 ## [0.8.4] - 2025-12-23
 - Fix Window flashing issue with ``convert_edat3_to_text``
 

@@ -89,7 +89,7 @@ extractor = PresentationBlockExtractor(
     convert_to_seconds=["Time"],
     rest_block_code="crosshair",
     rest_code_frequency="fixed",
-    separate_cue_as_instruction=True,
+    split_cue_as_instruction=True,
 )
 
 events_df = pd.DataFrame(

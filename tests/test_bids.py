@@ -174,6 +174,8 @@ def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
         scanner_trigger_code="99",
         rest_block_code="rest",
         quit_code="quit",
+        split_cue_as_instruction=True,
+        drop_instruction_cues=True,
     )
 
     mean_rts = extractor.extract_mean_reaction_times()
@@ -213,7 +215,7 @@ def test_PresentationBlockExtractor_instruction_cue_separation(
         scanner_trigger_code="99",
         rest_block_code="rest",
         rest_code_frequency="variable",
-        separate_cue_as_instruction=True,
+        split_cue_as_instruction=True,
         block_cues_without_instruction=("B",),
         drop_instruction_cues=drop_instruction_cues,
     )
@@ -411,7 +413,7 @@ def test_EPrimeBlockExtractor_instruction_cue_separation(
         convert_to_seconds=["Data.OnsetTime", "Data.RT", "TriggerStart"],
         rest_block_code="Rest",
         rest_code_frequency="variable",
-        separate_cue_as_instruction=True,
+        split_cue_as_instruction=True,
         block_cues_without_instruction=("B"),
     )
 
