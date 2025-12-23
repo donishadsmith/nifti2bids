@@ -2550,12 +2550,13 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         """
         Extract the duration for each event.
 
+        Duration is computed as the difference between the trial onset
+        time and the trial offset time.
+
         Parameters
         ----------
         offset_column_name: :obj:`str`
             The name of the column containing the offset time of trial.
-            Duration is computed as the difference between the trial onset
-            time and the trial offset time.
 
         Returns
         -------

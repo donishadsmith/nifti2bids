@@ -85,9 +85,6 @@ def convert_edat3_to_text(
     """
     Converts a file with an "edat3" extension to a text file.
 
-    .. warning::
-       - Program is opened and closed rapidly, which results in white flashes.
-
     .. important::
        - Only works with Windows platforms with Eprime 3 installed.
 
@@ -134,7 +131,15 @@ def convert_edat3_to_text(
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmpfile:
         tmpfile.write(control_file)
 
-    subprocess.run([EDATAAID_PATH, "/e", "/f", tmpfile.name])
+    # https://stackoverflow.com/questions/7006238/how-do-i-hide-the-console-when-i-use-os-system-or-subprocess-call
+    # Hide Window and prevent flashing
+    si = subprocess.STARTUPINFO()
+    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    si.wShowWindow = subprocess.SW_HIDE
+
+    subprocess.run(
+        [EDATAAID_PATH, "/e", "/f", tmpfile.name], startupinfo=si, shell=False
+    )
 
     Path(tmpfile.name).unlink()
 

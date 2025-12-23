@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.8.4] - 2025-12-23
+- Fix Window flashing issue with ``convert_edat3_to_text``
+
 ## [0.8.3] - 2025-12-22
 - Update default for ``convert_eprime_to_text``
 
