@@ -86,14 +86,14 @@ def convert_edat3_to_text(
     Converts a file with an "edat3" extension to a text file.
 
     .. important::
-       - Only works with Windows platforms with Eprime 3 installed.
+       - Only works with Windows platforms with E-Prime 3 installed.
 
     edat_path: :obj:`str` or :obj:`Path`
-        Absolute path to the Eprime file with an "edat3" extension.
+        Absolute path to the E-Prime file with an "edat3" extension.
 
     dst_path: :obj:`str` or :obj:`Path`, default=None
-        Absolute path to the output CSV file that the edat3 file will be converted to.
-        If None, the CSV file will be saved in the same folder as the edat3 file.
+        Absolute path to the output text file that the edat3 file will be converted to.
+        If None, the text file will be saved in the same folder as the edat3 file.
 
     format: :obj:`Literal["csv", "tsv"], default="csv"
         The file extension.
@@ -210,7 +210,7 @@ def load_eprime_log(
     initial_column_headers: Iterable[str] = ("ExperimentName", "Subject"),
 ) -> pd.DataFrame:
     """
-    Loads EPrime 3 log file as a Pandas Dataframe.
+    Loads E-Prime 3 log file as a Pandas Dataframe.
 
     .. important::
        - If the log file extension is "edat3", use :func:`nifti2bids.parsers.convert_edat3_to_tsv`
@@ -279,7 +279,7 @@ def load_presentation_log(
         Absolute path to the Presentation log file (i.e text, log, Excel files).
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
-        Convert the time resolution of the specified columns from 0.1 ms to seconds.
+        Convert the time resolution of the specified columns from 0.1ms to seconds.
 
     initial_column_headers: :obj:`str`, default=("Trial", "Event Type")
         The initial column headers for data.
