@@ -679,7 +679,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
            provided for ``scanner_event_type`` and ``scanner_trigger_code``.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
-        Convert the time resolution of the specified columns from 0.1ms to seconds.
+        Convert the time resolution of the specified columns from 0.1 ms to seconds.
 
         .. important:: Recommend time resolution of the "Time" column to be converted.
 
@@ -1334,7 +1334,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         Name of the column containing the trial types.
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
-        Convert the time resolution of the specified columns from 0.1ms to seconds.
+        Convert the time resolution of the specified columns from 0.1 ms to seconds.
 
         .. important::
            Recommend time resolution of the "Time" column and "Duration" column

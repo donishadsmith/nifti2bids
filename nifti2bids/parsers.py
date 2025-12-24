@@ -279,7 +279,7 @@ def load_presentation_log(
         Absolute path to the Presentation log file (i.e text, log, Excel files).
 
     convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
-        Convert the time resolution of the specified columns from 0.1ms to seconds.
+        Convert the time resolution of the specified columns from 0.1 ms to seconds.
 
     initial_column_headers: :obj:`str`, default=("Trial", "Event Type")
         The initial column headers for data.
