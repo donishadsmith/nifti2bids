@@ -82,6 +82,7 @@ from NIfTIs.
    get_scanner_info
    is_valid_date
    parse_date_from_path
+   get_file_timestamp
    get_file_creation_date
    get_entity_value
    infer_task_from_image

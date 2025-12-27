@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.9.1] - 2025-12-27
+- Add file timestamp function and return modification date for non-Windows systems
+
 ## [0.9.0] - 2025-12-23
 - Change ``separate_cue_as_instruction`` to ``split_cue_as_instruction``
 - Changed logic for ``response_trial_names`` to not remove rows containing

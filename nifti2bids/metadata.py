@@ -1,6 +1,6 @@
 """Utility functions to extract or create metadata."""
 
-import datetime, re
+import datetime, re, sys
 from pathlib import Path
 from typing import Any, Literal, Optional
 
@@ -850,9 +850,52 @@ def parse_date_from_path(path: str | Path, date_fmt: str) -> str | None:
     return date_str
 
 
+def get_file_timestamp(path: Path | str) -> float:
+    """
+    Get timestamp of file.
+
+    .. important::
+       Returns timestamp of file creation for Windows
+       and modification timestamp for non-Windows systems (e.g.,
+       Linux, MAC, etc)
+
+       `Info about date issue for Unix-based
+       <https://docs.vultr.com/python/examples/get-file-creation-and-modification-date>`_.
+
+    Parameter
+    ---------
+    path: :obj:`str` or :obj:`Path`
+        Path to file.
+
+    Return
+    ------
+    float
+        The file timestamp (creation time for Windows and
+        modification time for non-Windows systems).
+    """
+    stat = Path(path).stat()
+    if sys.platform != "win32":
+        timestamp = stat.st_mtime
+    else:
+        if hasattr(stat, "st_birthtime"):
+            timestamp = stat.st_birthtime
+        else:
+            timestamp = stat.st_ctime
+
+    return timestamp
+
+
 def get_file_creation_date(path: str | Path, date_fmt: str) -> str:
     """
     Get creation date of a file
+
+    .. important::
+       Returns file creation date for Windows and file modification
+       date for non-Windows systems (e.g., Linux, MAC, etc)
+
+       `Info about date issue for Unix-based systems
+       <https://docs.vultr.com/python/examples/get-file-creation-and-modification-date>`_.
+
 
     Parameters
     ----------
@@ -860,18 +903,14 @@ def get_file_creation_date(path: str | Path, date_fmt: str) -> str:
         Path to file.
 
     date_fmt: :obj:`str`
-        The expected format of the date.
+        The desired output format of the date.
 
     Returns
     -------
     str
-        File creation date.
+        File creation date for Windows and modification date for non-Windows systems.
     """
-    stat = Path(path).stat()
-    if hasattr(stat, "st_birthtime"):
-        timestamp = Path(path).stat().st_birthtime
-    else:
-        timestamp = Path(path).stat().st_ctime
+    timestamp = get_file_timestamp(path)
 
     converted_timestamp = datetime.datetime.fromtimestamp(timestamp)
 
