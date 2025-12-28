@@ -28,10 +28,10 @@ def test_load_nifti(nifti_img_and_path):
     assert isinstance(bids_io.load_nifti(img_path), nib.nifti1.Nifti1Image)
 
 
-def test_glob_contents(nifti_img_and_path):
-    """Test for ``glob_contents``"""
+def test_regex_glob(nifti_img_and_path):
+    """Test for ``regex_glob``"""
     _, img_path = nifti_img_and_path
-    files = bids_io.glob_contents(img_path.parent, pattern="*.nii")
+    files = bids_io.regex_glob(img_path.parent, pattern=r"^.*\.nii")
     assert len(files) == 1
 
 

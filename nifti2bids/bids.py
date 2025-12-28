@@ -10,7 +10,7 @@ import numpy as np
 
 from nifti2bids._helpers import iterable_to_str
 from nifti2bids.logging import setup_logger
-from nifti2bids.io import _copy_file, glob_contents
+from nifti2bids.io import _copy_file
 from nifti2bids.parsers import (
     load_eprime_log,
     load_presentation_log,
@@ -194,7 +194,7 @@ def create_participant_tsv(
     pandas.DataFrame or None
         The dataframe if ``return_df`` is True.
     """
-    participants = [folder.name for folder in glob_contents(bids_dir, "*sub-*")]
+    participants = [folder.name for folder in Path(bids_dir).glob("*sub-*")]
     df = pd.DataFrame({"participant_id": participants})
 
     if save_df:

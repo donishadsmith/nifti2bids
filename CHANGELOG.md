@@ -4,6 +4,10 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.10.0] - 2025-12-28
+- Replace ``glob_contents`` with ``regex_glob``
+- Add new parameters to ``compress_image``
+
 ## [0.9.1] - 2025-12-27
 - Add file timestamp function and return modification date for non-Windows systems
 
