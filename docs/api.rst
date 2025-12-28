@@ -13,6 +13,7 @@ Module for initializing and creating BIDS compliant files.
    :toctree: generated/
 
    create_bids_file
+   get_entity_value
    create_dataset_description
    save_dataset_description
    create_participant_tsv
@@ -84,7 +85,6 @@ from NIfTIs.
    parse_date_from_path
    get_file_timestamp
    get_file_creation_date
-   get_entity_value
    infer_task_from_image
    get_recon_matrix_pe
    compute_effective_echo_spacing

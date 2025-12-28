@@ -7,6 +7,7 @@ from nifti2bids.bids import (
     create_participant_tsv,
     create_dataset_description,
     save_dataset_description,
+    get_entity_value,
     PresentationBlockExtractor,
     PresentationEventExtractor,
     EPrimeBlockExtractor,
@@ -83,6 +84,13 @@ def test_create_participant_tsv(tmp_dir):
 
     df = pd.read_csv(filename, sep="\t")
     assert df["participant_id"].values[0] == "sub-01"
+
+
+def test_get_entity_value():
+    """Test for ``get_entity_value``."""
+    filename = "sub-01_task-test_bold.nii.gz"
+    assert get_entity_value(filename, "task") == "test"
+    assert not get_entity_value(filename, "ses")
 
 
 def _create_presentation_logfile(dst_dir, data, design):

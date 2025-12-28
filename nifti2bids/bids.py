@@ -1,6 +1,6 @@
 """Module for creating BIDS compliant files."""
 
-import json, itertools
+import json, itertools, re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Literal, Optional
@@ -122,6 +122,35 @@ def _strip_none_entities(bids_filename: str | Path) -> str:
     ]
 
     return f"{'_'.join(retained_entities)}.{ext}"
+
+
+def get_entity_value(filename: str | Path, entity: str) -> str | None:
+    """
+    Gets entity value of a BIDS compliant filename.
+
+    Parameters
+    ----------
+    filename: :obj:`str` or :obj:`Path`
+        Filename to extract entity from.
+
+    entity: :obj:`str`
+        The entity key (e.g. "sub", "task")
+
+    Returns
+    -------
+    str or None
+        The entity value.
+
+    Example
+    -------
+    >>> from nifti2bids.bids import get_entity_value
+    >>> get_entity_value("sub-01_task-flanker_bold.nii.gz", "task")
+        "flanker"
+    """
+    basename = Path(filename).name
+    match = re.search(rf"{entity}-([^_\.]+)", basename)
+
+    return match.group(1) if match else None
 
 
 def create_dataset_description(

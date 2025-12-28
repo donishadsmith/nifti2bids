@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.11.0] - 2025-12-28
+- Move ``get_entity_value`` to bids module
+
 ## [0.10.0] - 2025-12-28
 - Replace ``glob_contents`` with ``regex_glob``
 - Add new parameters to ``compress_image``

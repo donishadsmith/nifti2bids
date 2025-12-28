@@ -917,35 +917,6 @@ def get_file_creation_date(path: str | Path, date_fmt: str) -> str:
     return converted_timestamp.strftime(date_fmt)
 
 
-def get_entity_value(filename: str | Path, entity: str) -> str | None:
-    """
-    Gets entity value of a BIDS compliant filename.
-
-    Parameters
-    ----------
-    filename: :obj:`str` or :obj:`Path`
-        Filename to extract entity from.
-
-    entity: :obj:`str`
-        The entity key (e.g. "sub", "task")
-
-    Returns
-    -------
-    str or None
-        The entity value.
-
-    Example
-    -------
-    >>> from nifti2bids.metadata import get_entity_value
-    >>> get_entity_value("sub-01_task-flanker_bold.nii.gz", "task")
-        "flanker"
-    """
-    basename = Path(filename).name
-    match = re.search(rf"{entity}-([^_\.]+)", basename)
-
-    return match.group(1) if match else None
-
-
 def infer_task_from_image(
     nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image,
     task_volume_map: dict[str, int] | dict[int, str],
