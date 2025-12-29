@@ -13,7 +13,7 @@ from .logging import setup_logger
 
 LGR = setup_logger(__name__)
 
-VOXEL_INDX_DICT = {"i": 0, "j": 1, "k": 2}
+_VOXEL_INDX_DICT = {"i": 0, "j": 1, "k": 2}
 
 
 @check_all_none(parameter_names=["nifti_file_or_img", "nifti_header"])
@@ -215,16 +215,16 @@ def get_n_slices(
     """
     hdr = get_nifti_header(nifti_file_or_img)
     if slice_axis:
-        n_slices = hdr.get_data_shape()[VOXEL_INDX_DICT[slice_axis]]
+        n_slices = hdr.get_data_shape()[_VOXEL_INDX_DICT[slice_axis]]
         if slice_end := get_hdr_metadata(nifti_header=hdr, metadata_name="slice_end"):
             if not np.isnan(slice_end) and n_slices != slice_end + 1:
                 raise SliceAxisError(slice_axis, n_slices, slice_end)
 
-        slice_dim_indx = VOXEL_INDX_DICT[slice_axis]
+        slice_dim_indx = _VOXEL_INDX_DICT[slice_axis]
     else:
         slice_dim_indx = determine_slice_axis(nifti_header=hdr)
 
-    reversed_slice_dim_map = {v: k for v, k in VOXEL_INDX_DICT.items()}
+    reversed_slice_dim_map = {v: k for v, k in _VOXEL_INDX_DICT.items()}
 
     n_slices = hdr.get_data_shape()[slice_dim_indx]
     LGR.info(
@@ -981,7 +981,7 @@ def get_recon_matrix_pe(
     """
     img = load_nifti(nifti_file_or_img)
 
-    return img.get_fdata().shape[VOXEL_INDX_DICT[phase_encoding_axis]]
+    return img.get_fdata().shape[_VOXEL_INDX_DICT[phase_encoding_axis]]
 
 
 def compute_effective_echo_spacing(
@@ -1067,3 +1067,24 @@ def compute_total_readout_time(
         if not use_fallback_trt
         else 0.03125
     )
+
+
+__all__ = [
+    "determine_slice_axis",
+    "get_hdr_metadata",
+    "get_n_volumes",
+    "get_image_orientation",
+    "get_n_slices",
+    "get_tr",
+    "create_slice_timing",
+    "is_3d_img",
+    "get_scanner_info",
+    "is_valid_date",
+    "parse_date_from_path",
+    "get_file_timestamp",
+    "get_file_creation_date",
+    "infer_task_from_image",
+    "get_recon_matrix_pe",
+    "compute_effective_echo_spacing",
+    "compute_total_readout_time",
+]

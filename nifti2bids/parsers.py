@@ -305,3 +305,10 @@ def load_presentation_log(
         if not convert_to_seconds
         else _convert_time(df, convert_to_seconds, divisor=1e4)
     )
+
+
+__all__ = [
+    "convert_edat3_to_text",
+    "load_eprime_log",
+    "load_presentation_log",
+]

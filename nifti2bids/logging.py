@@ -86,3 +86,6 @@ def _add_default_handler(logger: logging.Logger, format: str | None = None):
     logger.addHandler(handler)
 
     return logger
+
+
+__all__ = ["setup_logger"]

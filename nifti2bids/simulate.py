@@ -62,3 +62,9 @@ def create_affine(
     affine[:, 3:] = translation_vector[:, np.newaxis]
 
     return affine
+
+
+__all__ = [
+    "simulate_nifti_image",
+    "create_affine",
+]

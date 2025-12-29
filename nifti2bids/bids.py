@@ -2832,3 +2832,22 @@ def add_instruction_timing(
     new_df = pd.concat([instructions, tasks, trials_to_keep], ignore_index=True)
 
     return new_df.sort_values(by="onset").reset_index(inplace=False, drop=True)
+
+
+__all__ = [
+    "create_bids_file",
+    "get_entity_value",
+    "create_dataset_description",
+    "save_dataset_description",
+    "create_participant_tsv",
+    "add_instruction_timing",
+    "LogExtractor",
+    "BlockExtractor",
+    "EventExtractor",
+    "PresentationExtractor",
+    "PresentationBlockExtractor",
+    "PresentationEventExtractor",
+    "EPrimeExtractor",
+    "EPrimeBlockExtractor",
+    "EPrimeEventExtractor",
+]
