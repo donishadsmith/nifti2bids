@@ -169,7 +169,7 @@ def _copy_file(
         Delete the source file if True.
     """
     if not dst_file.parent.exists():
-        dst_file.parent.mkdir()
+        dst_file.parent.mkdir(parents=True)
 
     shutil.copy(src_file, dst_file)
 

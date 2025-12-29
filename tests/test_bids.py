@@ -27,7 +27,7 @@ from ._constants import (
 def test_create_bids_file(nifti_img_and_path, dst_dir, remove_src_file):
     """Test for ``create_bids_file``."""
     _, img_path = nifti_img_and_path
-    dst_dir = None if not dst_dir else img_path.parent / "test"
+    dst_dir = None if not dst_dir else img_path.parent / "subdir" / "test"
 
     bids_filename = create_bids_file(
         img_path,

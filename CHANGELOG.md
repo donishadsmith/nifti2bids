@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.11.3] - 2025-12-29
+- Fix for creating parent directories
+
 ## [0.11.2] - 2025-12-29
 - Add new bids filename function and create destination directory when creating bids file
 
