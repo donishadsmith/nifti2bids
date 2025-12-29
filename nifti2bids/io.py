@@ -168,6 +168,9 @@ def _copy_file(
     remove_src_file: :obj:`bool`, default=False
         Delete the source file if True.
     """
+    if not dst_file.parent.exists():
+        dst_file.parent.mkdir()
+
     shutil.copy(src_file, dst_file)
 
     if remove_src_file:

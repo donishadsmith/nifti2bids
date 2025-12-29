@@ -28,17 +28,16 @@ def test_create_bids_file(nifti_img_and_path, dst_dir, remove_src_file):
     """Test for ``create_bids_file``."""
     _, img_path = nifti_img_and_path
     dst_dir = None if not dst_dir else img_path.parent / "test"
-    if dst_dir:
-        dst_dir.mkdir()
 
     bids_filename = create_bids_file(
         img_path,
-        subj_id="01",
+        sub_id="01",
         desc="bold",
         remove_src_file=remove_src_file,
         dst_dir=dst_dir,
         return_bids_filename=True,
     )
+
     assert bids_filename
     assert Path(bids_filename).name == "sub-01_bold.nii"
 

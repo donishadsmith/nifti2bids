@@ -21,9 +21,53 @@ from nifti2bids.parsers import (
 LGR = setup_logger(__name__)
 
 
+def generate_bids_filename(
+    sub_id: str | int,
+    desc: str,
+    ext: str,
+    ses_id: Optional[str | int] = None,
+    task_id: Optional[str] = None,
+    run_id: Optional[str | int] = None,
+) -> str:
+    """
+    Generate a BIDs compliant filename.
+
+    sub_id: :obj:`str` or :obj:`int`
+        Subject ID (i.e. 01, 101, etc).
+
+    desc: :obj:`str`
+        Description of the file (i.e., T1w, bold, etc).
+
+    ext: :obj:`str`
+        The extension of the file.
+
+    ses_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+        Session ID (i.e. 001, 1, etc). Optional entity.
+
+    ses_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+        Session ID (i.e. 001, 1, etc). Optional entity.
+
+    task_id: :obj:`str` or :obj:`None`, default=None
+        Task ID (i.e. flanker, n_back, etc). Optional entity.
+
+    run_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+        Run ID (i.e. 001, 1, etc). Optional entity.
+
+    Returns
+    -------
+    str
+        A BIDS compliant filename.
+    """
+    bids_filename = (
+        f"sub-{sub_id}_ses-{ses_id}_task-{task_id}_run-{run_id}_{desc}.{ext}"
+    )
+
+    return _strip_none_entities(bids_filename)
+
+
 def create_bids_file(
     src_file: str | Path,
-    subj_id: str | int,
+    sub_id: str | int,
     desc: str,
     ses_id: Optional[str | int] = None,
     task_id: Optional[str] = None,
@@ -60,7 +104,8 @@ def create_bids_file(
 
     dst_dir: :obj:`str`, :obj:`Path`, or :obj:`None`, default=None
         Directory name to copy the BIDS file to. If None, then the
-        BIDS file is copied to the same directory as
+        BIDS file is copied to the same directory as the ``src_file``.
+        Directory will also be created if it does not exist.
 
     remove_src_file: :obj:`str`, default=False
         Delete the source file if True.
@@ -79,11 +124,9 @@ def create_bids_file(
     There are additional entities that can be used that are
     not included in this function.
     """
-    bids_filename = f"sub-{subj_id}_ses-{ses_id}_task-{task_id}_run-{run_id}_{desc}"
-    bids_filename = _strip_none_entities(bids_filename)
-
     ext = f"{str(src_file).partition('.')[-1]}"
-    bids_filename += f"{ext}"
+    bids_filename = generate_bids_filename(sub_id, desc, ext, ses_id, task_id, run_id)
+
     bids_filename = (
         Path(src_file).parent / bids_filename
         if dst_dir is None

@@ -12,6 +12,7 @@ Module for initializing and creating BIDS compliant files.
    :nosignatures:
    :toctree: generated/
 
+   generate_bids_filename
    create_bids_file
    get_entity_value
    create_dataset_description
