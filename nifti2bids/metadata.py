@@ -50,8 +50,11 @@ def determine_slice_axis(
 
     n_slices = int(slice_end) + 1
     dims = np.array(hdr.get_data_shape()[:3])
+    slice_axis_arr = np.where(dims == n_slices)[0]
+    if slice_axis_arr.size == 0:
+        raise ValueError("Slice axis could not be determined.")
 
-    return np.where(dims == n_slices)[0][0]
+    return slice_axis_arr[0]
 
 
 def _is_numeric(value: Any) -> bool:
@@ -699,6 +702,15 @@ def create_slice_timing(
     if multiband_factor and slice_acquisition_method in ["central", "reversed_central"]:
         raise NotImplementedError(
             "'central' and 'reversed_central' cannot be used with ``multiband_factor``."
+        )
+
+    slice_start = get_hdr_metadata(
+        nifti_file_or_img=nifti_file_or_img, metadata_name="slice_start"
+    )
+    if slice_start != 0 and not np.isnan(slice_start):
+        LGR.warning(
+            "Slice start index must start at 0. Starting slice index begins at "
+            f"index {slice_start} so slice timing may not be accurate."
         )
 
     n_slices = get_n_slices(nifti_file_or_img, slice_axis)
