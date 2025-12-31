@@ -5,7 +5,7 @@ Documentation of changes for each version of ``Nifti2Bids``.
 **Currently doesn't follow semantic versioning.**
 
 ## [0.11.4] - 2025-12-31
-- Adds warnings and errors for slice start and slice end indices
+- Adds warning slice start index
 
 ## [0.11.3] - 2025-12-29
 - Fix for creating parent directories
