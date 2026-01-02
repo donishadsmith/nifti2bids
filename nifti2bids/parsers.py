@@ -115,7 +115,7 @@ def convert_edat3_to_text(
 
     if not Path(EDATAAID_PATH).exists:
         raise FileNotFoundError(
-            f"EPrime 3 must be installed to use the following program {EDATAAID_PATH}."
+            f"E-Prime 3 must be installed to use the following program {EDATAAID_PATH}."
         )
 
     assert (format := format.lower()) in [
@@ -133,12 +133,12 @@ def convert_edat3_to_text(
 
     # https://stackoverflow.com/questions/7006238/how-do-i-hide-the-console-when-i-use-os-system-or-subprocess-call
     # Hide Window and prevent flashing
-    si = subprocess.STARTUPINFO()
-    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    si.wShowWindow = subprocess.SW_HIDE
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = subprocess.SW_HIDE
 
     subprocess.run(
-        [EDATAAID_PATH, "/e", "/f", tmpfile.name], startupinfo=si, shell=False
+        [EDATAAID_PATH, "/e", "/f", tmpfile.name], startupinfo=startupinfo, shell=False
     )
 
     Path(tmpfile.name).unlink()
@@ -237,7 +237,7 @@ def load_eprime_log(
     Returns
     -------
     pandas.Dataframe
-        A Pandas DataFrame of the data.
+        A Pandas DataFrame of the behavioral log data.
 
     Note
     ----
@@ -267,7 +267,7 @@ def load_presentation_log(
     initial_column_headers: Iterable[str] = ("Trial", "Event Type"),
 ) -> pd.DataFrame:
     """
-    Loads Presentation log file as a Pandas Dataframe.
+    Loads Presentation log file as a Pandas DataFrame.
 
     .. important::
         Data are assumed to have at least one element that is an digit or float
@@ -287,7 +287,7 @@ def load_presentation_log(
     Returns
     -------
     pandas.Dataframe
-        A Pandas DataFrame of the data.
+        A Pandas DataFrame of the behavioral log data.
 
     Note
     ----
