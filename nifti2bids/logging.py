@@ -18,10 +18,10 @@ def setup_logger(
 
     Parameters
     ----------
-    logger_name: :obj:`str`
+    logger_name : :obj:`str`
         Name of the logger to return, if None, the root logger is returned.
 
-    level: :obj:`int` or :obj:`None`
+    level : :obj:`int` or :obj:`None`
         The logging level. If None, the logging level is not set
 
     Returns
@@ -47,7 +47,7 @@ def _has_handler(logger):
 
     Parameters
     ----------
-    logger: :obj:`Logger`
+    logger : :obj:`Logger`
         A logging object.
 
     Returns
@@ -67,10 +67,10 @@ def _add_default_handler(logger: logging.Logger, format: str | None = None):
 
     Parameters
     ----------
-    logger: :obj:`Logger`
+    logger : :obj:`Logger`
         A logging object.
 
-    format: :obj:`str`
+    format : :obj:`str`
         String specifying the format of the logged message.
 
     Returns

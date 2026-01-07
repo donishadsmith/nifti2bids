@@ -32,25 +32,25 @@ def generate_bids_filename(
     """
     Generate a BIDs compliant filename.
 
-    sub_id: :obj:`str` or :obj:`int`
+    sub_id : :obj:`str` or :obj:`int`
         Subject ID (i.e. 01, 101, etc).
 
-    desc: :obj:`str`
+    desc : :obj:`str`
         Description of the file (i.e., T1w, bold, etc).
 
-    ext: :obj:`str`
+    ext : :obj:`str`
         The extension of the file.
 
-    ses_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+    ses_id : :obj:`str` or :obj:`int` or :obj:`None`, default=None
         Session ID (i.e. 001, 1, etc). Optional entity.
 
-    ses_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+    ses_id : :obj:`str` or :obj:`int` or :obj:`None`, default=None
         Session ID (i.e. 001, 1, etc). Optional entity.
 
-    task_id: :obj:`str` or :obj:`None`, default=None
+    task_id : :obj:`str` or :obj:`None`, default=None
         Task ID (i.e. flanker, n_back, etc). Optional entity.
 
-    run_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+    run_id : :obj:`str` or :obj:`int` or :obj:`None`, default=None
         Run ID (i.e. 001, 1, etc). Optional entity.
 
     Returns
@@ -81,36 +81,36 @@ def create_bids_file(
 
     Parameters
     ----------
-    src_file: :obj:`str` or :obj:`Path`
+    src_file : :obj:`str` or :obj:`Path`
         Path to the source file.
 
-    sub_id: :obj:`str` or :obj:`int`
+    sub_id : :obj:`str` or :obj:`int`
         Subject ID (i.e. 01, 101, etc).
 
-    desc: :obj:`str`
+    desc : :obj:`str`
         Description of the file (i.e., T1w, bold, etc).
 
-    ses_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+    ses_id : :obj:`str` or :obj:`int` or :obj:`None`, default=None
         Session ID (i.e. 001, 1, etc). Optional entity.
 
-    ses_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+    ses_id : :obj:`str` or :obj:`int` or :obj:`None`, default=None
         Session ID (i.e. 001, 1, etc). Optional entity.
 
-    task_id: :obj:`str` or :obj:`None`, default=None
+    task_id : :obj:`str` or :obj:`None`, default=None
         Task ID (i.e. flanker, n_back, etc). Optional entity.
 
-    run_id: :obj:`str` or :obj:`int` or :obj:`None`, default=None
+    run_id : :obj:`str` or :obj:`int` or :obj:`None`, default=None
         Run ID (i.e. 001, 1, etc). Optional entity.
 
-    dst_dir: :obj:`str`, :obj:`Path`, or :obj:`None`, default=None
+    dst_dir : :obj:`str`, :obj:`Path`, or :obj:`None`, default=None
         Directory name to copy the BIDS file to. If None, then the
         BIDS file is copied to the same directory as the ``src_file``.
         Directory will also be created if it does not exist.
 
-    remove_src_file: :obj:`str`, default=False
+    remove_src_file : :obj:`str`, default=False
         Delete the source file if True.
 
-    return_bids_filename: :obj:`str`, default=False
+    return_bids_filename : :obj:`str`, default=False
         Returns the full BIDS filename if True.
 
     Returns
@@ -144,7 +144,7 @@ def _strip_none_entities(bids_filename: str | Path) -> str:
 
     Parameters
     ----------
-    bids_filename: :obj:`str` or :obj:`Path`
+    bids_filename : :obj:`str` or :obj:`Path`
         The BIDS filename.
 
     Returns
@@ -173,11 +173,11 @@ def get_entity_value(filename: str | Path, entity: str) -> str | None:
 
     Parameters
     ----------
-    filename: :obj:`str` or :obj:`Path`
+    filename : :obj:`str` or :obj:`Path`
         Filename to extract entity from.
 
-    entity: :obj:`str`
-        The entity key (e.g. "sub", "task")
+    entity : :obj:`str`
+        The entity key (e.g. "sub", "task", etc)
 
     Returns
     -------
@@ -197,7 +197,7 @@ def get_entity_value(filename: str | Path, entity: str) -> str | None:
 
 
 def create_dataset_description(
-    dataset_name: str, bids_version: str = "1.0.0"
+    dataset_name: str, bids_version: str = "1.0.0", derivative=False
 ) -> dict[str, str]:
     """
     Generate a dataset description dictionary.
@@ -206,13 +206,13 @@ def create_dataset_description(
 
     Parameters
     ----------
-    dataset_name: :obj:`str`
+    dataset_name : :obj:`str`
         Name of the dataset.
 
-    bids_version: :obj:`str`,
+    bids_version : :obj:`str`,
         Version of the BIDS dataset.
 
-    derivative: :obj:`bool`, default=False
+    derivative : :obj:`bool`, default=False
         Determines if "GeneratedBy" key is added to dictionary.
 
     Returns
@@ -220,7 +220,12 @@ def create_dataset_description(
     dict[str, str]
         The dataset description dictionary
     """
-    return {"Name": dataset_name, "BIDSVersion": bids_version}
+    dataset_description = {"Name": dataset_name, "BIDSVersion": bids_version}
+
+    if derivative:
+        dataset_description.update({"GeneratedBy": [{"Name": dataset_name}]})
+
+    return dataset_description
 
 
 def save_dataset_description(
@@ -234,10 +239,10 @@ def save_dataset_description(
 
     Parameters
     ----------
-    dataset_description: :obj:`dict`
+    dataset_description : :obj:`dict`
         The dataset description dictionary.
 
-    dst_dir: :obj:`str` or :obj:`Path`
+    dst_dir : :obj:`str` or :obj:`Path`
         Path to save the JSON file to.
     """
     with open(Path(dst_dir) / "dataset_description.json", "w", encoding="utf-8") as f:
@@ -252,13 +257,13 @@ def create_participant_tsv(
 
     Parameters
     ----------
-    bids_dir: :obj:`str` or :obj:`Path`
+    bids_dir : :obj:`str` or :obj:`Path`
         The root of BIDS compliant directory.
 
-    save_df: :obj:`bool`, bool=False
+    save_df : :obj:`bool`, bool=False
         Save the dataframe to the root of the BIDS compliant directory.
 
-    return_df: :obj:`str`
+    return_df : :obj:`str`
         Returns dataframe if True else return None.
 
     Returns
@@ -287,20 +292,20 @@ def _process_log_or_df(
 
     Parameters
     ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
+    log_or_df : :obj:`str`, :obj:`Path`, :obj:`pd.DataFrame`
         The log or DataFrame of event informaiton from a neurobehavioral software.
 
-    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+    convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns.
 
-    initial_column_headers: :obj:`Iterable[str]`
+    initial_column_headers : :obj:`Iterable[str]`
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
-    divisor: :obj:`float` or :obj:`int`
+    divisor : :obj:`float` or :obj:`int`
         Value to divide columns specified in ``convert_to_seconds`` by.
 
-    software: :obj:`Literal["Presentation", "EPrime"]
+    software : :obj:`Literal["Presentation", "EPrime"]
         The specific neurobehavioral software.
 
     Returns
@@ -338,13 +343,13 @@ def _validate_no_cue_conflicts(
 
     Parameters
     ----------
-    block_cue_names: :obj:`Iterable[str]`
+    block_cue_names : :obj:`Iterable[str]`
         The names of the block cues.
 
-    rest_block_code: :obj:`str`
+    rest_block_code : :obj:`str`
         The name of the rest block.
 
-    quit_code: :obj:`str`
+    quit_code : :obj:`str`
         The quit code.
     """
     conflicting_codes = set(block_cue_names).intersection(
@@ -368,13 +373,13 @@ def _get_starting_block_indices(
 
     Parameters
     ----------
-    log_df: :obj:`pandas.DataFrame`
+    log_df : :obj:`pandas.DataFrame`
         DataFrame of neurobehavioral log data.
 
-    trial_column_name: :obj:`str`
+    trial_column_name : :obj:`str`
         Name of the column containing the trial information.
 
-    block_cue_names: :obj:`Iterable[str]`
+    block_cue_names : :obj:`Iterable[str]`
         The names of blocks.
 
     Returns
@@ -418,29 +423,29 @@ def _get_next_block_index(
 
     Parameters
     ----------
-    trial_series: :obj:`pandas.Series`
+    trial_series : :obj:`pandas.Series`
         A Pandas Series of the column containing the trial type information.
 
-    block_start_index: :obj:`int`
+    block_start_index : :obj:`int`
         The current row index.
 
-    rest_block_code: :obj:`str` or :obj:`None`
+    rest_block_code : :obj:`str` or :obj:`None`
         The name of the rest block.
 
-    rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
+    rest_code_frequency : :obj:`Literal["fixed", "variable"]`, default="fixed"
         Frequency of the rest block. For "fixed", the rest code is assumed to
         appear between each trial or at least each trial. For "variable",
         it is assumed that the rest code does not appear between each
         trial.
 
-    block_cue_names: :obj:`Iterable[str]`
+    block_cue_names : :obj:`Iterable[str]`
         The names of the blocks. When used, identifies
         the indices of all block names minus the indices
         corresponding to the current trial type. Used when
         ``rest_block_code`` is not None and ``rest_code_frequency``
         is not "fixed".
 
-    quit_code: :obj:`str` or :obj:`None`, default=None
+    quit_code : :obj:`str` or :obj:`None`, default=None
         The quit code. Ideally, this should be a unique code.
 
     Returns
@@ -481,13 +486,13 @@ def _separate_block_from_cue(
 
     Parameters
     ----------
-    split_cue_as_instruction: :obj:`bool`
+    split_cue_as_instruction : :obj:`bool`
         Whether to separate cue as instruction trial.
 
-    block_cue_name: :obj:`str`
+    block_cue_name : :obj:`str`
         The name of the block cue.
 
-    block_cues_without_instruction: :obj:`Iterable[str]`
+    block_cues_without_instruction : :obj:`Iterable[str]`
         Names of the blocks that should not have their cue separated
         as instruction.
     """
@@ -511,29 +516,29 @@ def _extract_block_trial_types(
 
     Parameters
     ----------
-    df: :obj:`pd.DataFrame`
+    df : :obj:`pd.DataFrame`
         DataFrame containing the log data.
 
-    starting_block_indices: :obj:`list[int]`
+    starting_block_indices : :obj:`list[int]`
         List of row indices to extract trial types from.
 
-    trial_column_name: :obj:`str`
+    trial_column_name : :obj:`str`
         Name of the column containing trial type information.
 
-    split_cue_as_instruction: :obj:`bool`, default=False
+    split_cue_as_instruction : :obj:`bool`, default=False
         Whether to separate cue as instruction trial. Will compute timing information
         from the row index immediately proceeding the row index of the block cue.
 
-    block_cues_without_instruction: :obj:`Iterable[str]` or :obj:`tuple[()], default=()
+    block_cues_without_instruction : :obj:`Iterable[str]` or :obj:`tuple[()], default=()
         If ``split_cue_as_instruction`` is True and certain names from
         ``block_cue_names`` are specified in this parameter, then those
         blocks will not have their cue separated as instruction and will always start
         on the row index containing that name.
 
-    instruction_suffix: :obj:`str`, default="_instruction"
+    instruction_suffix : :obj:`str`, default="_instruction"
         Suffix to append to trial type names for instruction trials.
 
-    drop_instruction_cues: :obj:`bool`, default=False
+    drop_instruction_cues : :obj:`bool`, default=False
         If True and ``split_cue_as_instruction`` is True, the instruction
         trials are not included in the output.
 
@@ -574,13 +579,13 @@ def _filter_response_trial_names(
 
     Parameters
     ----------
-    response_trial_names: :obj:`Iterable[str]` or :obj:`None`
+    response_trial_names : :obj:`Iterable[str]` or :obj:`None`
         The codes identifying trials to include for response extraction.
 
-    split_cue_as_instruction: :obj:`bool`
+    split_cue_as_instruction : :obj:`bool`
         Whether cue is being separated as instruction trial.
 
-    block_cue_names: :obj:`Iterable[str]`
+    block_cue_names : :obj:`Iterable[str]`
         The names of the block cues to remove from response trial codes.
 
     Returns
@@ -720,7 +725,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
     Parameters
     ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
+    log_or_df : :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The Presentation log as a file path or the Presentation DataFrame
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
 
@@ -728,18 +733,18 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
            If a text file is used, data are assumed to have at least one element
            that is an digit or float during parsing.
 
-    block_cue_names: :obj:`Iterable[str]`
+    block_cue_names : :obj:`Iterable[str]`
         The names of the block cue names (i.e., "Face", "Place"). Serves to
         identify the boundaries of a trial type of interest.
 
-    trial_column_name: :obj:`str`, default="Code"
+    trial_column_name : :obj:`str`, default="Code"
         Name of the column containing the trial types.
 
-    scanner_event_type: :obj:`str`
+    scanner_event_type : :obj:`str`
         The event type in the "Event Type" column the scanner
         trigger is listed under (e.g., "Pulse", "Response", "Picture", etc).
 
-    scanner_trigger_code: :obj:`str`
+    scanner_trigger_code : :obj:`str`
         Code listed under "Code" for the scanner start (e.g., "54", "99", "trigger).
         Used with ``scanner_event_type`` to compute the onset
         times of the trials relative to the scanner start time then
@@ -750,16 +755,16 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
            Uses the first index of the rows in the dataframe with values
            provided for ``scanner_event_type`` and ``scanner_trigger_code``.
 
-    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+    convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1 ms to seconds.
 
         .. important:: Recommend time resolution of the "Time" column to be converted.
 
-    initial_column_headers: :obj:`Iterable[str]`, default=("Trial", "Event Type")
+    initial_column_headers : :obj:`Iterable[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
-    n_discarded_volumes: :obj:`int`, default=0
+    n_discarded_volumes : :obj:`int`, default=0
         Number of non-steady state scans discarded by the scanner at the start of the sequence.
 
         .. important::
@@ -770,11 +775,11 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
              discarding the volumes, do not set this parameter.
              `Explanation from Neurostars <https://neurostars.org/t/how-to-sync-time-from-e-prime-behavior-data-with-fmri/6887>`_.
 
-    tr: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+    tr : :obj:`float`, :obj:`int`, or :obj:`None`, default=None
         The repetition time provided in seconds if data was converted to seconds or
         in ten thousand seconds if not converted.
 
-    rest_block_code: :obj:`str` or :obj:`None`, default=None
+    rest_block_code : :obj:`str` or :obj:`None`, default=None
         The name of the code for the rest block. Used when a resting state
         block is between the events to compute the correct block duration.
         If None, the block duration will be computed based on the starting
@@ -782,18 +787,18 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         and ``rest_code_frequency`` is "variable", will be used with
         ``block_cue_names`` to compute the correct duration.
 
-    rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
+    rest_code_frequency : :obj:`Literal["fixed", "variable"]`, default="fixed"
         Frequency of the rest block. For "fixed", the rest code is assumed to
         appear between each block or at least each block. For "variable",
         it is assumed that the rest code does not appear between each
         block.
 
-    quit_code: :obj:`str` or :obj:`None`, default=None
+    quit_code : :obj:`str` or :obj:`None`, default=None
         The quit code. Suggest to use in cases when a quit code, as opposed
         to a rest code, is preceded by a trial block. Ideally, this should
         be a unique code.
 
-    split_cue_as_instruction: :obj:`bool`, default=False
+    split_cue_as_instruction : :obj:`bool`, default=False
         Whether to separate cue as instruction trial. If True, the row index
         containing the name of the block cue will have a separate onset and
         duration time. In addition, only the row indices proceeding the
@@ -838,43 +843,43 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             | ...   | ...      |
             +-------+----------+
 
-    block_cues_without_instruction: :obj:`Iterable[str]` or :obj:`None`, default=None
+    block_cues_without_instruction : :obj:`Iterable[str]` or :obj:`None`, default=None
         Block cue names that should not have their cue separated as instruction.
         Only used when ``split_cue_as_instruction`` is True. Blocks specified
         here will always start at the cue row.
 
-    instruction_suffix: :obj:`str`, default="_instruction"
+    instruction_suffix : :obj:`str`, default="_instruction"
         Suffix for instruction trial type names.
 
-    drop_instruction_cues: :obj:`bool`, defaut=False
+    drop_instruction_cues : :obj:`bool`, defaut=False
         Whether to drop instruction cues from output.
 
     Attributes
     ----------
-    df: :obj:`pandas.DataFrame`
+    df : :obj:`pandas.DataFrame`
         DataFrame containing the log data. If the scanner trigger is identified
         using ``scanner_event_type`` and ``scanner_trigger_code``, then rows
         preceding the first scanner are dropped and the index is reset.
 
-    block_cue_names: :obj:`Iterable[str]`
+    block_cue_names : :obj:`Iterable[str]`
         The names of the block cue codes (i.e., Face, Place).
 
-    scanner_event_type: :obj:`str`
+    scanner_event_type : :obj:`str`
         Event type of scanner trigger.
 
-    scanner_trigger_code: :obj:`str`
+    scanner_trigger_code : :obj:`str`
         Code for the scanner trigger.
 
-    trial_column_name: :obj:`str`
+    trial_column_name : :obj:`str`
         Name of column containing the trial types.
 
-    n_discarded_scans: :obj:`int`
+    n_discarded_scans : :obj:`int`
         Number of non-steady state scans discarded by scanner.
 
-    tr: :obj:`float`, :obj:`int`, or :obj:`None`
+    tr : :obj:`float`, :obj:`int`, or :obj:`None`
         The repetition time.
 
-    scanner_start_time: :obj:`float` or :obj:`None`
+    scanner_start_time : :obj:`float` or :obj:`None`
         Time when scanner sends the pulse. If ``n_discarded_volumes``
         is not 0 and ``tr`` is specified, then this time will be
         shifted forward (``scanner_start_time = scanner_start_time + n_discarded_volumes * tr``)
@@ -882,11 +887,11 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         extracted from the log data is assumed to be the time when the first steady state
         volume was retained.
 
-    starting_block_indices: :obj:`list[int]`
+    starting_block_indices : :obj:`list[int]`
         The indices of when each trial block of interest (specified by ``block_cue_names``)
         begins.
 
-    rest_block_code: :obj:`str` or :obj:`None`, default=None
+    rest_block_code : :obj:`str` or :obj:`None`, default=None
         The name of the code for the rest block. Used when a resting state
         block is between the events to compute the correct block duration.
         If None, the block duration will be computed based on the starting
@@ -894,26 +899,26 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         and ``rest_code_frequency`` is "variable", will be used with
         ``block_cue_names`` to compute the correct duration.
 
-    rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
+    rest_code_frequency : :obj:`Literal["fixed", "variable"]`, default="fixed"
         Frequency of the rest block. For "fixed", the rest code is assumed to
         appear between each block or at least each block. For "variable",
         it is assumed that the rest code does not appear between each
         block.
 
-    quit_code: :obj:`str` or :obj:`None`
+    quit_code : :obj:`str` or :obj:`None`
         The quit code.
 
-    split_cue_as_instruction: :obj:`bool`
+    split_cue_as_instruction : :obj:`bool`
         Whether to separate cue as instruction trial.
 
-    block_cues_without_instruction: :obj:`Iterable[str]`
+    block_cues_without_instruction : :obj:`Iterable[str]`
         Names of the blocks that should not have their cue separated
         as instruction.
 
-    instruction_suffix: :obj:`str`
+    instruction_suffix : :obj:`str`
         Suffix for instruction trial type names.
 
-    drop_instruction_cues: :obj:`bool`
+    drop_instruction_cues : :obj:`bool`
         Whether to drop instruction cues from output.
 
     Example
@@ -1011,7 +1016,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         Parameters
         ----------
-        scanner_start_time: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        scanner_start_time : :obj:`float`, :obj:`int`, or :obj:`None`, default=None
             The start time for the scanner.
 
             .. important::
@@ -1126,10 +1131,10 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         Parameters
         ----------
-        block_start_index: :obj:`int`
+        block_start_index : :obj:`int`
             The starting index of the block.
 
-        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
+        response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include for the
             mean accuracy and reaction time computation.
 
@@ -1172,7 +1177,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         Parameters
         ----------
-        block_df: :obj:`pandas.DataFrame`
+        block_df : :obj:`pandas.DataFrame`
             DataFrame containing the block trials (should be reset index).
 
         Returns
@@ -1216,18 +1221,18 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         Parameters
         ----------
-        response_map: :obj:`dict[str, int]`
+        response_map : :obj:`dict[str, int]`
             A dictionary mapping response codes, from "Stim Type" column
             (ie. "hit", "miss", "other", "false alarm", "incorrect"), to accuracy
             values (0 for incorrect, 1 for correct). If provided, reaction times
             are filtered based on ``response_type``. If None, all reaction times
             with a response are included.
 
-        response_type: :obj:`Literal["correct", "incorrect"]`, default="correct"
+        response_type : :obj:`Literal["correct", "incorrect"]`, default="correct"
             Whether to compute mean RT for correct or incorrect trials.
             Only used when ``response_map`` is provided.
 
-        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
+        response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include for the
             reaction_time computation.
 
@@ -1307,12 +1312,12 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         Parameters
         ----------
-        response_map: :obj:`dict[str, int]`
+        response_map : :obj:`dict[str, int]`
             A dictionary mapping response codes, from "Stim Type" column
             (ie. "hit", "miss", "other", "false alarm", "incorrect"), to accuracy
             values (0 for incorrect, 1 for correct).
 
-        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
+        response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include for the
             accuracy computation.
 
@@ -1371,7 +1376,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
 
     Parameters
     ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
+    log_or_df : :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The Presentation log as a file path or the Presentation DataFrame
         returned by :code:`nifti2bids.parsers.load_presentation_log`.
 
@@ -1379,7 +1384,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
            If a text file is used, data are assumed to have at least one element
            that is an digit or float during parsing.
 
-    trial_types: :obj:`Iterable[str]`
+    trial_types : :obj:`Iterable[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
         .. note::
@@ -1387,11 +1392,11 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
            crosshair code, include the code immediately after the
            final block.
 
-    scanner_event_type: :obj:`str`
+    scanner_event_type : :obj:`str`
         The event type in the "Event Type" column the scanner
         trigger is listed under (e.g., "Pulse", "Response", "Picture", etc).
 
-    scanner_trigger_code: :obj:`str`
+    scanner_trigger_code : :obj:`str`
         Code listed under "Code" for the scanner start (e.g., "54", "99", "trigger).
         Used with ``scanner_event_type`` to compute the onset
         times of the trials relative to the scanner start time then
@@ -1402,21 +1407,21 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
            Uses the first index of the rows in the dataframe with values
            provided for ``scanner_event_type`` and ``scanner_trigger_code``.
 
-    trial_column_name: :obj:`str`, default="Code"
+    trial_column_name : :obj:`str`, default="Code"
         Name of the column containing the trial types.
 
-    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+    convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1 ms to seconds.
 
         .. important::
            Recommend time resolution of the "Time" column and "Duration" column
            to be converted.
 
-    initial_column_headers: :obj:`Iterable[str]`, default=("Trial", "Event Type")
+    initial_column_headers : :obj:`Iterable[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
-    n_discarded_volumes: :obj:`int`, default=0
+    n_discarded_volumes : :obj:`int`, default=0
         Number of non-steady state scans discarded by the scanner at the start of the sequence.
 
         .. important::
@@ -1427,33 +1432,33 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
              discarding the volumes, do not set this parameter.
              `Explanation from Neurostars <https://neurostars.org/t/how-to-sync-time-from-e-prime-behavior-data-with-fmri/6887>`_.
 
-    tr: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+    tr : :obj:`float`, :obj:`int`, or :obj:`None`, default=None
         The repetition time provided in seconds if data was converted to seconds or
         in ten thousand seconds if not converted.
 
     Attributes
     ----------
-    df: :obj:`pandas.DataFrame`
+    df : :obj:`pandas.DataFrame`
         DataFrame containing the log data. If the scanner trigger is identified
         using ``scanner_event_type`` and ``scanner_trigger_code``, then rows
         preceeding the first scanner are dropped and the index is reset.
 
-    trial_types: :obj:`Iterable[str]`
+    trial_types : :obj:`Iterable[str]`
         The names of the trial types.
 
-    scanner_event_type: :obj:`str`
+    scanner_event_type : :obj:`str`
         Event type of scanner trigger.
 
-    scanner_trigger_code: :obj:`str`
+    scanner_trigger_code : :obj:`str`
         Code for the scanner trigger.
 
-    trial_column_name: :obj:`str`
+    trial_column_name : :obj:`str`
         Name of column containing the trial types.
 
-    n_discarded_scans: :obj:`int`
+    n_discarded_scans : :obj:`int`
         Number of non-steady state scans discarded by scanner.
 
-    tr: :obj:`float`, :obj:`int`, or :obj:`None`
+    tr : :obj:`float`, :obj:`int`, or :obj:`None`
         The repetition time.
 
     scanner_start_time :obj:`float` or :obj:`None`
@@ -1464,7 +1469,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         extracted from the log data is assumed to be the time when the first steady state
         volume was retained.
 
-    event_trial_indices: :obj:`list[int]`
+    event_trial_indices : :obj:`list[int]`
         The indices of when each trial event of interest (specified by ``trial_types``)
         begins.
 
@@ -1530,7 +1535,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
 
         Parameters
         ----------
-        scanner_start_time: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        scanner_start_time : :obj:`float`, :obj:`int`, or :obj:`None`, default=None
             The start time for the scanner.
 
             .. important::
@@ -1646,7 +1651,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
 
         Parameters
         ----------
-        response_map: :obj:`dict[str, int | str]`
+        response_map : :obj:`dict[str, int | str]`
             A dictionary mapping response codes, from "Stim Type" column
             (ie. "hit", "miss", "other", "false alarm", "incorrect"), to accuracy
             values (e.g., 0 for incorrect, 1 for correct).
@@ -1736,7 +1741,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         Parameters
         ----------
-        log_or_df: :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
+        log_or_df : :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
             The E-Prime log as a file path or the E-Prime DataFrame
             returned by :code:`nifti2bids.parsers.load_eprime_log`.
 
@@ -1744,34 +1749,34 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                If a text file is used, data are assumed to have at least one element
                that is an digit or float during parsing.
 
-        block_cue_names: :obj:`Iterable[str]`
+        block_cue_names : :obj:`Iterable[str]`
             The names of the block cue names (i.e., "Face", "Place"). Serves to
             identify the boundaries of a trial type of interest.
 
-        onset_column_name: :obj:`str`
+        onset_column_name : :obj:`str`
             The name of the column containing stimulus onset time.
 
-        procedure_column_name: :obj:`str`
+        procedure_column_name : :obj:`str`
             The name of the column containing the procedure names.
 
-        trigger_column_name: :obj:`str` or :obj:`None`, default=None
+        trigger_column_name : :obj:`str` or :obj:`None`, default=None
             The name of the column containing the scanner start time.
             Uses the first value that is not NaN as the scanner start
             time. If None, the scanner start time will need to be
             given when using ``self.extract_onsets``.
 
-        convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+        convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
             Convert the time resolution of the specified columns from milliseconds to seconds.
 
             .. important::
                Recommend time resolution of the columns containing the onset time and scanner
                start time (``trigger_column_name``) be converted to seconds.
 
-        initial_column_headers: :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
+        initial_column_headers : :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
             The initial column headers for data. Only used when
             ``log_or_df`` is a file path.
 
-        n_discarded_volumes: :obj:`int`, default=0
+        n_discarded_volumes : :obj:`int`, default=0
             Number of non-steady state scans discarded by the scanner at the start of the sequence.
 
             .. important::
@@ -1782,11 +1787,11 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                  discarding the volumes, do not set this parameter.
                  `Explanation from Neurostars <https://neurostars.org/t/how-to-sync-time-from-e-prime-behavior-data-with-fmri/6887>`_.
 
-        tr: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        tr : :obj:`float`, :obj:`int`, or :obj:`None`, default=None
             The repetition time provided in seconds if data was converted to seconds or
             in milliseconds if not converted.
 
-        rest_block_code: :obj:`str` or :obj:`None`, default=None
+        rest_block_code : :obj:`str` or :obj:`None`, default=None
             The name of the code for the rest block. Used when a resting state
             block is between the events to compute the correct block duration.
             If None, the block duration will be computed based on the starting
@@ -1794,18 +1799,18 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             and ``rest_code_frequency`` is "variable", will be used with
             ``block_cue_names`` to compute the correct duration.
 
-        rest_code_frequency: :obj:`Literal["fixed", "variable"]`, default="fixed"
+        rest_code_frequency : :obj:`Literal["fixed", "variable"]`, default="fixed"
             Frequency of the rest block. For "fixed", the rest code is assumed to
             appear between each block or at least each block. For "variable",
             it is assumed that the rest code does not appear between each
             block.
 
-        quit_code: :obj:`str` or :obj:`None`, default=None
+        quit_code : :obj:`str` or :obj:`None`, default=None
             The quit code. Suggest to use in cases when a quit code, as opposed
             to a rest code, is preceded by a trial block. Ideally, this should
             be a unique code.
 
-    ]    split_cue_as_instruction: :obj:`bool`, default=False
+    ]    split_cue_as_instruction : :obj:`bool`, default=False
             Whether to separate cue as instruction trial. If True, the row index
             containing the name of the block cue will have a separate onset and
             duration time. In addition, only the row indices proceeding the
@@ -1845,41 +1850,41 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                 | ...   | ...      |
                 +-------+----------+
 
-        block_cues_without_instruction: :obj:`Iterable[str]` or :obj:`None`, default=None
+        block_cues_without_instruction : :obj:`Iterable[str]` or :obj:`None`, default=None
             Block cue names that should not have their cue separated as instruction.
             Only used when ``split_cue_as_instruction`` is True. Blocks specified
             here will always start at the cue row.
 
-        instruction_suffix: :obj:`str`, default="_instruction"
+        instruction_suffix : :obj:`str`, default="_instruction"
             Suffix for instruction trial type names.
 
-        drop_instruction_cues: :obj:`bool`, defaut=False
+        drop_instruction_cues : :obj:`bool`, defaut=False
             Whether to drop instruction cues from output.
 
         Attributes
         ----------
-        df: :obj:`pandas.DataFrame`
+        df : :obj:`pandas.DataFrame`
             DataFrame containing the log data.
 
-        block_cue_names: :obj:`Iterable[str]`
+        block_cue_names : :obj:`Iterable[str]`
             The names of the blocks.
 
-        onset_column_name: :obj:`str`
+        onset_column_name : :obj:`str`
             Name of column containing the onset time.
 
-        procedure_column_name: :obj:`str`
+        procedure_column_name : :obj:`str`
             Name of column containing the procedure names.
 
-        trigger_column_name: :obj:`str` or :obj:`None`
+        trigger_column_name : :obj:`str` or :obj:`None`
             Name of column containing time when scanner sent pulse/scanner start time.
 
-        n_discarded_scans: :obj:`int`
+        n_discarded_scans : :obj:`int`
             Number of non-steady state scans discarded by scanner.
 
-        tr: :obj:`float`, :obj:`int`, or :obj:`None`
+        tr : :obj:`float`, :obj:`int`, or :obj:`None`
             The repetition time.
 
-        scanner_start_time: :obj:`float` or :obj:`None`
+        scanner_start_time : :obj:`float` or :obj:`None`
             Time when scanner sends the pulse. If ``n_discarded_volumes``
             is not 0 and ``tr`` is specified, then this time will be
             shifted forward (``scanner_start_time = scanner_start_time + n_discarded_volumes * tr``)
@@ -1887,31 +1892,31 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             extracted from the log data is assumed to be the time when the first steady state
             volume was retained.
 
-        starting_block_indices: :obj:`list[int]`
+        starting_block_indices : :obj:`list[int]`
             The indices of when each trial block of interest (specified by ``block_cue_names``)
             begins.
 
-        rest_block_code: :obj:`str` or :obj:`None`
+        rest_block_code : :obj:`str` or :obj:`None`
             The name of the code for the rest block.
 
-        rest_code_frequency: :obj:`Literal["fixed", "variable"]`
+        rest_code_frequency : :obj:`Literal["fixed", "variable"]`
             Frequency of the rest block.
 
-        quit_code: :obj:`str` or :obj:`None`
+        quit_code : :obj:`str` or :obj:`None`
             The quit code.
 
-        split_cue_as_instruction: :obj:`bool`
+        split_cue_as_instruction : :obj:`bool`
             Whether to separate cue as instruction trial. Will compute timing information
             from the row index immediately proceeding the row index of the block cue.
 
-        block_cues_without_instruction: :obj:`Iterable[str]` or :obj:`None`
+        block_cues_without_instruction : :obj:`Iterable[str]` or :obj:`None`
             Names of the blocks that should not have their cue separated
             as instruction.
 
-        instruction_suffix: :obj:`str`
+        instruction_suffix : :obj:`str`
             Suffix for instruction trial type names.
 
-        drop_instruction_cues: :obj:`bool`
+        drop_instruction_cues : :obj:`bool`
             Whether to drop instruction cues from output.
 
         Example
@@ -2013,7 +2018,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         Parameters
         ----------
-        scanner_start_time: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        scanner_start_time : :obj:`float`, :obj:`int`, or :obj:`None`, default=None
             The scanner start time. Used to compute onset relative to
             the start of the scan.
 
@@ -2128,10 +2133,10 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         Parameters
         ----------
-        block_start_index: :obj:`int`
+        block_start_index : :obj:`int`
             The starting index of the block.
 
-        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
+        response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include for the
             mean accuracy and reaction time computation.
 
@@ -2181,16 +2186,16 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         Parameters
         ----------
-        block_df: :obj:`pd.DataFrame`
+        block_df : :obj:`pd.DataFrame`
             DataFrame containing block trials.
 
-        subject_response_column: :obj:`str`
+        subject_response_column : :obj:`str`
             Column name for subject's response.
 
-        correct_response_column: :obj:`str`
+        correct_response_column : :obj:`str`
             Column name for correct response.
 
-        response_required_only: :obj:`bool`, default=False
+        response_required_only : :obj:`bool`, default=False
             Compute accuracy only for trials expecting a response.
             Non-response trials are assumed to be assigned NaN
             in ``correct_response_column``.
@@ -2235,23 +2240,23 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         Parameters
         ----------
-        reaction_time_column_name: :obj:`str`
+        reaction_time_column_name : :obj:`str`
             The name of the column containing reaction time values.
             Usually the column name ending in ".RT" not the column
             ending in ".RTTime".
 
-        subject_response_column: :obj:`str`
+        subject_response_column : :obj:`str`
             The name of the column containing the subject's response.
             Usually the column name ending in ".RESP".
 
-        correct_response_column: :obj:`str`
+        correct_response_column : :obj:`str`
             The name of the column containing the correct response.
             For no-go trials, this should be empty/NaN.
 
-        response_type: :obj:`Literal["correct", "incorrect"]`, default="correct"
+        response_type : :obj:`Literal["correct", "incorrect"]`, default="correct"
             Whether to compute mean reaction time for correct or incorrect trials.
 
-        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
+        response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include for the
             mean reaction time computation.
 
@@ -2259,7 +2264,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                - If ``split_cue_as_instruction`` is True, block cue names
                  are excluded from this parameter.
 
-        response_required_only: :obj:`bool`, default=False
+        response_required_only : :obj:`bool`, default=False
             Compute reaction times only for trials expecting a response.
             Non-response trials are assumed to be assigned NaN
             in ``correct_response_column``.
@@ -2351,16 +2356,16 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         Parameters
         ----------
-        subject_response_column: :obj:`str`
+        subject_response_column : :obj:`str`
             The name of the column containing the subject's response.
             Usually the column name ending in ".RESP".
 
-        correct_response_column: :obj:`str`
+        correct_response_column : :obj:`str`
             The name of the column containing the correct response. Trials
             where the subject should not respond should be NaN.
             Usually column name ending in ".CRESP".
 
-        response_trial_names: :obj:`Iterable[str]` or :obj:`None`, default=None
+        response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include for the
             accuracy computation.
 
@@ -2368,7 +2373,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                - If ``split_cue_as_instruction`` is True, block cue names
                  are excluded from this parameter.
 
-        response_required_only: :obj:`bool`, default=False
+        response_required_only : :obj:`bool`, default=False
             Compute accuracy only for trials expecting a response.
             Non-response trials are assumed to be assigned NaN
             in ``correct_response_column``.
@@ -2452,7 +2457,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
     Parameters
     ----------
-    log_or_df: :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
+    log_or_df : :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The E-Prime log as a file path or the E-Prime DataFrame
         returned by :code:`nifti2bids.parsers.load_eprime_log`.
 
@@ -2460,7 +2465,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
            If a text file is used, data are assumed to have at least one element
            that is an digit or float during parsing.
 
-    trial_types: :obj:`Iterable[str]`
+    trial_types : :obj:`Iterable[str]`
         The names of the trial types (i.e "congruentleft", "seen").
 
         .. note::
@@ -2469,19 +2474,19 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             to compute the correct duration. These rows can then be dropped
             from the events DataFrame.
 
-    onset_column_name: :obj:`str`
+    onset_column_name : :obj:`str`
         The name of the column containing stimulus onset time.
 
-    procedure_column_name: :obj:`str`
+    procedure_column_name : :obj:`str`
         The name of the column containing the procedure names.
 
-    trigger_column_name: :obj:`str` or :obj:`None`, default=None
+    trigger_column_name : :obj:`str` or :obj:`None`, default=None
         The name of the column containing the scanner start time.
         Uses the first value that is not NaN as the scanner start
         time. If None, the scanner start time will need to be
         given when using ``self.extract_onsets``.
 
-    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+    convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from milliseconds to seconds.
 
         .. important::
@@ -2489,11 +2494,11 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
            offset times (duration), reaction times, and scanner onset time (``trigger_column_name``)
            be converted to seconds.
 
-    initial_column_headers: :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
+    initial_column_headers : :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
         ``log_or_df`` is a file path.
 
-    n_discarded_volumes: :obj:`int`, default=0
+    n_discarded_volumes : :obj:`int`, default=0
         Number of non-steady state scans discarded by the scanner at the start of the sequence.
 
         .. important::
@@ -2504,34 +2509,34 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
              discarding the volumes, do not set this parameter.
              `Explanation from Neurostars <https://neurostars.org/t/how-to-sync-time-from-e-prime-behavior-data-with-fmri/6887>`_.
 
-    tr: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+    tr : :obj:`float`, :obj:`int`, or :obj:`None`, default=None
         The repetition time provided in seconds if data was converted to seconds or
         in milliseconds if not converted.
 
     Attributes
     ----------
-    df: :obj:`pandas.DataFrame`
+    df : :obj:`pandas.DataFrame`
         DataFrame containing the log data.
 
-    trial_types: :obj:`Iterable[str]`
+    trial_types : :obj:`Iterable[str]`
         The names of the trial types.
 
-    onset_column_name: :obj:`str`
+    onset_column_name : :obj:`str`
         Name of column containing the onset time.
 
-    procedure_column_name: :obj:`str`
+    procedure_column_name : :obj:`str`
         Name of column containing the trial types.
 
-    trigger_column_name: :obj:`str` or :obj:`None`
+    trigger_column_name : :obj:`str` or :obj:`None`
         Name of column containing time when scanner sent pulse/scanner start time.
 
-    n_discarded_scans: :obj:`int`
+    n_discarded_scans : :obj:`int`
         Number of non-steady state scans discarded by scanner.
 
-    tr: :obj:`float`, :obj:`int`, or :obj:`None`
+    tr : :obj:`float`, :obj:`int`, or :obj:`None`
         The repetition time.
 
-    scanner_start_time: :obj:`float` or :obj:`None`
+    scanner_start_time : :obj:`float` or :obj:`None`
         Time when scanner sends the pulse. If ``n_discarded_volumes``
         is not 0 and ``tr`` is specified, then this time will be
         shifted forward (``scanner_start_time = scanner_start_time + n_discarded_volumes * tr``)
@@ -2539,7 +2544,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         extracted from the log data is assumed to be the time when the first steady state
         volume was retained.
 
-    event_trial_indices: :obj:`list[int]`
+    event_trial_indices : :obj:`list[int]`
         The indices of when each trial event of interest (specified by ``trial_types``)
         begins.
 
@@ -2615,7 +2620,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
         Parameters
         ----------
-        scanner_start_time: :obj:`float`, :obj:`int`, or :obj:`None`, default=None
+        scanner_start_time : :obj:`float`, :obj:`int`, or :obj:`None`, default=None
             The scanner start time. Used to compute onset relative to
             the start of the scan.
 
@@ -2642,7 +2647,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
         Parameters
         ----------
-        offset_column_name: :obj:`str`
+        offset_column_name : :obj:`str`
             The name of the column containing the offset time of trial.
 
         Returns
@@ -2676,7 +2681,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
         Parameters
         ----------
-        reaction_time_column_name: :obj:`str`
+        reaction_time_column_name : :obj:`str`
             The name of the column containing reaction time values.
             Usually the column name ending in ".RT".
 
@@ -2720,16 +2725,16 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
         Parameters
         ----------
-        subject_response_column: :obj:`str`
+        subject_response_column : :obj:`str`
             The name of the column containing the subject's response.
             Usually the column name ending in ".RESP".
 
-        correct_response_column: :obj:`str`
+        correct_response_column : :obj:`str`
             The name of the column containing the correct response. Trials
             where the subject should not respond should be NaN.
             Usually column name ending in ".CRESP".
 
-        response_required_only: :obj:`bool`, default=False
+        response_required_only : :obj:`bool`, default=False
             Compute accuracy only for trials expecting a response.
             Non-response trials are assumed to be assigned NaN
             in ``correct_response_column``.
@@ -2811,17 +2816,17 @@ def add_instruction_timing(
 
     Parameters
     ----------
-    event_df: :obj:`pd.DataFrame`
+    event_df : :obj:`pd.DataFrame`
         A BIDS compliant events DataFrame. Must contain "onset", "duration",
         and "trial_type" columns.
 
-    instruction_duration: :obj:`int` or :obj:`float`
+    instruction_duration : :obj:`int` or :obj:`float`
         Duration of the instruction trial to add before each trial type.
 
-    instruction_suffix: :obj:`str`, default="_instruction"
+    instruction_suffix : :obj:`str`, default="_instruction"
         Suffix to append to trial type names for instruction trials.
 
-    exclude_trial_types: :obj:`Iterable[str]` or :obj:`None`, default=None
+    exclude_trial_types : :obj:`Iterable[str]` or :obj:`None`, default=None
         Trial types to exclude from instruction splitting. These trials
         will be kept as-is without an instruction trial added.
 

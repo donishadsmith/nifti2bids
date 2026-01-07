@@ -55,9 +55,12 @@ def test_create_bids_file(nifti_img_and_path, dst_dir, remove_src_file):
 
 def test_create_dataset_description():
     """Test for ``create_dataset_description``."""
-    dataset_desc = create_dataset_description(dataset_name="test", bids_version="1.2.0")
+    dataset_desc = create_dataset_description(
+        dataset_name="test", bids_version="1.2.0", derivative=True
+    )
     assert dataset_desc.get("Name") == "test"
     assert dataset_desc.get("BIDSVersion") == "1.2.0"
+    assert dataset_desc.get("GeneratedBy") == [{"Name": "test"}]
 
 
 def test_save_dataset_description(tmp_dir):

@@ -1,6 +1,12 @@
+from pathlib import Path
+
 import nibabel as nib, numpy as np, pytest
 
-from nifti2bids.simulate import create_affine, simulate_nifti_image
+from nifti2bids.simulate import (
+    create_affine,
+    simulate_nifti_image,
+    simulate_bids_dataset,
+)
 
 
 def test_create_affine():
@@ -23,3 +29,14 @@ def test_simulate_nifti_image(affine):
     assert isinstance(img, nib.Nifti1Image)
     if affine is not None:
         assert all(np.diagonal(img.affine) == np.array([1, 1, 1, 1]))
+
+
+def test_simulate_bids_dataset(tmp_dir):
+    """Test for ``simulate_bids_dataset``."""
+    import bids
+
+    bids_root = simulate_bids_dataset(output_dir=Path(tmp_dir.name) / "BIDS")
+
+    layout = bids.BIDSLayout(bids_root, derivatives=True)
+    files = layout.get(return_type="file", extension="nii.gz")
+    assert len(files) == 2

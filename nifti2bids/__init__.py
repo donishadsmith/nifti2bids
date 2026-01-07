@@ -5,6 +5,8 @@ Documentation can be found at https://nifti2bids.readthedocs.io.
 
 Submodules
 ----------
+audit -- Contains the ``BIDSAuditor`` class to check for certain file availability
+
 bids -- Operations related to initializing and creating BIDS compliant files
 
 io -- Generic operations related to loading NIfTI data
@@ -17,7 +19,7 @@ metadata -- Operations related to extracting or creating metadata information fr
 parsers -- Operations related to standardizing and parsing information logs created by stimulus
 presentation software such as Presentation and EPrime
 
-simulate -- Simulate a basic NIfTI image for testing purposes
+simulate -- Simulate a basic NIfTI image or BIDS dataset for testing purposes
 """
 
-__version__ = "0.11.4"
+__version__ = "0.12.0"

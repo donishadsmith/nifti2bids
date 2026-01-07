@@ -16,14 +16,14 @@ A toolkit for post-hoc BIDS conversion starting from NIfTI files. Includes utili
 
 ### Standard Installation
 ```bash
-pip install nifti2bids
+pip install nifti2bids[all]
 ```
 
 ### Development Version
 ```bash
 git clone --depth 1 https://github.com/donishadsmith/nifti2bids/
 cd nifti2bids
-pip install -e .
+pip install -e .[all]
 ```
 
 ## Features
@@ -31,7 +31,16 @@ pip install -e .
 - **File renaming**: Convert arbitrary filenames to BIDS-compliant naming
 - **File creation**: Generate `dataset_description.json` and `participants.tsv`
 - **Metadata utilities**: Extract header metadata (e.g., TR, orientation, scanner info) and generate slice timing for singleband and multiband acquisitions
-- **Log parsing**: Load Presentation (e.g., `.log`) and E-Prime 3 (e.g, `.edat3`, `.txt`) files as DataFrames, or use extractor classes to generate BIDS events for block and event designs
+- **Log parsing**: Load Presentation (e.g., `.log`) and E-Prime 3 (e.g, `.edat3`, `.txt`) files as DataFrames, or use extractor classes to generate BIDS events for block and event designs:
+
+    | Class | Software | Design | Description |
+    |-------|----------|--------|-------------|
+    | `PresentationBlockExtractor` | Presentation | Block | Extracts block-level timing with mean RT and accuracy |
+    | `PresentationEventExtractor` | Presentation | Event | Extracts trial-level timing with individual responses |
+    | `EPrimeBlockExtractor` | E-Prime 3 | Block | Extracts block-level timing with mean RT and accuracy |
+    | `EPrimeEventExtractor` | E-Prime 3 | Event | Extracts trial-level timing with individual responses |
+
+- **Auditing**: Generate a table of showing the presence or abscence of certain files for each subject and session
 
 ## Quick Start
 
@@ -133,14 +142,16 @@ events_df = pd.DataFrame(
     }
 )
 ```
+### Audit BIDS Dataset
+```python
+from nifti2bids.audit import BIDSAuditor
+from nifti2bids.simulate import simulate_bids_dataset
 
-## Log Extractor Classes
+bids_root = simulate_bids_dataset()
 
-| Class | Software | Design | Description |
-|-------|----------|--------|-------------|
-| `PresentationBlockExtractor` | Presentation | Block | Extracts block-level timing with mean RT and accuracy |
-| `PresentationEventExtractor` | Presentation | Event | Extracts trial-level timing with individual responses |
-| `EPrimeBlockExtractor` | E-Prime 3 | Block | Extracts block-level timing with mean RT and accuracy |
-| `EPrimeEventExtractor` | E-Prime 3 | Event | Extracts trial-level timing with individual responses |
+auditor = BIDSAuditor(bids_root)
+auditor.check_raw_nifti_availability()
+auditor.check_preprocessed_nifti_availability()
+```
 
 See the [API documentation](https://nifti2bids.readthedocs.io/en/latest/api.html) for full parameter details and additional utilities.

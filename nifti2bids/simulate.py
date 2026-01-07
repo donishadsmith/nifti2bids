@@ -1,8 +1,17 @@
 """Module for creating simulated data."""
 
-import nibabel as nib, numpy as np
+from pathlib import Path
+from typing import Optional
 
+import nibabel as nib, numpy as np
+from joblib import Parallel, delayed
 from numpy.typing import NDArray
+from tqdm import tqdm
+
+from .logging import setup_logger
+from .bids import create_dataset_description, save_dataset_description
+
+LGR = setup_logger(__name__)
 
 
 def simulate_nifti_image(
@@ -13,10 +22,10 @@ def simulate_nifti_image(
 
     Parameters
     ----------
-    img_shape: :obj:`tuple[int, int, int]` or :obj:`tuple[int, int, int, int]`
+    img_shape : :obj:`tuple[int, int, int]` or :obj:`tuple[int, int, int, int]`
         Shape of the NIfTI image.
 
-    affine: :obj:`NDArray`, default=None
+    affine : :obj:`NDArray`, default=None
         The affine matrix.
 
         .. important::
@@ -43,10 +52,10 @@ def create_affine(
 
     Parameters
     ----------
-    xyz_diagonal_value: :obj:`int`
+    xyz_diagonal_value : :obj:`int`
         The value assigned to the diagonal of the affine for x, y, and z.
 
-    translation_vector: :obj:`list`, :obj:`tuple`, or :obj:`NDArray`
+    translation_vector : :obj:`list`, :obj:`tuple`, or :obj:`NDArray`
         A 4x1 vector (or length-4 array) representing translation from
         the origin (x, y, z, 1).
 
@@ -64,7 +73,131 @@ def create_affine(
     return affine
 
 
-__all__ = [
-    "simulate_nifti_image",
-    "create_affine",
-]
+def simulate_bids_dataset(
+    n_subs: int = 1,
+    n_sessions: int = 1,
+    n_runs: int = 1,
+    task_name: str = "rest",
+    output_dir: Optional[str | Path] = None,
+    n_cores: Optional[int] = None,
+    progress_bar: bool = False,
+) -> Path:
+    """
+    Generate a Simulated BIDS Dataset with fMRIPrep Derivatives.
+
+    Creates a minimal BIDS dataset structure with fMRIPrep derivatives, including:
+        - BIDS root directory with:
+            - Dataset description JSON file
+            - One simulated NIfTI image per subject/run
+        - Derivatives folder with fMRIPrep outputs:
+            - Dataset description JSON file
+            - One simulated NIfTI image per subject/run
+
+    .. note::
+       Returns ``output_dir`` if the path exists.
+
+    Parameters
+    ----------
+    n_subs : :obj:`int`, default=1
+        Number of subjects.
+
+    n_sessions : :obj:`int`, default=1
+        Number of sessions for each subject.
+
+    n_runs : :obj:`int`, default=1
+        Number of runs for each subject.
+
+    task_name : :obj:`str`, default="rest"
+        Name of task.
+
+    output_dir : :obj:`str`,  :obj:`Path`, or :obj:`None`, default=None
+        Path to save the simulated BIDS directory to.
+
+        .. important::
+           If None, a directory named "simulated_bids_dir" will be created in the current working
+           directory.
+
+    n_cores : :obj:`int` or :obj:`None`, default=None
+        The number of cores to use for multiprocessing with Joblib (over subjects). The "loky"
+        backend is used.
+
+    progress_bar : :obj:`bool`, default=False
+        If True, displays a progress bar.
+
+    Returns
+    -------
+    Path
+        Root of the simulated BIDS directory.
+    """
+    bids_root = Path(output_dir)
+    if not bids_root:
+        bids_root = Path().getcwd() / "simulated_bids_dir"
+
+    if bids_root.exists():
+        LGR.warning("`output_dir` already exists. Returning the `output_dir` string.")
+        return bids_root
+
+    # Create root directory with derivatives folder
+    fmriprep_dir = bids_root / "derivatives" / "fmriprep"
+    fmriprep_dir.mkdir(parents=True)
+
+    # Create dataset description for root and fmriprep
+    save_dataset_description(create_dataset_description("Mock"), bids_root)
+    save_dataset_description(
+        create_dataset_description("fMRIPrep", derivative=True), fmriprep_dir
+    )
+
+    # Generate list of tuples for each subject
+    args_list = [
+        (fmriprep_dir, subj_id, n_sessions, n_runs, task_name)
+        for subj_id in range(n_subs)
+    ]
+
+    parallel = Parallel(return_as="generator", n_jobs=n_cores, backend="loky")
+    # generator needed for tqdm, iteration triggers side effects (file creation)
+    list(
+        tqdm(
+            parallel(delayed(_create_sub_files)(*args) for args in args_list),
+            desc="Creating Simulated Subjects",
+            total=len(args_list),
+            disable=not progress_bar,
+        )
+    )
+
+    return bids_root
+
+
+def _create_sub_files(
+    fmriprep_dir: Path,
+    subj_id: int,
+    n_sessions: int,
+    n_runs: int,
+    task_name: str,
+) -> None:
+    """Iterates through each to create simulate data."""
+    for session_id in range(n_sessions):
+        sub_root_dir = (
+            fmriprep_dir.parent.parent / f"sub-{subj_id}" / f"ses-{session_id}" / "func"
+        )
+        sub_root_dir.mkdir(parents=True)
+        sub_derivatives_dir = (
+            fmriprep_dir / f"sub-{subj_id}" / f"ses-{session_id}" / "func"
+        )
+        sub_derivatives_dir.mkdir(parents=True)
+
+        for run_id in range(n_runs):
+            base_filename = (
+                f"sub-{subj_id}_ses-{session_id}_task-{task_name}_run-{run_id}"
+            )
+            nifti_img = simulate_nifti_image((97, 115, 98, 50))
+            root_filename = base_filename + "_bold.nii.gz"
+            nib.save(nifti_img, sub_root_dir / root_filename)
+            derivatives_filename = (
+                base_filename + "_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz"
+            )
+            nib.save(nifti_img, sub_derivatives_dir / derivatives_filename)
+
+    return None
+
+
+__all__ = ["simulate_nifti_image", "create_affine", "simulate_bids_dataset"]

@@ -11,16 +11,16 @@ class SliceAxisError(Exception):
 
     Parameters
     ----------
-    slice_axis: :obj:`Literal["x", "y", "z"]`
+    slice_axis : :obj:`Literal["x", "y", "z"]`
         The specified slice dimension.
 
-    n_slices: :obj:`int`
+    n_slices : :obj:`int`
         The number of slices from the specified ``slice_axis``.
 
-    slice_end: :obj:`int`
+    slice_end : :obj:`int`
         The number of slices specified by "slice_end" in the NIfTI header.
 
-    message: :obj:`str` or :obj:`None`:
+    message : :obj:`str` or :obj:`None`:
         The error message. If None, a default error message is used.
     """
 
@@ -49,3 +49,12 @@ class DataDimensionError(Exception):
     """
 
     pass
+
+
+class PathDoesNotExist(Exception):
+    """Exception when path does not exist."""
+
+    def __init__(self, path):
+        self.message = f"The following path does not exist: {path}"
+
+        super().__init__(self.message)

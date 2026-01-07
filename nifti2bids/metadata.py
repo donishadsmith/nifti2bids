@@ -28,11 +28,11 @@ def determine_slice_axis(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image` default=None
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image` default=None
         Path to the NIfTI file or a NIfTI image. Must be specified
         if ``nifti_header`` is None.
 
-    nifti_header: :obj:`Nifti1Header`, default=None
+    nifti_header : :obj:`Nifti1Header`, default=None
         Path to the NIfTI file or a NIfTI image. Must be specified
         if ``nifti_file_or_img`` is None.
 
@@ -84,18 +84,18 @@ def get_hdr_metadata(
 
     Parameters
     ----------
-    metadata_name: :obj:`str`
+    metadata_name : :obj:`str`
         Name of the metadata field to return.
 
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`, default=None
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`, default=None
         Path to the NIfTI file or a NIfTI image. Must be specified
         if ``nifti_header`` is None.
 
-    nifti_header: :obj:`Nifti1Header`, default=None
+    nifti_header : :obj:`Nifti1Header`, default=None
         Path to the NIfTI file or a NIfTI image. Must be specified
         if ``nifti_file_or_img`` is None.
 
-    return_header: :obj:`bool`
+    return_header : :obj:`bool`
         Returns the NIfTI header
 
     Returns
@@ -123,7 +123,7 @@ def get_n_volumes(nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image) -> int
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
     Returns
@@ -147,7 +147,7 @@ def get_image_orientation(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`, default=None
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`, default=None
         Path to the NIfTI file or a NIfTI image.
 
     Returns
@@ -203,10 +203,10 @@ def get_n_slices(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
-    slice_axis: :obj:`Literal["i", "j", "k"]` or :obj:`None`, default=None
+    slice_axis : :obj:`Literal["i", "j", "k"]` or :obj:`None`, default=None
         Axis the image slices were collected in. If None,
         determines the slice axis using metadata ("slice_end")
         from the NIfTI header.
@@ -244,7 +244,7 @@ def get_tr(nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image) -> float:
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
     Returns
@@ -268,10 +268,10 @@ def _flip_slice_order(slice_order: list[int], ascending: bool) -> list[int]:
 
     Parameters
     ----------
-    slice_order: :obj:`list[int]`
+    slice_order : :obj:`list[int]`
         List containing integer values representing the slices.
 
-    ascending: :obj:`bool`, default=True
+    ascending : :obj:`bool`, default=True
         If slices were collected in ascending order (True) or descending
         order (False).
 
@@ -289,10 +289,10 @@ def _create_sequential_order(n_slices: int, ascending: bool = True) -> list[int]
 
     Parameters
     ----------
-    n_slices: :obj:`int`
+    n_slices : :obj:`int`
         The number of slices.
 
-    ascending: :obj:`bool`, default=True
+    ascending : :obj:`bool`, default=True
         If slices were collected in ascending order (True) or descending
         order (False).
 
@@ -318,14 +318,14 @@ def _create_interleaved_order(
 
     Parameters
     ----------
-    n_slices: :obj:`int`
+    n_slices : :obj:`int`
         The number of slices.
 
-    ascending: :obj:`bool`, default=True
+    ascending : :obj:`bool`, default=True
         If slices were collected in ascending order (True) or descending
         order (False).
 
-    interleaved_pattern: :obj:`Literal["even", "odd", "philips"]`, default="odd"
+    interleaved_pattern : :obj:`Literal["even", "odd", "philips"]`, default="odd"
         If slices for interleaved acquisition were collected by acquiring the
         "even" or "odd" slices first. For "philips" (the interleaved implementation
         by Philips'), slices are acquired by a step factor equivalent to the rounded
@@ -370,7 +370,7 @@ def _create_central_order(n_slices: int) -> list[int]:
 
     Parameters
     ----------
-    n_slices: :obj:`int`
+    n_slices : :obj:`int`
         The number of slices.
 
     Returns
@@ -404,7 +404,7 @@ def _create_reversed_central_order(n_slices: int) -> list[int]:
 
     Parameters
     ----------
-    n_slices: :obj:`int`
+    n_slices : :obj:`int`
         The number of slices.
 
     Returns
@@ -430,10 +430,10 @@ def _create_singleband_timing(tr: float | int, slice_order: list[int]) -> list[f
 
     Parameters
     ----------
-    tr: :obj:`float` or :obj:`int`
+    tr : :obj:`float` or :obj:`int`
         Repetition time in seconds.
 
-    slice_order: :obj:`list[int]`
+    slice_order : :obj:`list[int]`
         Order of the slices.
 
     Returns
@@ -460,16 +460,16 @@ def _generate_sequence(
 
     Parameters
     ----------
-    start: :obj:`int`
+    start : :obj:`int`
         Starting number.
 
-    n_count: :obj:`int`
+    n_count : :obj:`int`
         The amount of numbers to generate.
 
-    step: :obj:`int`
+    step : :obj:`int`
         Step size between numbers.
 
-    ascending: :obj:`int`
+    ascending : :obj:`int`
         If numbers are ascending or descending relative to ``start``.
 
     Returns:
@@ -492,14 +492,14 @@ def _create_multiband_slice_groupings(
 
     Parameters
     ----------
-    slice_order: :obj:`list[int]`
+    slice_order : :obj:`list[int]`
         Order of the slices from single slice acquisition.
 
-    multiband_factor: :obj:`int`
+    multiband_factor : :obj:`int`
         The multiband acceleration factor, which is the number of slices
         acquired simultaneously during multislice acquistion.
 
-    n_time_steps: :obj:`int`
+    n_time_steps : :obj:`int`
         The number of time steps computed by dividing the number of slices
         by the multiband factor.
 
@@ -541,17 +541,17 @@ def _create_multiband_timing(
 
     Parameters
     ----------
-    tr: :obj:`float` or :obj:`int`
+    tr : :obj:`float` or :obj:`int`
         Repetition time in seconds.
 
-    slice_order: :obj:`list[int]`
+    slice_order : :obj:`list[int]`
         Order of the slices from single slice acquisition.
 
-    multiband_factor: :obj:`int`
+    multiband_factor : :obj:`int`
         The multiband acceleration factor, which is the number of slices
         acquired simultaneously during multislice acquisition.
 
-    ascending: :obj:`bool`, default=True
+    ascending : :obj:`bool`, default=True
         If slices were collected in ascending order (True) or descending
         order (False).
 
@@ -609,19 +609,19 @@ def create_slice_timing(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
-    tr: :obj:`float` or :obj:`int`
+    tr : :obj:`float` or :obj:`int`
         Repetition time in seconds. If None, the repetition time is
         extracted from the NIfTI header.
 
-    slice_axis: :obj:`Literal["i", "j", "k"]` or :obj:`None`, default=None
+    slice_axis : :obj:`Literal["i", "j", "k"]` or :obj:`None`, default=None
         Axis the image slices were collected in. If None,
         determines the slice axis using metadata ("slice_end")
         from the NIfTI header.
 
-    slice_acquisition_method: :obj:`Literal["sequential", "interleaved", "central", "reversed_central"]`, default="interleaved"
+    slice_acquisition_method : :obj:`Literal["sequential", "interleaved", "central", "reversed_central"]`, default="interleaved"
         Method used for acquiring slices.
 
         .. note::
@@ -636,7 +636,7 @@ def create_slice_timing(
              (starting at 0) first, then the remaining slices follow a ping pong order
              to the middle slice (e.g. [0, 4, 1, 3, 2] or [0, 5, 1, 4, 2, 3])
 
-    ascending: :obj:`bool`, default=True
+    ascending : :obj:`bool`, default=True
         If slices were collected in ascending order (True) or descending
         order (False).
 
@@ -644,7 +644,7 @@ def create_slice_timing(
            ``ascending`` always set to True when ``slice_acquisition_method`` is
            "central" and "reversed_central" to prevent ``numpy.flip`` from.
 
-    interleaved_pattern: :obj:`Literal["even", "odd", "philips"]`, default="odd"
+    interleaved_pattern : :obj:`Literal["even", "odd", "philips"]`, default="odd"
         If slices for interleaved acquisition were collected by acquiring the
         "even" or "odd" slices first. For "philips" (the interleaved implementation
         by Philips'), slices are acquired by a step factor equivalent to the rounded
@@ -655,7 +655,7 @@ def create_slice_timing(
            Philips' "default" mode is equivalent to "interleave" with the pattern
            set to "odd", and ascending set to True.
 
-    multiband_factor: :obj:`int` or :obj:`None`, default=None
+    multiband_factor : :obj:`int` or :obj:`None`, default=None
         The multiband acceleration factor, which is the number of slices
         acquired simultaneously during multislice acquisition. Slice
         ordering is created using a step factor equivalent to
@@ -742,7 +742,7 @@ def is_3d_img(nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image) -> bool:
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
     Returns
@@ -766,7 +766,7 @@ def get_scanner_info(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
     Returns
@@ -795,10 +795,10 @@ def is_valid_date(date_str: str, date_fmt: str) -> bool:
 
     Parameters
     ----------
-    date_str: :obj:`str`
+    date_str : :obj:`str`
         The string to be validated.
 
-    date_fmt: :obj:`str`
+    date_fmt : :obj:`str`
         The expected format of the date.
 
     Return
@@ -825,10 +825,10 @@ def parse_date_from_path(path: str | Path, date_fmt: str) -> str | None:
 
     Parameters
     ----------
-    path: :obj:`str` or :obj:`Path`
+    path : :obj:`str` or :obj:`Path`
         The absolute path, name of file, or folder.
 
-    date_fmt: :obj:`str`
+    date_fmt : :obj:`str`
         The expected format of the date.
 
     Returns
@@ -876,7 +876,7 @@ def get_file_timestamp(path: Path | str) -> float:
 
     Parameter
     ---------
-    path: :obj:`str` or :obj:`Path`
+    path : :obj:`str` or :obj:`Path`
         Path to file.
 
     Return
@@ -911,10 +911,10 @@ def get_file_creation_date(path: str | Path, date_fmt: str) -> str:
 
     Parameters
     ----------
-    path: :obj:`str` or :obj:`Path`
+    path : :obj:`str` or :obj:`Path`
         Path to file.
 
-    date_fmt: :obj:`str`
+    date_fmt : :obj:`str`
         The desired output format of the date.
 
     Returns
@@ -938,10 +938,10 @@ def infer_task_from_image(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
-    task_volume_map: :obj:`dict[str, int]` or :obj:`dict[int, str]`
+    task_volume_map : :obj:`dict[str, int]` or :obj:`dict[int, str]`
         A mapping of the task names to the expected number of
         volumes.
 
@@ -979,10 +979,10 @@ def get_recon_matrix_pe(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
-    phase_encoding_axis: :obj:`Literal["i", "j", "k"]`
+    phase_encoding_axis : :obj:`Literal["i", "j", "k"]`
         The axis phase encoding was applied to.
 
     Returns
@@ -1011,10 +1011,10 @@ def compute_effective_echo_spacing(
 
     Parameters
     ----------
-    water_fat_shift_pixels: :obj:`float`
+    water_fat_shift_pixels : :obj:`float`
         The water and fat chemical shift in pixels.
 
-    epi_factor: :obj:`int`
+    epi_factor : :obj:`int`
         The EPI factor or the number of echoes per excitation.
 
         .. note:: in plane acceleration already accounted for in this factor
@@ -1050,13 +1050,13 @@ def compute_total_readout_time(
 
     Parameters
     ----------
-    effective_echo_spacing: :obj:`float`
+    effective_echo_spacing : :obj:`float`
         The effective echo spacing in seconds.
 
-    recon_matrix_pe: :obj:`int`
+    recon_matrix_pe : :obj:`int`
         The number of pixels in the phase encoding axis of the reconstruction matrix.
 
-    use_fallback_trt: :obj:`bool`
+    use_fallback_trt : :obj:`bool`
         If True, a fallback readout time of 0.03125 is used.
 
     Returns

@@ -19,7 +19,7 @@ def load_nifti(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
     Returns
@@ -47,17 +47,17 @@ def compress_image(
 
     Parameters
     ----------
-    nifti_file: :obj:`str` or :obj:`Path`
+    nifti_file : :obj:`str` or :obj:`Path`
         Path to the NIfTI image.
 
-    dst_dir: :obj:`str` or :obj:`Path`, default=None
+    dst_dir : :obj:`str` or :obj:`Path`, default=None
         Destination directory for the NIfTI image. If None, image is saved in the
         source directory.
 
-    remove_src_file: :obj:`bool`, default=False
+    remove_src_file : :obj:`bool`, default=False
         Deletes the original source image file.
 
-    return_dst_file: :obj:`bool`, default=False
+    return_dst_file : :obj:`bool`, default=False
         Return the path to the compressed file.
 
     Returns
@@ -87,13 +87,13 @@ def regex_glob(
 
     Parameters
     ----------
-    src_dir: :obj:`str` or :obj:`Path`
+    src_dir : :obj:`str` or :obj:`Path`
         The source directory.
 
-    pattern: :obj:`str`
+    pattern : :obj:`str`
         The regex pattern.
 
-    recursive: :obj:`bool`, default=False
+    recursive : :obj:`bool`, default=False
         If True, regex pattern is applied to content in the top-level directory
         (i.e., sub-101.log) and nested directories (i.e. logs/sub-101.log). If
         False, regex pattern is only applied to content in the top-level directory.
@@ -123,7 +123,7 @@ def get_nifti_header(
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
     Returns
@@ -140,7 +140,7 @@ def get_nifti_affine(nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image) -> 
 
     Parameters
     ----------
-    nifti_file_or_img: :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
 
     Returns
@@ -159,13 +159,13 @@ def _copy_file(
 
     Parameters
     ----------
-    src_file: :obj:`str` or :obj:`Path`
+    src_file : :obj:`str` or :obj:`Path`
         The source file to be copied.
 
-    dst_file: :obj:`str` or :obj:`Path`
+    dst_file : :obj:`str` or :obj:`Path`
         The new destination file.
 
-    remove_src_file: :obj:`bool`, default=False
+    remove_src_file : :obj:`bool`, default=False
         Delete the source file if True.
     """
     if not dst_file.parent.exists():

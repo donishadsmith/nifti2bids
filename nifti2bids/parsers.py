@@ -17,10 +17,10 @@ def _determine_delimiter(
 
     Parameters
     ----------
-    textlines: :obj:`list[str]`
+    textlines : :obj:`list[str]`
         The lines of text from the presentation log file.
 
-    initial_column_headers: :obj:`Iterable[str]`
+    initial_column_headers : :obj:`Iterable[str]`
         The initial column headers for data.
 
     Returns
@@ -44,13 +44,13 @@ def _convert_time(
 
     Parameters
     ----------
-    presentation_df: :obj:`pandas.DataFrame`
+    presentation_df : :obj:`pandas.DataFrame`
         Pandas Dataframe of the Presentation log
 
-    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+    convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
         Columns to convert to time.
 
-    divisor: :obj:`int` or :obj:`None`, default=None
+    divisor : :obj:`int` or :obj:`None`, default=None
         Value to divide columns listed in ``convert_to_columns`` by.
 
     Returns
@@ -88,17 +88,17 @@ def convert_edat3_to_text(
     .. important::
        - Only works with Windows platforms with E-Prime 3 installed.
 
-    edat_path: :obj:`str` or :obj:`Path`
+    edat_path : :obj:`str` or :obj:`Path`
         Absolute path to the E-Prime file with an "edat3" extension.
 
-    dst_path: :obj:`str` or :obj:`Path`, default=None
+    dst_path : :obj:`str` or :obj:`Path`, default=None
         Absolute path to the output text file that the edat3 file will be converted to.
         If None, the text file will be saved in the same folder as the edat3 file.
 
-    format: :obj:`Literal["csv", "tsv"], default="csv"
+    format : :obj:`Literal["csv", "tsv"], default="csv"
         The file extension.
 
-    return_dst_path: :obj:`bool`, default=True
+    return_dst_path : :obj:`bool`, default=True
         Returns the destination path if True.
 
     Returns
@@ -163,7 +163,7 @@ def _text_to_df(
 
     Parameters
     ----------
-    log_filepath: :obj:`str` or :obj:`Path`
+    log_filepath : :obj:`str` or :obj:`Path`
         Path to log data.
 
     initial_column_headers :obj:`Iterable[str]`
@@ -222,16 +222,16 @@ def load_eprime_log(
 
     Parameters
     ----------
-    log_filepath: :obj:`str` or :obj:`Path`
+    log_filepath : :obj:`str` or :obj:`Path`
         Absolute path to the Presentation log file (i.e text, log, excel files).
 
-    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+    convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from milliseconds to seconds.
 
-    initial_column_headers: :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
+    initial_column_headers : :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data.
 
-    drop_columns: :obj:`list[str]` or :obj:`None`, default=None
+    drop_columns : :obj:`list[str]` or :obj:`None`, default=None
         Remove specified columns from dataframe.
 
     Returns
@@ -275,13 +275,13 @@ def load_presentation_log(
 
     Parameters
     ----------
-    log_filepath: :obj:`str` or :obj:`Path`
+    log_filepath : :obj:`str` or :obj:`Path`
         Absolute path to the Presentation log file (i.e text, log, Excel files).
 
-    convert_to_seconds: :obj:`list[str]` or :obj:`None`, default=None
+    convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1ms to seconds.
 
-    initial_column_headers: :obj:`str`, default=("Trial", "Event Type")
+    initial_column_headers : :obj:`str`, default=("Trial", "Event Type")
         The initial column headers for data.
 
     Returns

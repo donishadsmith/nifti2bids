@@ -44,11 +44,15 @@ dependencies = [
     "rich>=14.2.0",
     "nilearn>=0.10.4",
     "pandas>=2.1.0",
+    "pybids>=0.16.5; platform_system != 'Windows'",
+    "tqdm>=4.65.0",
+    "joblib>=1.3.0",
     ]
 
 [project.optional-dependencies]
-all = ["nifti2bids[test]"]
+all = ["nifti2bids[test, windows]"]
 test = ["pytest", "pytest-cov"]
+windows = ["pybids>=0.16.5"]
 
 [tool.setuptools.packages.find]
 where = ["."]

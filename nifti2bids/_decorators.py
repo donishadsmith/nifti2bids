@@ -14,7 +14,7 @@ def check_all_none(parameter_names: list[str]) -> Callable:
 
     Parameters
     ----------
-    parameter_names: :obj:`list[str]`
+    parameter_names : :obj:`list[str]`
         List of parameter names to check.
 
     Returns
@@ -60,7 +60,7 @@ def check_nifti(nifti_param_name: Optional[str] = None) -> Callable:
 
     Parameters
     ----------
-    nifti_param_name: :obj:`list[str]`
+    nifti_param_name : :obj:`list[str]`
         Name of the NIfTI parameter. If None, assumes the
         NIfTI parameter is "nifti_file_or_img".
 

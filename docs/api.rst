@@ -106,3 +106,18 @@ Presentation and E-Prime 3 software.
    convert_edat3_to_text
    load_eprime_log
    load_presentation_log
+
+:mod:`nifti2bids.simulate`
+--------------------------
+Module for simulating NIfTI images and BIDS save_dataset_description
+
+.. currentmodule:: nifti2bids.simulate
+
+.. autosummary::
+   :template: function.rst
+   :nosignatures:
+   :toctree: generated/
+
+   simulate_nifti_image
+   create_affine
+   simulate_bids_dataset
