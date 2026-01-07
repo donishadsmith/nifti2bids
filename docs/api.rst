@@ -1,5 +1,17 @@
 API
 ===
+:mod:`nifti2bids.audit`
+----------------------
+Module for auditing directories.
+
+.. currentmodule:: nifti2bids.audit
+
+.. autosummary::
+   :template: class.rst
+   :nosignatures:
+   :toctree: generated/
+
+   BIDSAuditor
 
 :mod:`nifti2bids.bids`
 ----------------------
