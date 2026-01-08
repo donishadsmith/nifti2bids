@@ -2,4 +2,4 @@ sphinx
 sphinx_rtd_theme
 sphinx-copybutton
 myst_parser
-nifti2bids
+nifti2bids[all]
