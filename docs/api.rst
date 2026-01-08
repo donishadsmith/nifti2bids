@@ -121,7 +121,7 @@ Presentation and E-Prime 3 software.
 
 :mod:`nifti2bids.simulate`
 --------------------------
-Module for simulating NIfTI images and BIDS save_dataset_description
+Module for simulating NIfTI images and BIDS datasets.
 
 .. currentmodule:: nifti2bids.simulate
 
