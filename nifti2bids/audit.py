@@ -367,7 +367,8 @@ class BIDSAuditor:
     ) -> pd.DataFrame:
         """
         Checks the availability of the preprocessed NIfTI files for each subject and their sessions.
-        Specifically checks if the preprocessed NIfTI images for all tasks (i.e. "rest", "flanker", etc) are available.
+        Specifically checks if the preprocessed NIfTI images for all tasks (i.e. "rest", "flanker", etc)
+        are available.
 
         .. important::
             Checks if at least one run of data is available.
