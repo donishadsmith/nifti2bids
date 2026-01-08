@@ -37,6 +37,9 @@ class BIDSAuditor:
 
         self.bids_dir = bids_dir
 
+        if derivatives_dir:
+            derivatives_dir = Path(derivatives_dir)
+
         if derivatives_dir and not derivatives_dir.exists():
             raise PathDoesNotExist(derivatives_dir)
 
