@@ -11,6 +11,8 @@ def test_BIDSAuditor(tmp_dir):
     """Test for ``BIDSAuditor``."""
     bids_root = simulate_bids_dataset(output_dir=Path(tmp_dir.name) / "BIDS")
 
+    BIDSAuditor.clear_caches()
+
     auditor = BIDSAuditor(bids_root)
 
     expected_nifti_df = pd.DataFrame(

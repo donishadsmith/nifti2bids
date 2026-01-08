@@ -240,7 +240,23 @@ class BIDSAuditor:
             )
         )
 
-    def check_raw_nifti_availability(self, run_id: Optional[str | int] = None):
+    @staticmethod
+    def clear_caches() -> None:
+        """
+        Clear all cached data.
+
+        Example
+        -------
+        >>> from nifti2bids.audit import BIDSAuditor
+        >>> BIDSAuditor.clear_caches()
+        """
+        BIDSAuditor._call_layout.cache_clear()
+        BIDSAuditor._get_subjects_and_sessions.cache_clear()
+        BIDSAuditor._get_file_availability.cache_clear()
+
+    def check_raw_nifti_availability(
+        self, run_id: Optional[str | int] = None
+    ) -> pd.DataFrame:
         """
         Checks the availability of the unpreprocessed NIfTI files for each subject and their sessions.
         Specifically checks if the T1w image is available and if unpreprocessed NIfTI images for
@@ -275,7 +291,9 @@ class BIDSAuditor:
         """
         return self._create_df(file_type="nifti", scope="raw", run_id=run_id)
 
-    def check_events_availability(self, run_id: Optional[str | int] = None):
+    def check_events_availability(
+        self, run_id: Optional[str | int] = None
+    ) -> pd.DataFrame:
         """
         Checks the availability of events TSV files for each subject and their sessions.
         Specifically checks if event TSV files are available for all tasks (i.e. "rest", "flanker", etc).
@@ -309,7 +327,9 @@ class BIDSAuditor:
         """
         return self._create_df(file_type="events", scope="raw", run_id=run_id)
 
-    def check_raw_sidecar_availability(self, run_id: Optional[str | int] = None):
+    def check_raw_sidecar_availability(
+        self, run_id: Optional[str | int] = None
+    ) -> pd.DataFrame:
         """
         Checks the availability of JSON sidecar files for each subject and their sessions.
         Specifically checks if the JSON sidecar for the T1w image and all task NIfTI images
@@ -344,7 +364,7 @@ class BIDSAuditor:
 
     def check_preprocessed_nifti_availability(
         self, template_space: str, run_id: Optional[str | int] = None
-    ):
+    ) -> pd.DataFrame:
         """
         Checks the availability of the preprocessed NIfTI files for each subject and their sessions.
         Specifically checks if the preprocessed NIfTI images for all tasks (i.e. "rest", "flanker", etc) are available.
