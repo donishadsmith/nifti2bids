@@ -171,7 +171,9 @@ def _strip_none_entities(bids_filename: str | Path) -> str:
     return filename
 
 
-def get_entity_value(filename: str | Path, entity: str) -> str | None:
+def get_entity_value(
+    filename: str | Path, entity: str, return_entity_prefix: bool = False
+) -> str | None:
     """
     Gets entity value of a BIDS compliant filename.
 
@@ -181,12 +183,17 @@ def get_entity_value(filename: str | Path, entity: str) -> str | None:
         Filename to extract entity from.
 
     entity : :obj:`str`
-        The entity key (e.g. "sub", "task", etc)
+        The entity key (e.g. "sub", "task", etc).
+
+    return_entity_prefix : :obj:`bool`, default=False
+        Return value with the entity ("sub-101" instead of
+        "101") if True.
 
     Returns
     -------
     str or None
-        The entity value.
+        The entity value with the entity prefix if ``return_entity_prefix``
+        is True.
 
     Example
     -------
@@ -195,9 +202,17 @@ def get_entity_value(filename: str | Path, entity: str) -> str | None:
         "flanker"
     """
     basename = Path(filename).name
-    match = re.search(rf"{entity}-([^_\.]+)", basename)
+    match = re.search(rf"{entity.removesuffix('-')}-([^_\.]+)", basename)
+    if match:
+        entity_value = (
+            f"{entity.removesuffix('-')}-{match.group(1)}"
+            if return_entity_prefix
+            else match.group(1)
+        )
+    else:
+        entity_value = None
 
-    return match.group(1) if match else None
+    return entity_value
 
 
 def create_dataset_description(
