@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.12.1] - 2026-01-08
+- Allow ``BIDSAuditor`` to handle datasets with no session
+
 ## [0.12.0] - 2026-01-07
 - Add audit module
 

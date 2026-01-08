@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Literal, Optional
 
 import pandas as pd
+import numpy as np
 
 from ._exceptions import PathDoesNotExist
 
@@ -103,6 +104,9 @@ class BIDSAuditor:
             if session_ids:
                 subject_list.extend([subject] * len(session_ids))
                 session_list.extend(session_ids)
+            else:
+                subject_list.append(subject)
+                session_list.append(np.nan)
 
         return subject_list, session_list
 
@@ -176,10 +180,13 @@ class BIDSAuditor:
                     "return_type": "file",
                     "scope": scope,
                     "subject": subject,
-                    "session": session,
                     "suffix": suffix,
                     "extension": ext_dict[file_type],
                 }
+
+                if isinstance(session, (int, str)):
+                    query_dict.update({"session": session})
+
                 if scope == "derivatives" and template_space:
                     query_dict.update({"space": template_space})
 

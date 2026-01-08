@@ -31,12 +31,20 @@ def test_simulate_nifti_image(affine):
         assert all(np.diagonal(img.affine) == np.array([1, 1, 1, 1]))
 
 
-def test_simulate_bids_dataset(tmp_dir):
+@pytest.mark.parametrize("n_sessions", [1, None])
+def test_simulate_bids_dataset(tmp_dir, n_sessions):
     """Test for ``simulate_bids_dataset``."""
     import bids
 
-    bids_root = simulate_bids_dataset(output_dir=Path(tmp_dir.name) / "BIDS")
+    bids_root = simulate_bids_dataset(
+        output_dir=Path(tmp_dir.name) / "BIDS", n_sessions=n_sessions
+    )
 
     layout = bids.BIDSLayout(bids_root, derivatives=True)
     files = layout.get(return_type="file", extension="nii.gz")
     assert len(files) == 2
+
+    if n_sessions:
+        assert layout.get_sessions() == ["1"]
+    else:
+        assert not layout.get_sessions()

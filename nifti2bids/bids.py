@@ -164,7 +164,11 @@ def _strip_none_entities(bids_filename: str | Path) -> str:
         entity for entity in basename.split("_") if not entity.endswith("-None")
     ]
 
-    return f"{'_'.join(retained_entities)}.{ext}"
+    filename = f"{'_'.join(retained_entities)}"
+    if ext:
+        filename += f".{ext}"
+
+    return filename
 
 
 def get_entity_value(filename: str | Path, entity: str) -> str | None:

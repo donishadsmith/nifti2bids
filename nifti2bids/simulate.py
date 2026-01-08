@@ -9,7 +9,11 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from .logging import setup_logger
-from .bids import create_dataset_description, save_dataset_description
+from .bids import (
+    _strip_none_entities,
+    create_dataset_description,
+    save_dataset_description,
+)
 
 LGR = setup_logger(__name__)
 
@@ -75,7 +79,7 @@ def create_affine(
 
 def simulate_bids_dataset(
     n_subs: int = 1,
-    n_sessions: int = 1,
+    n_sessions: Optional[int] = 1,
     n_runs: int = 1,
     task_name: str = "rest",
     output_dir: Optional[str | Path] = None,
@@ -101,7 +105,7 @@ def simulate_bids_dataset(
     n_subs : :obj:`int`, default=1
         Number of subjects.
 
-    n_sessions : :obj:`int`, default=1
+    n_sessions : :obj:`int` or :obj:`None`, default=1
         Number of sessions for each subject.
 
     n_runs : :obj:`int`, default=1
@@ -149,15 +153,15 @@ def simulate_bids_dataset(
 
     # Generate list of tuples for each subject
     args_list = [
-        (fmriprep_dir, subj_id, n_sessions, n_runs, task_name)
-        for subj_id in range(n_subs)
+        (fmriprep_dir, sub_id, n_sessions, n_runs, task_name)
+        for sub_id in range(n_subs)
     ]
 
     parallel = Parallel(return_as="generator", n_jobs=n_cores, backend="loky")
     # generator needed for tqdm, iteration triggers side effects (file creation)
     list(
         tqdm(
-            parallel(delayed(_create_sub_files)(*args) for args in args_list),
+            parallel(delayed(_create_session_files)(*args) for args in args_list),
             desc="Creating Simulated Subjects",
             total=len(args_list),
             disable=not progress_bar,
@@ -167,35 +171,59 @@ def simulate_bids_dataset(
     return bids_root
 
 
-def _create_sub_files(
+def _create_session_files(
     fmriprep_dir: Path,
-    subj_id: int,
+    sub_id: int,
     n_sessions: int,
     n_runs: int,
     task_name: str,
 ) -> None:
-    """Iterates through each to create simulate data."""
-    for session_id in range(n_sessions):
-        sub_root_dir = (
-            fmriprep_dir.parent.parent / f"sub-{subj_id}" / f"ses-{session_id}" / "func"
-        )
-        sub_root_dir.mkdir(parents=True)
-        sub_derivatives_dir = (
-            fmriprep_dir / f"sub-{subj_id}" / f"ses-{session_id}" / "func"
-        )
-        sub_derivatives_dir.mkdir(parents=True)
+    """Iterates through each session ID simulate dataset."""
+    if n_sessions:
+        n_sessions += 1
+        for session_id in range(1, n_sessions):
+            _create_sub_files(fmriprep_dir, sub_id, session_id, n_runs, task_name)
+    else:
+        _create_sub_files(fmriprep_dir, sub_id, n_sessions, n_runs, task_name)
 
-        for run_id in range(n_runs):
-            base_filename = (
-                f"sub-{subj_id}_ses-{session_id}_task-{task_name}_run-{run_id}"
-            )
-            nifti_img = simulate_nifti_image((97, 115, 98, 50))
-            root_filename = base_filename + "_bold.nii.gz"
-            nib.save(nifti_img, sub_root_dir / root_filename)
-            derivatives_filename = (
-                base_filename + "_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz"
-            )
-            nib.save(nifti_img, sub_derivatives_dir / derivatives_filename)
+    return None
+
+
+def _create_sub_files(
+    fmriprep_dir: Path,
+    sub_id: int,
+    session_id: Optional[int],
+    n_runs: int,
+    task_name: str,
+) -> None:
+    """Create directory and simulated dataset."""
+    session_id = session_id or None
+    sub_root_dir = (
+        fmriprep_dir.parent.parent
+        / f"sub-{sub_id + 1}"
+        / (f"ses-{session_id}" if session_id else "")
+        / "func"
+    )
+    sub_root_dir.mkdir(parents=True)
+    sub_derivatives_dir = (
+        fmriprep_dir
+        / f"sub-{sub_id + 1}"
+        / (f"ses-{session_id}" if session_id else "")
+        / "func"
+    )
+    sub_derivatives_dir.mkdir(parents=True)
+
+    for run_id in range(n_runs):
+        base_filename = _strip_none_entities(
+            f"sub-{sub_id + 1}_ses-{session_id}_task-{task_name}_run-{run_id + 1}"
+        )
+        nifti_img = simulate_nifti_image((97, 115, 98, 50))
+        root_filename = base_filename + "_bold.nii.gz"
+        nib.save(nifti_img, sub_root_dir / root_filename)
+        derivatives_filename = (
+            base_filename + "_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz"
+        )
+        nib.save(nifti_img, sub_derivatives_dir / derivatives_filename)
 
     return None
 
