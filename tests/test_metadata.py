@@ -141,22 +141,6 @@ def test_create_slice_timing_singleband(slice_acquisition_method):
         )
         assert slice_timing_list == [0.5, 1.5, 0, 1]
 
-        slice_timing_list = bids_meta.create_slice_timing(
-            nifti_file_or_img=img,
-            slice_acquisition_method=slice_acquisition_method,
-            ascending=True,
-            interleaved_pattern="philips",
-        )
-        assert slice_timing_list == [0, 1, 0.5, 1.5]
-
-        slice_timing_list = bids_meta.create_slice_timing(
-            nifti_file_or_img=img,
-            slice_acquisition_method=slice_acquisition_method,
-            ascending=False,
-            interleaved_pattern="philips",
-        )
-        assert slice_timing_list == [1.5, 0.5, 1, 0]
-
         with pytest.raises(ValueError):
             slice_timing_list = bids_meta.create_slice_timing(
                 nifti_file_or_img=img,
@@ -164,6 +148,64 @@ def test_create_slice_timing_singleband(slice_acquisition_method):
                 ascending=False,
                 interleaved_pattern="incorrect_value",
             )
+
+
+def test_philips_interleaved():
+    from nifti2bids.simulate import simulate_nifti_image
+
+    img = simulate_nifti_image((10, 10, 9, 10))
+    img.header["pixdim"][4] = 2
+    img.header["slice_end"] = 8
+
+    slice_timing_list = bids_meta.create_slice_timing(
+        nifti_file_or_img=img,
+        slice_acquisition_method="interleaved",
+        ascending=True,
+        interleaved_pattern="philips",
+    )
+    # slice order: 0, 3, 6, 1, 4, 7, 2, 5, 8
+    assert np.allclose(
+        np.array(slice_timing_list),
+        np.array(
+            [
+                0,
+                0.66,
+                1.33,
+                0.22,
+                0.88,
+                1.55,
+                0.44,
+                1.11,
+                1.77,
+            ]
+        ),
+        atol=1e-2,
+    )
+
+    slice_timing_list = bids_meta.create_slice_timing(
+        nifti_file_or_img=img,
+        slice_acquisition_method="interleaved",
+        ascending=False,
+        interleaved_pattern="philips",
+    )
+    # slice order: 8, 5, 2, 7, 4, 1, 6, 3, 0
+    assert np.allclose(
+        np.array(slice_timing_list),
+        np.array(
+            [
+                1.77,
+                1.11,
+                0.44,
+                1.55,
+                0.88,
+                0.22,
+                1.33,
+                0.66,
+                0,
+            ]
+        ),
+        atol=1e-2,
+    )
 
 
 @pytest.mark.parametrize("slice_acquisition_method", ("central", "reversed_central"))
