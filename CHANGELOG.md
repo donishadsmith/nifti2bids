@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.12.4] - 2026-01-09
+- Sort IDs for ``create_participants_tsv``
+
 ## [0.12.3] - 2026-01-08
 - Add new parameter to ``get_entity_value``
 
