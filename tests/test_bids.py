@@ -5,6 +5,7 @@ import pandas as pd, pytest
 from nifti2bids.bids import (
     create_bids_file,
     create_participant_tsv,
+    create_sessions_tsv,
     create_dataset_description,
     save_dataset_description,
     get_entity_value,
@@ -86,6 +87,22 @@ def test_create_participant_tsv(tmp_dir):
 
     df = pd.read_csv(filename, sep="\t")
     assert df["participant_id"].values[0] == "sub-01"
+
+
+def test_create_sessions_tsv(tmp_dir):
+    """Test for ``create_sessions_tsv``."""
+    from nifti2bids.simulate import simulate_bids_dataset
+
+    path = simulate_bids_dataset(n_sessions=3, output_dir=Path(tmp_dir.name) / "BIDS")
+
+    df = create_sessions_tsv(path, sub_id=1, save_df=True, return_df=True)
+    assert isinstance(df, pd.DataFrame)
+
+    filename = path / "sub-1_sessions.tsv"
+    assert filename.is_file()
+
+    df = pd.read_csv(filename, sep="\t")
+    assert df["session_id"].values.tolist() == ["ses-1", "ses-2", "ses-3"]
 
 
 def test_get_entity_value():

@@ -272,7 +272,7 @@ def create_participant_tsv(
     bids_dir: str | Path, save_df: bool = False, return_df: bool = True
 ) -> pd.DataFrame | None:
     """
-    Creates a basic participant dataframe for the "participants.tsv" file.
+    Creates a basic dataframe for the "participants.tsv" file.
 
     Parameters
     ----------
@@ -282,7 +282,7 @@ def create_participant_tsv(
     save_df : :obj:`bool`, bool=False
         Save the dataframe to the root of the BIDS compliant directory.
 
-    return_df : :obj:`str`
+    return_df : :obj:`str`, default=True
         Returns dataframe if True else return None.
 
     Returns
@@ -290,11 +290,52 @@ def create_participant_tsv(
     pandas.DataFrame or None
         The dataframe if ``return_df`` is True.
     """
-    participants = sorted([folder.name for folder in Path(bids_dir).glob("*sub-*")])
+    participants = sorted([folder.name for folder in Path(bids_dir).glob("sub-*")])
     df = pd.DataFrame({"participant_id": participants})
 
     if save_df:
         df.to_csv(Path(bids_dir) / "participants.tsv", sep="\t", index=None)
+
+    return df if return_df else None
+
+
+def create_sessions_tsv(
+    bids_dir: str | Path,
+    sub_id: str | int,
+    save_df: bool = False,
+    return_df: bool = True,
+) -> pd.DataFrame | None:
+    """
+    Creates a basic dataframe for the "sub-{subject_ID}_sessions.tsv" file
+    for a specific subject.
+
+    Parameters
+    ----------
+    bids_dir : :obj:`str` or :obj:`Path`
+        The root of BIDS compliant directory.
+
+    sub_id : :obj:`str` or obj:`int`
+        The subject ID.
+
+    save_df : :obj:`bool`, bool=False
+        Save the dataframe in the subject folder.
+
+    return_df : :obj:`str`, default=True
+        Returns dataframe if True else return None.
+
+    Returns
+    -------
+    pandas.DataFrame or None
+        The dataframe if ``return_df`` is True.
+    """
+    target_sub = f"sub-{str(sub_id).removeprefix('sub-')}"
+    subject_folder = Path(bids_dir) / target_sub
+    session_folders = sorted(list(subject_folder.glob("ses-*")))
+    session_ids = [session_folder.name for session_folder in session_folders]
+    df = pd.DataFrame({"session_id": session_ids})
+
+    if save_df:
+        df.to_csv(Path(bids_dir) / f"{target_sub}_sessions.tsv", sep="\t", index=None)
 
     return df if return_df else None
 
