@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.12.5] - 2026-01-10
+- Adjust ``BIDSAuditor`` to not produce warning when derivatives are not present
+
 ## [0.12.4] - 2026-01-09
 - Sort IDs for ``create_participants_tsv``
 

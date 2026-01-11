@@ -23,7 +23,7 @@ class BIDSAuditor:
     bids_dir: :obj:`str` or :obj:`Path`
         The root of the BIDS compliant directory.
 
-    derivatives_dir: :obj:`str`, :obj:`Path`, or obj:`None`, default=None
+    derivatives_dir: :obj:`str`, :obj:`Path`, or :obj:`Path`, obj:`None`, default=None
         The root to the fMRIPrep directory. If None, the ``derivatives`` parameter
         in ``BIDSLayout`` will be set to True.
     """
@@ -40,8 +40,9 @@ class BIDSAuditor:
         if derivatives_dir:
             derivatives_dir = Path(derivatives_dir)
 
-        if derivatives_dir and not derivatives_dir.exists():
-            raise PathDoesNotExist(derivatives_dir)
+        if derivatives_dir and isinstance(derivatives_dir, (Path, str)):
+            if not derivatives_dir.exists():
+                raise PathDoesNotExist(derivatives_dir)
 
         self.derivatives_dir = derivatives_dir
 
@@ -69,7 +70,11 @@ class BIDSAuditor:
         except ModuleNotFoundError:
             raise ModuleNotFoundError("The pybids package must be installed.")
 
-        return bids.BIDSLayout(root=bids_dir, derivatives=derivatives_dir or True)
+        layout_dict = {"root": bids_dir}
+        if derivatives_dir:
+            layout_dict.update({"derivatives": derivatives_dir})
+
+        return bids.BIDSLayout(**layout_dict)
 
     @staticmethod
     @lru_cache(maxsize=2)
