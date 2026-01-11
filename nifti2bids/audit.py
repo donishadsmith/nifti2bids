@@ -37,7 +37,7 @@ class BIDSAuditor:
 
         self.bids_dir = bids_dir
 
-        if derivatives_dir:
+        if derivatives_dir and isinstance(derivatives_dir, str):
             derivatives_dir = Path(derivatives_dir)
 
         if derivatives_dir and isinstance(derivatives_dir, (Path, str)):

@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.12.7] - 2026-01-11
+- Fix ``derivatives_dir`` parameter for ``BIDSAuditor``
+
 ## [0.12.6] - 2026-01-10
 - Add ``create_sessions_tsv``
 
