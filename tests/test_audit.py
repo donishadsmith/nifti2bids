@@ -16,7 +16,7 @@ def test_BIDSAuditor(tmp_dir, n_sessions):
 
     BIDSAuditor.clear_caches()
 
-    auditor = BIDSAuditor(bids_root)
+    auditor = BIDSAuditor(bids_root, derivatives_dirs=True)
 
     base_dict = {"subject": ["1"], "session": (["1" if n_sessions else np.nan])}
 
