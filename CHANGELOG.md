@@ -4,6 +4,8 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.12.7.post1] - 2026-01-12
+
 ## [0.12.7] - 2026-01-11
 - Fix ``derivatives_dir`` parameter for ``BIDSAuditor``
 
