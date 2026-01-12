@@ -23,13 +23,12 @@ class BIDSAuditor:
     bids_dir: :obj:`str` or :obj:`Path`
         The root of the BIDS compliant directory.
 
-    derivatives_dir: :obj:`str`, :obj:`Path`, or :obj:`Path`, obj:`None`, default=None
-        The root to the fMRIPrep directory. If None, the ``derivatives`` parameter
-        in ``BIDSLayout`` will be set to True.
+    derivatives_dir: obj:`bool`, :obj:`str`, :obj:`Path`, or obj:`None`, default=None
+        The root to the fMRIPrep directory.
     """
 
     def __init__(
-        self, bids_dir: str | Path, derivatives_dir: Optional[str | Path] = None
+        self, bids_dir: str | Path, derivatives_dir: Optional[bool | str | Path] = None
     ):
         bids_dir = Path(bids_dir)
         if not bids_dir.exists():
