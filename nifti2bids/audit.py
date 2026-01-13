@@ -290,16 +290,19 @@ class BIDSAuditor:
             A Pandas DataFrame denoting file availability, where "Yes" means the file
             is available and "No" means that the file is not available.
 
-        Note
-        ----
+        Notes
+        -----
         Example of output table:
 
         +----------+---------+-----+-------+---------+------+------+----------+
         | subject  | session | T1w | nback | flanker | mtle | mtlr | princess |
-        +----------+---------+-----+-------+---------+------+------+----------+
+        +==========+=========+=====+=======+=========+======+======+==========+
         | 101      | 01      | Yes | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 101      | 02      | Yes | Yes   | No      | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 102      | 01      | Yes | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 103      | 01      | No  | Yes   | Yes     | Yes  | Yes  | Yes      |
         +----------+---------+-----+-------+---------+------+------+----------+
         """
@@ -326,16 +329,19 @@ class BIDSAuditor:
             A Pandas DataFrame denoting file availability, where "Yes" means the file
             is available and "No" means that the file is not available.
 
-        Note
-        ----
+        Notes
+        -----
         Example of output table:
 
         +----------+---------+-------+---------+------+------+----------+
         | subject  | session | nback | flanker | mtle | mtlr | princess |
-        +----------+---------+-------+---------+------+------+----------+
+        +==========+=========+=======+=========+======+======+==========+
         | 101      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
         | 101      | 02      | Yes   | No      | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
         | 102      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
         | 103      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
         +----------+---------+-------+---------+------+------+----------+
         """
@@ -363,14 +369,19 @@ class BIDSAuditor:
             A Pandas DataFrame denoting file availability, where "Yes" means the file
             is available and "No" means that the file is not available.
 
+        Notes
+        -----
         Example of output table:
 
         +----------+---------+-----+-------+---------+------+------+----------+
         | subject  | session | T1w | nback | flanker | mtle | mtlr | princess |
-        +----------+---------+-----+-------+---------+------+------+----------+
+        +==========+=========+=====+=======+=========+======+======+==========+
         | 101      | 01      | Yes | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 101      | 02      | Yes | Yes   | No      | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 102      | 01      | Yes | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 103      | 01      | No  | Yes   | Yes     | Yes  | Yes  | Yes      |
         +----------+---------+-----+-------+---------+------+------+----------+
         """
@@ -401,14 +412,20 @@ class BIDSAuditor:
             A Pandas DataFrame denoting file availability, where "Yes" means the file
             is available and "No" means that the file is not available.
 
+        Notes
+        -----
+
         Example of output table:
 
         +----------+---------+-----+-------+---------+------+------+----------+
         | subject  | session | T1w | nback | flanker | mtle | mtlr | princess |
-        +----------+---------+-----+-------+---------+------+------+----------+
+        +==========+=========+=====+=======+=========+======+======+==========+
         | 101      | 01      | Yes | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 101      | 02      | Yes | Yes   | No      | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 102      | 01      | Yes | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-----+-------+---------+------+------+----------+
         | 103      | 01      | No  | Yes   | Yes     | Yes  | Yes  | Yes      |
         +----------+---------+-----+-------+---------+------+------+----------+
         """

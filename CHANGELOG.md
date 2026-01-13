@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.12.7.post2] - 2026-01-12
+- Fix doc rendering issues
+
 ## [0.12.7.post1] - 2026-01-12
 - Doc update
 

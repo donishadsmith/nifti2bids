@@ -239,8 +239,8 @@ def load_eprime_log(
     pandas.Dataframe
         A Pandas DataFrame of the behavioral log data.
 
-    Note
-    ----
+    Notes
+    -----
     This function works by first identifying the line containing the column headers specified in
     ``initial_column_headers`` and using that line to extract the delimiter (assumed to be the
     delimiter for the data). After, all blank lines are removed then the remaining lines in the
@@ -289,8 +289,8 @@ def load_presentation_log(
     pandas.Dataframe
         A Pandas DataFrame of the behavioral log data.
 
-    Note
-    ----
+    Notes
+    -----
     This function works by first identifying the line containing the column headers specified in
     ``initial_column_headers`` and using that line to extract the delimiter (assumed to be the
     delimiter for the data). After, all blank lines are removed then the remaining lines in the

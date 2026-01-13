@@ -833,7 +833,7 @@ def parse_date_from_path(path: str | Path, date_fmt: str) -> str | None:
 
     Returns
     -------
-    str or None:
+    str or None
         A string if a valid date based on specified ``date_fmt`` is detected
         or None if no valid date is detected.
 
