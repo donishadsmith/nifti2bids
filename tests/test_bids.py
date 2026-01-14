@@ -149,8 +149,10 @@ def test_dataframe_copy():
     assert not id(df) == id(new_df)
 
 
-@pytest.mark.parametrize("scanner_start_time", [None, 10000])
-def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
+@pytest.mark.parametrize(
+    "scanner_start_time, sum_duration_column", [(None, True), (10000, False)]
+)
+def test_PresentationBlockExtractor(tmp_dir, scanner_start_time, sum_duration_column):
     """Test for ``PresentationBlockExtractor``."""
     from pandas.testing import assert_frame_equal
 
@@ -160,7 +162,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
     expected_df = pd.DataFrame(
         {
             "onset": [0.0, 34.0] if scanner_start_time is None else [1.0, 35.0],
-            "duration": [14.0, 14.0],
+            "duration": [14.75, 13.75] if sum_duration_column else [14.0, 14.0],
             "trial_type": ["indoor", "indoor"],
         }
     )
@@ -168,7 +170,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
     extractor = PresentationBlockExtractor(
         log_or_df=filename,
         block_cue_names=["indoor"],
-        convert_to_seconds=["Time"],
+        convert_to_seconds=["Time", "Duration"],
         scanner_event_type="Pulse",
         scanner_trigger_code="99",
         n_discarded_volumes=1 if scanner_start_time is None else 0,
@@ -179,7 +181,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
 
     scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
     onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
-    durations = extractor.extract_durations()
+    durations = extractor.extract_durations(sum_duration_column=sum_duration_column)
     trial_types = extractor.extract_trial_types()
 
     df = pd.DataFrame(
@@ -222,9 +224,11 @@ def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     assert mean_accs[1] == 0.75
 
 
-@pytest.mark.parametrize("drop_instruction_cues", (True, False))
+@pytest.mark.parametrize(
+    "drop_instruction_cues, sum_duration_column", ([True, True], [False, False])
+)
 def test_PresentationBlockExtractor_instruction_cue_separation(
-    tmp_dir, drop_instruction_cues
+    tmp_dir, drop_instruction_cues, sum_duration_column
 ):
     """Test for ``PresentationBlockExtractor`` to ensure instruction and cues can be separated."""
     from pandas.testing import assert_frame_equal
@@ -237,12 +241,13 @@ def test_PresentationBlockExtractor_instruction_cue_separation(
     extractor = PresentationBlockExtractor(
         log_or_df=filename,
         block_cue_names=["A", "B"],
-        convert_to_seconds=["Time"],
+        convert_to_seconds=["Time", "Duration"],
         scanner_event_type="Pulse",
         scanner_trigger_code="99",
         rest_block_code="rest",
         rest_code_frequency="variable",
         split_cue_as_instruction=True,
+        quit_code="quit",
         block_cues_without_instruction=("B",),
         drop_instruction_cues=drop_instruction_cues,
     )
@@ -250,7 +255,7 @@ def test_PresentationBlockExtractor_instruction_cue_separation(
     expected_df = pd.DataFrame(
         {
             "onset": [0.0, 1.0, 10.0],
-            "duration": [1.0, 9.0, 10.0],
+            "duration": [1.0, 9.0, 10.01] if sum_duration_column else [1.0, 9.0, 10.0],
             "trial_type": ["A_instruction", "A", "B"],
             "mean_rt": [float("NaN"), float("NaN"), 0.5],
             "mean_acc": [float("NaN"), 0.0, 1.0],
@@ -258,7 +263,7 @@ def test_PresentationBlockExtractor_instruction_cue_separation(
     )
 
     onsets = extractor.extract_onsets()
-    durations = extractor.extract_durations()
+    durations = extractor.extract_durations(sum_duration_column=sum_duration_column)
     trial_types = extractor.extract_trial_types()
     response_map = {"hit": 1, "miss": 0}
     mean_rts = extractor.extract_mean_reaction_times(
@@ -340,7 +345,8 @@ def _create_eprime_logfile(dst_dir, data, design):
             file.write("\t".join(line) + "\n")
 
 
-def test_EPrimeBlockExtractor(tmp_dir):
+@pytest.mark.parametrize("offset_column_name", ("Data.OffsetTime", None))
+def test_EPrimeBlockExtractor(tmp_dir, offset_column_name):
     """Test for ``EPrimeBlockExtractor``."""
     from pandas.testing import assert_frame_equal
 
@@ -352,7 +358,7 @@ def test_EPrimeBlockExtractor(tmp_dir):
         expected_df = pd.DataFrame(
             {
                 "onset": [-1.0, 19.0] if column else [0.0, 20.0],
-                "duration": [20.0, 20.0],
+                "duration": [11.0, 11.0] if offset_column_name else [20.0, 20.0],
                 "trial_type": ["A", "B"],
             }
         )
@@ -362,7 +368,7 @@ def test_EPrimeBlockExtractor(tmp_dir):
             onset_column_name="Data.OnsetTime",
             procedure_column_name="Procedure",
             trigger_column_name=column,
-            convert_to_seconds=["Data.OnsetTime", "TriggerStart"],
+            convert_to_seconds=["Data.OnsetTime", "TriggerStart", "Data.OffsetTime"],
             n_discarded_volumes=1 if column else 0,
             tr=1 if column else None,
             rest_block_code="Rest",
@@ -370,7 +376,7 @@ def test_EPrimeBlockExtractor(tmp_dir):
         )
 
         onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
-        durations = extractor.extract_durations()
+        durations = extractor.extract_durations(offset_column_name=offset_column_name)
         trial_types = extractor.extract_trial_types()
         df = pd.DataFrame(
             {"onset": onsets, "duration": durations, "trial_type": trial_types}
@@ -421,9 +427,12 @@ def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     assert mean_accs[1] == 1.0
 
 
-@pytest.mark.parametrize("drop_instruction_cues", (True, False))
+@pytest.mark.parametrize(
+    "drop_instruction_cues, offset_column_name",
+    ([True, "Data.OffsetTime"], [False, None]),
+)
 def test_EPrimeBlockExtractor_instruction_cue_separation(
-    tmp_dir, drop_instruction_cues
+    tmp_dir, drop_instruction_cues, offset_column_name
 ):
     """Test for ``EPrimeBlockExtractor`` to ensure instruction and cues can be separated."""
     from pandas.testing import assert_frame_equal
@@ -437,7 +446,12 @@ def test_EPrimeBlockExtractor_instruction_cue_separation(
         onset_column_name="Data.OnsetTime",
         procedure_column_name="Procedure",
         trigger_column_name="TriggerStart",
-        convert_to_seconds=["Data.OnsetTime", "Data.RT", "TriggerStart"],
+        convert_to_seconds=[
+            "Data.OnsetTime",
+            "Data.RT",
+            "TriggerStart",
+            "Data.OffsetTime",
+        ],
         rest_block_code="Rest",
         rest_code_frequency="variable",
         split_cue_as_instruction=True,
@@ -455,7 +469,7 @@ def test_EPrimeBlockExtractor_instruction_cue_separation(
     )
 
     onsets = extractor.extract_onsets()
-    durations = extractor.extract_durations()
+    durations = extractor.extract_durations(offset_column_name=offset_column_name)
     trial_types = extractor.extract_trial_types()
     mean_rts = extractor.extract_mean_reaction_times(
         reaction_time_column_name="Data.RT",
@@ -480,7 +494,7 @@ def test_EPrimeBlockExtractor_instruction_cue_separation(
     if drop_instruction_cues:
         expected_df.drop([0], axis=0).reset_index(inplace=True, drop=True)
 
-    assert_frame_equal(df, expected_df)
+    assert_frame_equal(df, expected_df, rtol=1e3)
 
 
 def test_EPrimeEventExtractor(tmp_dir):

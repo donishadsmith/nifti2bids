@@ -536,7 +536,7 @@ def _get_next_block_index(
             filtered_trial_series.isin(target_block_names)
         ].index.tolist()
 
-    return next_block_indxs[0] if next_block_indxs else block_start_index
+    return next_block_indxs[0] if next_block_indxs else trial_series.index[-1]
 
 
 def _separate_block_from_cue(
@@ -663,6 +663,58 @@ def _filter_response_trial_names(
         )
 
     return response_trial_names
+
+
+def _should_exclude_end_index(
+    df: pd.DataFrame,
+    block_end_index: int,
+    trial_column_name: str,
+    block_cue_names: Iterable[str],
+    rest_block_code: Optional[str],
+    quit_code: Optional[str],
+) -> bool:
+    """
+    Determine if ``block_end_index`` should be excluded from the block slice.
+    The ``block_end_index`` is usually a boundary code (i.e. rest block, quit code,
+    or next block cue) and should be excluded if it is. However, there are
+    cases when log files end without any boundary codes (either due to how it was coded
+    or due to a quit error), so the block_end_index should not be excluded.
+
+    Parameters
+    ----------
+    df : :obj:`pd.DataFrame`
+        DataFrame containing the log data.
+
+    block_end_index : :obj:`int`
+        The index returned by ``_get_next_block_index``, representing
+        the boundary of the current block.
+
+    trial_column_name : :obj:`str`
+        Name of the column containing the trial types.
+
+    block_cue_names : :obj:`Iterable[str]`
+        The names of block cue codes that mark block boundaries.
+
+    rest_block_code : :obj:`str` or :obj:`None`
+        The rest block code.
+
+    quit_code : :obj:`str` or :obj:`None`
+        The quit code.
+
+    Returns
+    -------
+    bool
+        If True, then ``block_end_index`` should be excluded by subtracting 1
+        when extracting the block data and if False, the index should be included.
+    """
+    if block_end_index != df.index[-1]:
+        return True
+
+    end_code = df.loc[block_end_index, trial_column_name]
+    boundary_codes = set(block_cue_names)
+    boundary_codes.update(filter(None, [rest_block_code, quit_code]))
+
+    return end_code in boundary_codes
 
 
 class LogExtractor(ABC):
@@ -821,7 +873,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     convert_to_seconds : :obj:`list[str]` or :obj:`None`, default=None
         Convert the time resolution of the specified columns from 0.1 ms to seconds.
 
-        .. important:: Recommend time resolution of the "Time" column to be converted.
+        .. important::
+           Recommend time resolution of the "Time" and "Duration" column to be converted.
 
     initial_column_headers : :obj:`Iterable[str]`, default=("Trial", "Event Type")
         The initial column headers for data. Only used when
@@ -1120,12 +1173,29 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         return onsets
 
-    def extract_durations(self) -> list[float]:
+    def extract_durations(self, sum_duration_column: bool = False) -> list[float]:
         """
         Extract the duration for each block.
 
-        Duration is computed as the difference between the start of the block
-        and the start of the next block (either a rest block or some task block).
+        Duration is computes in one of two ways:
+
+        If ``sum_duration_column`` is True, then duration is computed as the
+        difference between the onset time of the current block and the onset time
+        of the next block start of the block (either a rest block or some task block).
+
+        If ``sum_duration_column`` is False, then duration is computed by summing
+        the duration time, listed in the "Duration" column, of all "Picture" events
+        from the start of the block to the end of the block which is considered
+        to be the last "Picture" event index prior to the start of the next block
+        (either a rest block or a different task block).
+
+        Note, if there is no final quit code or rest block for the final task block, then the
+        block ends at the final index of the DataFrame.
+
+        Parameters
+        ----------
+        sum_duration_column : :obj:`bool`, default=False
+            Whether to sum the "Duration" column to compute block duration.
 
         Returns
         -------
@@ -1152,9 +1222,32 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
             row_shift = 1 if should_separate_block else 0
             block_start_time = self.df.loc[block_start_index + row_shift, "Time"]
-            block_end_time = self.df.loc[block_end_index, "Time"]
-            block_duration = block_end_time - block_start_time
 
+            if sum_duration_column:
+                if _should_exclude_end_index(
+                    self.df,
+                    block_end_index,
+                    self.trial_column_name,
+                    self.block_cue_names,
+                    self.rest_block_code,
+                    self.quit_code,
+                ):
+                    block_end_index = block_end_index - 1
+
+                block_df = self.df.loc[
+                    (block_start_index + row_shift) : block_end_index
+                ]
+                block_duration = float(
+                    block_df.loc[
+                        block_df["Event Type"] == "Picture",
+                        "Duration",
+                    ].sum()
+                )
+            else:
+                block_end_time = self.df.loc[block_end_index, "Time"]
+                block_duration = block_end_time - block_start_time
+
+            block_start_time = self.df.loc[block_start_index + row_shift, "Time"]
             if should_separate_block and not self.drop_instruction_cues:
                 cue_start_time = self.df.loc[block_start_index, "Time"]
                 cue_duration = block_start_time - cue_start_time
@@ -1219,8 +1312,17 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             quit_code=self.quit_code,
         )
 
-        # Note: iloc excludes end index
-        block_df = self.df.iloc[block_start_index:block_end_index, :]
+        if _should_exclude_end_index(
+            self.df,
+            block_end_index,
+            self.trial_column_name,
+            self.block_cue_names,
+            self.rest_block_code,
+            self.quit_code,
+        ):
+            block_end_index = block_end_index - 1
+
+        block_df = self.df.loc[block_start_index:block_end_index, :]
         if self.split_cue_as_instruction:
             block_df = block_df.loc[(block_start_index + 1) :]
 
@@ -1832,8 +1934,8 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         Convert the time resolution of the specified columns from milliseconds to seconds.
 
         .. important::
-            Recommend time resolution of the columns containing the onset time and scanner
-            start time (``trigger_column_name``) be converted to seconds.
+            Recommend time resolution of the columns containing the onset time, offset time (duration),
+            reaction time, and scanner start time (``trigger_column_name``) be converted to seconds.
 
     initial_column_headers : :obj:`Iterable[str]`, default=("ExperimentName", "Subject")
         The initial column headers for data. Only used when
@@ -1997,7 +2099,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     ... )
     >>> events = {}
     >>> events["onset"] = extractor.extract_onsets()
-    >>> events["duration"] = extractor.extract_durations()
+    >>> events["duration"] = extractor.extract_durations(offset_column_name="Stimulus.OffsetTime")
     >>> events["trial_type"] = extractor.extract_trial_types()
     >>> # Mean reaction time for correct Face trials only
     >>> events["mean_rt"] = extractor.extract_mean_reaction_times(
@@ -2121,12 +2223,30 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         return onsets
 
-    def extract_durations(self) -> list[float]:
+    def extract_durations(
+        self, offset_column_name: Optional[str] = None
+    ) -> list[float]:
         """
         Extract the duration for each block.
 
-        Duration is computed as the difference between the start of the block
-        and the start of the next block (either a rest block or some task block).
+        Duration is computed in one of two ways:
+
+        If ``offset_column_name`` is None, then duration is computed as the difference between
+        the onset time of the current block and the onset time of the next block start of the block
+        (either a rest block or some task block).
+
+        If ``offset_column_name`` is not None, duration is computed by subtracting the final
+        stimulus offset time (considered to be the index prior to the start of the next block,
+        which may be a rest block or a different task block) by the onset time of
+        the start of the block.
+
+        Note, if there is no final quit code or rest block for the final task block, then the
+        block ends at the final index of the DataFrame.
+
+        Parameters
+        ----------
+        offset_column_name : :obj:`str`, default=None
+            The name of the stimulus offset column.
 
         Returns
         -------
@@ -2154,7 +2274,21 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             block_start_time = self.df.loc[
                 block_start_index + row_shift, self.onset_column_name
             ]
-            block_end_time = self.df.loc[block_end_index, self.onset_column_name]
+            if offset_column_name:
+                if _should_exclude_end_index(
+                    self.df,
+                    block_end_index,
+                    self.procedure_column_name,
+                    self.block_cue_names,
+                    self.rest_block_code,
+                    self.quit_code,
+                ):
+                    block_end_index = block_end_index - 1
+
+                block_end_time = self.df.loc[block_end_index, offset_column_name]
+            else:
+                block_end_time = self.df.loc[block_end_index, self.onset_column_name]
+
             block_duration = block_end_time - block_start_time
 
             if should_separate_block and not self.drop_instruction_cues:
@@ -2221,8 +2355,17 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             quit_code=self.quit_code,
         )
 
-        # Note: iloc excludes end index
-        block_df = self.df.iloc[block_start_index:block_end_index, :]
+        if _should_exclude_end_index(
+            self.df,
+            block_end_index,
+            self.procedure_column_name,
+            self.block_cue_names,
+            self.rest_block_code,
+            self.quit_code,
+        ):
+            block_end_index = block_end_index - 1
+
+        block_df = self.df.loc[block_start_index:block_end_index, :]
         if self.split_cue_as_instruction:
             block_df = block_df.loc[(block_start_index + 1) :]
 
