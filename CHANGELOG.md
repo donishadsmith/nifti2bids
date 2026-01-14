@@ -5,7 +5,7 @@ Documentation of changes for each version of ``Nifti2Bids``.
 **Currently doesn't follow semantic versioning.**
 
 ## [0.13.0] - 2026-01-14
-- Allow fo moe precise block duration timess
+- Allow fo more precise block duration times
 
 ## [0.12.7.post2] - 2026-01-12
 - Fix doc rendering issues
