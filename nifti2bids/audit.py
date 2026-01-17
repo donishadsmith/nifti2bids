@@ -24,7 +24,7 @@ class BIDSAuditor:
     bids_dir : :obj:`str` or :obj:`Path`
         The root of the BIDS compliant directory.
 
-    derivatives_dir: obj:`bool`, :obj:`str`, :obj:`Path`, or obj:`None`, default=None
+    derivatives_dir : :obj:`bool`, :obj:`str`, :obj:`Path`, or obj:`None`, default=None
         The root to the fMRIPrep directory.
     """
 
@@ -57,7 +57,7 @@ class BIDSAuditor:
         bids_dir : :obj:`str` or :obj:`Path`
             The root of the BIDS compliant directory.
 
-        derivatives_dir : :obj:`str`, :obj:`Path`, or obj:`None`
+        derivatives_dir : :obj:`str`, :obj:`Path`, or :obj:`None`
             The root to the fMRIPrep directory.
 
         Returns
@@ -92,7 +92,7 @@ class BIDSAuditor:
         bids_dir : :obj:`str` or :obj:`Path`
             The root of the BIDS compliant directory.
 
-        derivatives_dir : :obj:`str`, :obj:`Path`, or obj:`None`
+        derivatives_dir : :obj:`str`, :obj:`Path`, or ;obj:`None`
             The root to the fMRIPrep directory.
 
         layout : :obj:`BIDSLayout`
@@ -138,7 +138,7 @@ class BIDSAuditor:
         bids_dir : :obj:`str` or :obj:`Path`
             The root of the BIDS compliant directory.
 
-        derivatives_dir : :obj:`str`, :obj:`Path`, or obj:`None`
+        derivatives_dir : :obj:`str`, :obj:`Path`, or :obj:`None`
             The root to the fMRIPrep directory.
 
         layout : :obj:`BIDSLayout`
@@ -154,7 +154,7 @@ class BIDSAuditor:
             The template space to check for. Only relevent when scope is
             ``derivatives``.
 
-        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, :obj:`int`, or :obj:`None`, default=None
             The specific run ID to check for.
 
         Return
@@ -233,7 +233,7 @@ class BIDSAuditor:
             The template space to check for. Only relevent when scope is
             ``derivatives``.
 
-        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, :obj:`int`, or :obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -284,7 +284,7 @@ class BIDSAuditor:
 
         Parameters
         ----------
-        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, :obj:`int`, or :obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -323,7 +323,7 @@ class BIDSAuditor:
 
         Parameters
         ----------
-        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, :obj:`int`, or :obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -363,7 +363,7 @@ class BIDSAuditor:
 
         Parameters
         ----------
-        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, :obj:`int`, or :obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -406,7 +406,7 @@ class BIDSAuditor:
         template_space : :obj:`str` or :obj:`None`, default=None
             The template space to check for (e.g., "MNIPediatricAsym").
 
-        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, :obj:`int`, or :obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -456,7 +456,7 @@ class BIDSAuditor:
         bids_dir : :obj:`str` or :obj:`Path`
             The root of the BIDS compliant directory.
 
-        derivatives_dir : :obj:`str`, :obj:`Path`, or obj:`None`
+        derivatives_dir : :obj:`str`, :obj:`Path`, or :obj:`None`
             The root to the fMRIPrep directory.
 
         analysis_dir : :obj:`str` or :obj:`Path`
@@ -465,7 +465,7 @@ class BIDSAuditor:
         template_space : :obj:`str` or :obj:`None`
             The template space to check for (e.g., "MNIPediatricAsym").
 
-        run_id : :obj:`str`, obj:`int`, or obj:`None
+        run_id : :obj:`str`, :obj:`int`, or :obj:`None
             The specific run ID to check for.
 
         desc : :obj:`str`, default="betas"
@@ -530,7 +530,7 @@ class BIDSAuditor:
         template_space : :obj:`str` or :obj:`None`, default=None
             The template space to check for (e.g., "MNIPediatricAsym").
 
-        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, :obj:`int`, or :obj:`None`, default=None
             The specific run ID to check for.
 
         desc : :obj:`str`, default="stats"
