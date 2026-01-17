@@ -391,7 +391,7 @@ class BIDSAuditor:
         return self._create_df(file_type="sidecar", scope="raw", run_id=run_id)
 
     def check_preprocessed_nifti_availability(
-        self, template_space: str = None, run_id: Optional[str | int] = None
+        self, template_space: Optional[str] = None, run_id: Optional[str | int] = None
     ) -> pd.DataFrame:
         """
         Checks the availability of the preprocessed NIfTI files for each subject and their sessions.
