@@ -63,3 +63,41 @@ def test_BIDSAuditor(tmp_dir, n_sessions):
         ),
         expected_preprocessed_df,
     )
+
+    kwargs = {"analysis_dir": bids_root / "derivatives" / "firstlevel"}
+    if n_sessions is None:
+        filename = (
+            bids_root
+            / "derivatives"
+            / "firstlevel"
+            / "sub-1"
+            / "sub-1_task-rest_desc-stats.nii"
+        )
+    else:
+        filename = (
+            bids_root
+            / "derivatives"
+            / "firstlevel"
+            / "sub-1"
+            / "ses-1"
+            / "sub-1_ses-1_task-rest_run-1_space-MNI152_desc-stats_something.nii"
+        )
+        kwargs.update(
+            {"template_space": "MNI152", "run_id": "1", "desc": "stats_something"}
+        )
+
+    filename.parent.mkdir(parents=True, exist_ok=True)
+    with open(filename, "w") as foo:
+        pass
+
+    expected_preprocessed_df = pd.DataFrame(
+        base_dict
+        | {
+            "rest": ["Yes"],
+        }
+    )
+
+    assert_frame_equal(
+        auditor.check_first_level_availability(**kwargs),
+        expected_preprocessed_df,
+    )

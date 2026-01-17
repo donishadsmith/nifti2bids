@@ -142,6 +142,7 @@ events_df = pd.DataFrame(
     }
 )
 ```
+
 ### Audit BIDS Dataset
 ```python
 from nifti2bids.audit import BIDSAuditor
@@ -151,7 +152,18 @@ bids_root = simulate_bids_dataset()
 
 auditor = BIDSAuditor(bids_root)
 auditor.check_raw_nifti_availability()
+auditor.check_raw_sidecar_availability()
+auditor.check_events_availability()
 auditor.check_preprocessed_nifti_availability()
+
+analysis_dir = bids_root / "first_level"
+analysis_sub_dir = analysis_dir / "sub-1" / "ses-1"
+analysis_sub_dir.mkdir(parents=True, exist_ok=True)
+
+with open(analysis_sub_dir / "sub-1_task-rest_desc-betas.nii.gz", "w") as f:
+    pass
+
+auditor.check_first_level_availability(analysis_dir=analysis_dir, desc="betas")
 ```
 
 See the [API documentation](https://nifti2bids.readthedocs.io/en/latest/api.html) for full parameter details and additional utilities.

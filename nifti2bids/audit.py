@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 
 from ._exceptions import PathDoesNotExist
+from .io import regex_glob
 
 
 class BIDSAuditor:
@@ -15,12 +16,12 @@ class BIDSAuditor:
 
     Parameters
     ----------
-    bids_dir: :obj:`str` or :obj:`Path`
+    bids_dir : :obj:`str` or :obj:`Path`
         The root of the BIDS compliant directory.
 
     Attributes
     ----------
-    bids_dir: :obj:`str` or :obj:`Path`
+    bids_dir : :obj:`str` or :obj:`Path`
         The root of the BIDS compliant directory.
 
     derivatives_dir: obj:`bool`, :obj:`str`, :obj:`Path`, or obj:`None`, default=None
@@ -53,10 +54,10 @@ class BIDSAuditor:
 
         Parameters
         ----------
-        bids_dir: :obj:`str` or :obj:`Path`
+        bids_dir : :obj:`str` or :obj:`Path`
             The root of the BIDS compliant directory.
 
-        derivatives_dir: :obj:`str`, :obj:`Path`, or obj:`None`
+        derivatives_dir : :obj:`str`, :obj:`Path`, or obj:`None`
             The root to the fMRIPrep directory.
 
         Returns
@@ -82,18 +83,19 @@ class BIDSAuditor:
     ) -> tuple[list[str], list[str]]:
         """
         Gets dictionary of subject and their sessions. Caches results.
-        ``bids_dir`` and ``derivatives_dir`` are included as parameters
-        so that results are cached properly.
+        ``bids_dir`` and ``derivatives_dir`` are not called within function
+        but are intentionally included in the function signature for the cache
+        mapping.
 
         Parameters
         ----------
-        bids_dir: :obj:`str` or :obj:`Path`
+        bids_dir : :obj:`str` or :obj:`Path`
             The root of the BIDS compliant directory.
 
-        derivatives_dir: :obj:`str`, :obj:`Path`, or obj:`None`
+        derivatives_dir : :obj:`str`, :obj:`Path`, or obj:`None`
             The root to the fMRIPrep directory.
 
-        layout: :obj:`BIDSLayout`
+        layout : :obj:`BIDSLayout`
             The layout of the raw BIDS directory.
 
         Returns
@@ -133,26 +135,26 @@ class BIDSAuditor:
 
         Parameters
         ----------
-        bids_dir: :obj:`str` or :obj:`Path`
+        bids_dir : :obj:`str` or :obj:`Path`
             The root of the BIDS compliant directory.
 
-        derivatives_dir: :obj:`str`, :obj:`Path`, or obj:`None`
+        derivatives_dir : :obj:`str`, :obj:`Path`, or obj:`None`
             The root to the fMRIPrep directory.
 
-        layout: :obj:`BIDSLayout`
+        layout : :obj:`BIDSLayout`
             The layout of the raw BIDS directory.
 
-        file_type: :obj:`Literal["nifti", "events", "sidecar"]`
+        file_type : :obj:`Literal["nifti", "events", "sidecar"]`
             The type of file to query.
 
-        scope: :obj:`Literal["raw", "derivatives"]
+        scope : :obj:`Literal["raw", "derivatives"]
             Whether to check in the raw or derivatives directory.
 
-        template_space: :obj:`str` or :obj:`None`, default=None
+        template_space : :obj:`str` or :obj:`None`, default=None
             The template space to check for. Only relevent when scope is
             ``derivatives``.
 
-        run_id: obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
             The specific run ID to check for.
 
         Return
@@ -221,17 +223,17 @@ class BIDSAuditor:
 
         Parameters
         ----------
-        file_type: :obj:`Literal["nifti", "events", "sidecar"]`
+        file_type : :obj:`Literal["nifti", "events", "sidecar"]`
             The type of file to query.
 
-        scope: :obj:`Literal["raw", "derivatives"]
+        scope : :obj:`Literal["raw", "derivatives"]
             Whether to check in the raw or derivatives directory.
 
-        template_space: :obj:`str` or :obj:`None`, default=None
+        template_space : :obj:`str` or :obj:`None`, default=None
             The template space to check for. Only relevent when scope is
             ``derivatives``.
 
-        run_id: obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -267,6 +269,7 @@ class BIDSAuditor:
         BIDSAuditor._call_layout.cache_clear()
         BIDSAuditor._get_subjects_and_sessions.cache_clear()
         BIDSAuditor._get_file_availability.cache_clear()
+        BIDSAuditor._create_first_level_df.cache_clear()
 
     def check_raw_nifti_availability(
         self, run_id: Optional[str | int] = None
@@ -277,11 +280,11 @@ class BIDSAuditor:
         all tasks (i.e. "rest", "flanker", etc) is available.
 
         .. important::
-            Checks if at least one run of data is available.
+           - Checks if at least file is available for a specific subject, session (if applicable), and task.
 
         Parameters
         ----------
-        run_id: obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -316,11 +319,11 @@ class BIDSAuditor:
         Specifically checks if event TSV files are available for all tasks (i.e. "rest", "flanker", etc).
 
         .. important::
-            Checks if at least one run of data is available.
+           - Checks if at least file is available for a specific subject, session (if applicable), and task.
 
         Parameters
         ----------
-        run_id: obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -356,11 +359,11 @@ class BIDSAuditor:
         (i.e. "rest", "flanker", etc) are available.
 
         .. important::
-            Checks if at least one run of data is available.
+           Checks if at least one run of data is available if ``run_id`` is None..
 
         Parameters
         ----------
-        run_id: obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -388,7 +391,7 @@ class BIDSAuditor:
         return self._create_df(file_type="sidecar", scope="raw", run_id=run_id)
 
     def check_preprocessed_nifti_availability(
-        self, template_space: str, run_id: Optional[str | int] = None
+        self, template_space: str = None, run_id: Optional[str | int] = None
     ) -> pd.DataFrame:
         """
         Checks the availability of the preprocessed NIfTI files for each subject and their sessions.
@@ -396,14 +399,14 @@ class BIDSAuditor:
         are available.
 
         .. important::
-            Checks if at least one run of data is available.
+           - Checks if at least file is available for a specific subject, session (if applicable), and task.
 
         Parameters
         ----------
-        template_space: :obj:`str`:
+        template_space : :obj:`str` or :obj:`None`, default=None
             The template space to check for (e.g., "MNIPediatricAsym").
 
-        run_id: obj:`str`, obj:`int`, or obj:`None`, default=None
+        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
             The specific run ID to check for.
 
         Returns
@@ -414,26 +417,155 @@ class BIDSAuditor:
 
         Notes
         -----
-
         Example of output table:
 
-        +----------+---------+-----+-------+---------+------+------+----------+
-        | subject  | session | T1w | nback | flanker | mtle | mtlr | princess |
-        +==========+=========+=====+=======+=========+======+======+==========+
-        | 101      | 01      | Yes | Yes   | Yes     | Yes  | Yes  | Yes      |
-        +----------+---------+-----+-------+---------+------+------+----------+
-        | 101      | 02      | Yes | Yes   | No      | Yes  | Yes  | Yes      |
-        +----------+---------+-----+-------+---------+------+------+----------+
-        | 102      | 01      | Yes | Yes   | Yes     | Yes  | Yes  | Yes      |
-        +----------+---------+-----+-------+---------+------+------+----------+
-        | 103      | 01      | No  | Yes   | Yes     | Yes  | Yes  | Yes      |
-        +----------+---------+-----+-------+---------+------+------+----------+
+        +----------+---------+-------+---------+------+------+----------+
+        | subject  | session | nback | flanker | mtle | mtlr | princess |
+        +==========+=========+=======+=========+======+======+==========+
+        | 101      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
+        | 101      | 02      | Yes   | No      | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
+        | 102      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
+        | 103      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
         """
         return self._create_df(
             file_type="sidecar",
             scope="derivatives",
             template_space=template_space,
             run_id=run_id,
+        )
+
+    @staticmethod
+    @lru_cache(maxsize=2)
+    def _create_first_level_df(
+        bids_dir: str | Path,
+        derivatives_dir: Optional[str | Path],
+        analysis_dir: str | Path,
+        template_space: Optional[str],
+        run_id: Optional[str | int],
+        desc: str,
+    ):
+        """
+        Creates the dataframe denoting first level availability.
+
+        Parameters
+        ----------
+        bids_dir : :obj:`str` or :obj:`Path`
+            The root of the BIDS compliant directory.
+
+        derivatives_dir : :obj:`str`, :obj:`Path`, or obj:`None`
+            The root to the fMRIPrep directory.
+
+        analysis_dir : :obj:`str` or :obj:`Path`
+            The root path to the analysis directory containing the first level maps.
+
+        template_space : :obj:`str` or :obj:`None`
+            The template space to check for (e.g., "MNIPediatricAsym").
+
+        run_id : :obj:`str`, obj:`int`, or obj:`None
+            The specific run ID to check for.
+
+        desc : :obj:`str`, default="betas"
+            The file description (i.e., "betas", "contrasts", etc) given to
+            the "desc" entity.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A Pandas DataFrame denoting file availability, where "Yes" means the file
+            is available and "No" means that the file is not available.
+        """
+        layout = BIDSAuditor._call_layout(bids_dir, derivatives_dir)
+        subject_list, session_list = BIDSAuditor._get_subjects_and_sessions(
+            bids_dir, derivatives_dir, layout
+        )
+        targets = layout.get_tasks()
+
+        df_dict = {"subject": subject_list, "session": session_list} | {
+            target: [] for target in targets
+        }
+
+        for subject, session in zip(subject_list, session_list):
+            for task in targets:
+                pattern = (
+                    f"sub-{subject}"
+                    + (f"_ses-{session}" if pd.notna(session) else "")
+                    + f"_task-{task}"
+                    + (f"_run-{run_id}" if run_id else "")
+                    + (f"_space-{template_space}" if template_space else "")
+                    + (rf"_desc-{desc}(\.nii|\.nii\.gz|\.BRIK)$")
+                )
+                files = regex_glob(analysis_dir, pattern=pattern, recursive=True)
+                df_dict[task].append(("Yes" if files else "No"))
+
+        return pd.DataFrame(df_dict)
+
+    def check_first_level_availability(
+        self,
+        analysis_dir: str | Path,
+        template_space: str = None,
+        run_id: Optional[str | int] = None,
+        desc: str = "stats",
+    ) -> pd.DataFrame:
+        """
+        Checks availability of first level beta or contrast maps for each subject and their sessions.
+
+        .. important::
+           - Checks if at least file is available for a specific subject, session (if applicable), and task.
+           - Assumes each statistical map (which is assumed to be a .nii or .BRIK file) contains the "sub-",
+             "task-", and "desc-" entities at minimum.
+           - If the file format is ".BRIK", simply checks for ".BRIK" and not the header file (".HEAD")
+           - Simply checks if at least one contrast is available for a specific combination of subject, session
+             (if applicable), run (if applicable), and task.
+           - A "dataset_description.json" is not needed for ``analysis_dir``.
+
+        Parameters
+        ----------
+        analysis_dir : :obj:`str` or :obj:`Path`
+            The root path to the analysis directory containing the first level maps.
+
+        template_space : :obj:`str` or :obj:`None`, default=None
+            The template space to check for (e.g., "MNIPediatricAsym").
+
+        run_id : :obj:`str`, obj:`int`, or obj:`None`, default=None
+            The specific run ID to check for.
+
+        desc : :obj:`str`, default="stats"
+            The file description (i.e., "betas", "contrasts", etc) given to
+            the "desc" entity.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A Pandas DataFrame denoting file availability, where "Yes" means the file
+            is available and "No" means that the file is not available.
+
+        Notes
+        -----
+        Example of output table:
+
+        +----------+---------+-------+---------+------+------+----------+
+        | subject  | session | nback | flanker | mtle | mtlr | princess |
+        +==========+=========+=======+=========+======+======+==========+
+        | 101      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
+        | 101      | 02      | Yes   | No      | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
+        | 102      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
+        | 103      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
+        +----------+---------+-------+---------+------+------+----------+
+        """
+        return self._create_first_level_df(
+            self.bids_dir,
+            self.derivatives_dir,
+            analysis_dir,
+            template_space,
+            run_id,
+            desc,
         )
 
 

@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.13.1] - 2026-01-17
+- Add function to ``BIDSAuditor`` to check analysis directory
+
 ## [0.13.0] - 2026-01-14
 - Allow for more precise block duration times
 
