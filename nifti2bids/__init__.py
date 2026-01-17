@@ -22,4 +22,4 @@ presentation software such as Presentation and EPrime
 simulate -- Simulate a basic NIfTI image or BIDS dataset for testing purposes
 """
 
-__version__ = "0.13.1"
+__version__ = "0.13.2"

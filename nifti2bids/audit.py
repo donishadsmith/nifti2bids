@@ -559,6 +559,12 @@ class BIDSAuditor:
         | 103      | 01      | Yes   | Yes     | Yes  | Yes  | Yes      |
         +----------+---------+-------+---------+------+------+----------+
         """
+        analysis_dir = Path(analysis_dir)
+        if not analysis_dir.exists():
+            raise ValueError(
+                f"The follwing analysis directory does not exist: {analysis_dir}"
+            )
+
         return self._create_first_level_df(
             self.bids_dir,
             self.derivatives_dir,
