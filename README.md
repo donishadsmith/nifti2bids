@@ -1,4 +1,4 @@
-# Nifti2Bids
+# NIfTI2BIDS
 
 [![Latest Version](https://img.shields.io/pypi/v/nifti2bids.svg)](https://pypi.python.org/pypi/nifti2bids/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/nifti2bids.svg)](https://pypi.python.org/pypi/nifti2bids/)
