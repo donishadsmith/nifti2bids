@@ -439,7 +439,7 @@ class BIDSAuditor:
         )
 
     @staticmethod
-    @lru_cache(maxsize=2)
+    @lru_cache(maxsize=8)
     def _create_first_level_df(
         bids_dir: str | Path,
         derivatives_dir: Optional[str | Path],
