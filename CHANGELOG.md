@@ -4,8 +4,8 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
-## [0.13.3] - 2026-01-17
-- Minor type fix
+## [0.13.4] - 2026-01-17
+- Make firt level function globbing more flexible
 
 ## [0.13.2] - 2026-01-17
 - Add check to ensure analysis dir exists before querying

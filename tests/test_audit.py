@@ -71,6 +71,7 @@ def test_BIDSAuditor(tmp_dir, n_sessions):
             / "derivatives"
             / "firstlevel"
             / "sub-1"
+            / "func"
             / "sub-1_task-rest_desc-stats.nii"
         )
     else:
@@ -80,6 +81,7 @@ def test_BIDSAuditor(tmp_dir, n_sessions):
             / "firstlevel"
             / "sub-1"
             / "ses-1"
+            / "func"
             / "sub-1_ses-1_task-rest_run-1_space-MNI152_desc-stats_something.nii"
         )
         kwargs.update(
@@ -101,3 +103,11 @@ def test_BIDSAuditor(tmp_dir, n_sessions):
         auditor.check_first_level_availability(**kwargs),
         expected_preprocessed_df,
     )
+
+    if n_sessions is None:
+        kwargs["template_space"] = None
+        kwargs["run_id"] = None
+        assert_frame_equal(
+            auditor.check_first_level_availability(**kwargs),
+            expected_preprocessed_df,
+        )

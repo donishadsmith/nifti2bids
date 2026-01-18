@@ -488,15 +488,18 @@ class BIDSAuditor:
             target: [] for target in targets
         }
 
+        # Allow matching when run_id and template_space is not specified but still in filename
+        space_string = f"{('.*' if not run_id else '')}space-{template_space}"
+        desc = rf"{('.*' if not (template_space and run_id) else '')}desc-{desc}(\.nii|\.nii\.gz|\.BRIK)$"
         for subject, session in zip(subject_list, session_list):
             for task in targets:
                 pattern = (
-                    f"sub-{subject}"
-                    + (f"_ses-{session}" if pd.notna(session) else "")
-                    + f"_task-{task}"
-                    + (f"_run-{run_id}" if run_id else "")
-                    + (f"_space-{template_space}" if template_space else "")
-                    + (rf"_desc-{desc}(\.nii|\.nii\.gz|\.BRIK)$")
+                    f"sub-{subject}_"
+                    + (f"ses-{session}_" if pd.notna(session) else "")
+                    + f"task-{task}_"
+                    + (f"run-{run_id}_" if run_id else "")
+                    + (f"{space_string}_" if template_space else "")
+                    + desc
                 )
                 files = regex_glob(analysis_dir, pattern=pattern, recursive=True)
                 df_dict[task].append(("Yes" if files else "No"))
@@ -516,7 +519,8 @@ class BIDSAuditor:
         .. important::
            - Checks if at least file is available for a specific subject, session (if applicable), and task.
            - Assumes each statistical map (which is assumed to be a .nii or .BRIK file) contains the "sub-",
-             "task-", and "desc-" entities at minimum.
+             "task-", and "desc-" entities at minimum. Order of entities expected to be "sub-", "ses-",
+             "task-", "run-", "space-", and "desc-".
            - If the file format is ".BRIK", simply checks for ".BRIK" and not the header file (".HEAD")
            - Simply checks if at least one contrast is available for a specific combination of subject, session
              (if applicable), run (if applicable), and task.
