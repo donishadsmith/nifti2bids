@@ -104,7 +104,7 @@ def test_BIDSAuditor(tmp_dir, n_sessions):
         expected_preprocessed_df,
     )
 
-    if n_sessions is None:
+    if n_sessions:
         kwargs["template_space"] = None
         kwargs["run_id"] = None
         assert_frame_equal(
