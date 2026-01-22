@@ -5,8 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Literal, Optional
 
-import pandas as pd
-import numpy as np
+import numpy as np, pandas as pd
 
 from nifti2bids._helpers import iterable_to_str
 from nifti2bids.logging import setup_logger

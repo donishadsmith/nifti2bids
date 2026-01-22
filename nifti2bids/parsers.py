@@ -2,8 +2,7 @@ import csv, io, tempfile, subprocess, sys
 from pathlib import Path
 from typing import Iterable, Literal, Optional
 
-import pandas as pd
-import numpy as np
+import numpy as np, pandas as pd
 
 from ._constants import EDATAAID_PATH, EDATAAID_CONTROL_FILE
 
