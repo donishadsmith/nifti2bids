@@ -395,9 +395,34 @@ def _process_log_or_df(
     return df.replace("", np.nan, inplace=False)
 
 
+def combine_non_block_cue_names(
+    rest_block_codes: Optional[Iterable[str]], quit_code: str
+):
+    """
+    Combines name of rest codes and quit code.
+
+    Parameters
+    ----------
+    rest_block_codes : :obj:`Iterable[str]` or :obj:`None`
+        The rest block code(s).
+
+    quit_code : :obj:`str`
+        The quit code.
+
+    Returns
+    -------
+    list[str] or list[None]
+        The combined elements in a list
+    """
+    if isinstance(rest_block_codes, Iterable):
+        return rest_block_codes + [quit_code]
+    else:
+        return [rest_block_codes] + [quit_code]
+
+
 def _validate_no_cue_conflicts(
     block_cue_names: Iterable[str],
-    rest_block_code: Optional[str],
+    rest_block_codes: Optional[Iterable[str]],
     quit_code: Optional[str],
 ) -> None:
     """
@@ -408,21 +433,21 @@ def _validate_no_cue_conflicts(
     block_cue_names : :obj:`Iterable[str]`
         The names of the block cues.
 
-    rest_block_code : :obj:`str`
-        The name of the rest block.
+    rest_block_codes : :obj:`Iterable[str]` or :obj:`None`
+        The rest block code(s).
 
     quit_code : :obj:`str`
         The quit code.
     """
     conflicting_codes = set(block_cue_names).intersection(
-        filter(None, [rest_block_code, quit_code])
+        filter(None, combine_non_block_cue_names(rest_block_codes, quit_code))
     )
 
     if conflicting_codes:
         raise ValueError(
             f"Conflicting codes found: {iterable_to_str(conflicting_codes)}. "
             "A code cannot be in 'block_cue_names' and also be assigned to "
-            "``rest_block_code`` or ``quit_code``. To include rest/quit "
+            "``rest_block_codes`` or ``quit_code``. To include rest/quit "
             "intervals in the output, add them to ``block_cue_names`` instead."
         )
 
@@ -475,7 +500,7 @@ def _get_starting_block_indices(
 def _get_next_block_index(
     trial_series: pd.Series,
     block_start_index: int,
-    rest_block_code: Optional[str],
+    rest_block_codes: Optional[Iterable[str]],
     rest_code_frequency: Literal["fixed", "variable"],
     block_cue_names: Iterable[str],
     quit_code: Optional[str] = None,
@@ -491,20 +516,17 @@ def _get_next_block_index(
     block_start_index : :obj:`int`
         The current row index.
 
-    rest_block_code : :obj:`str` or :obj:`None`
-        The name of the rest block.
+    rest_block_codes : :obj:`Iterable[str]` or :obj:`None`
+        The rest block code(s).
 
     rest_code_frequency : :obj:`Literal["fixed", "variable"]`, default="fixed"
-        Frequency of the rest block. For "fixed", the rest code is assumed to
-        appear between each trial or at least each trial. For "variable",
-        it is assumed that the rest code does not appear between each
-        trial.
+        Frequency of the rest blocks(s).
 
     block_cue_names : :obj:`Iterable[str]`
         The names of the blocks. When used, identifies
         the indices of all block names minus the indices
         corresponding to the current trial type. Used when
-        ``rest_block_code`` is not None and ``rest_code_frequency``
+        ``rest_block_codes`` is not None and ``rest_code_frequency``
         is not "fixed".
 
     quit_code : :obj:`str` or :obj:`None`, default=None
@@ -519,8 +541,10 @@ def _get_next_block_index(
     filtered_trial_series = trial_series[trial_series.index > block_start_index]
     filtered_trial_series = filtered_trial_series.astype(str)
 
-    if rest_block_code and rest_code_frequency == "fixed":
-        target_codes = filter(None, [rest_block_code, quit_code])
+    if rest_block_codes and rest_code_frequency == "fixed":
+        target_codes = filter(
+            None, combine_non_block_cue_names(rest_block_codes, quit_code)
+        )
         next_block_indxs = filtered_trial_series[
             filtered_trial_series.isin(tuple(target_codes))
         ].index.tolist()
@@ -528,8 +552,10 @@ def _get_next_block_index(
         target_block_names = set(tuple(block_cue_names))
         target_block_names.discard(curr_trial)
 
-        rest_code = rest_block_code if rest_code_frequency == "variable" else None
-        target_block_names.update(filter(None, [rest_code, quit_code]))
+        rest_code = rest_block_codes if rest_code_frequency == "variable" else None
+        target_block_names.update(
+            filter(None, combine_non_block_cue_names(rest_code, quit_code))
+        )
 
         next_block_indxs = filtered_trial_series[
             filtered_trial_series.isin(target_block_names)
@@ -669,7 +695,7 @@ def _should_exclude_end_index(
     block_end_index: int,
     trial_column_name: str,
     block_cue_names: Iterable[str],
-    rest_block_code: Optional[str],
+    rest_block_codes: Optional[Iterable[str]],
     quit_code: Optional[str],
 ) -> bool:
     """
@@ -694,8 +720,8 @@ def _should_exclude_end_index(
     block_cue_names : :obj:`Iterable[str]`
         The names of block cue codes that mark block boundaries.
 
-    rest_block_code : :obj:`str` or :obj:`None`
-        The rest block code.
+    rest_block_codes : :obj:`Iterable[str]` or :obj:`None`
+        The rest block code(s).
 
     quit_code : :obj:`str` or :obj:`None`
         The quit code.
@@ -711,9 +737,51 @@ def _should_exclude_end_index(
 
     end_code = df.loc[block_end_index, trial_column_name]
     boundary_codes = set(block_cue_names)
-    boundary_codes.update(filter(None, [rest_block_code, quit_code]))
+    boundary_codes.update(
+        filter(None, combine_non_block_cue_names(rest_block_codes, quit_code))
+    )
 
     return end_code in boundary_codes
+
+
+def convert_to_literal(
+    patterns: Optional[Iterable[str] | str], condition_series: pd.Series
+):
+    """
+    Convert regex to literals.
+
+    Parameters
+    ----------
+    patterns : :obj:`str`, obj:`Iterable[str]`, or obj:`None`
+        A list or string containing regex or non-regex values.
+
+    condition_series: :obj:`pd.Series`
+        A Pandas series of the column containing the condition names.
+
+    Return
+    ------
+    list[str] or None
+        If ``patterns`` is not None, then returns a list of the condition or
+        rest block names.
+    """
+    if not patterns:
+        return None
+
+    if isinstance(patterns, str):
+        patterns = [patterns]
+
+    patterns_str = "|".join(patterns)
+
+    matches = condition_series.str.fullmatch(patterns_str, na=False)
+    condition_names = condition_series[matches].unique().tolist()
+
+    if not condition_names:
+        raise ValueError(
+            f"No matches found for patterns: {patterns}. "
+            f"Available values: {condition_series.dropna().unique().tolist()}"
+        )
+
+    return condition_names
 
 
 class LogExtractor(ABC):
@@ -849,7 +917,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
     block_cue_names : :obj:`Iterable[str]`
         The names of the block cue names (i.e., "Face", "Place"). Serves to
-        identify the boundaries of a trial type of interest.
+        identify the boundaries of a trial type of interest. Regex can be used.
 
     trial_column_name : :obj:`str`, default="Code"
         Name of the column containing the trial types.
@@ -894,19 +962,18 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         The repetition time provided in seconds if data was converted to seconds or
         in ten thousand seconds if not converted.
 
-    rest_block_code : :obj:`str` or :obj:`None`, default=None
-        The name of the code for the rest block. Used when a resting state
+    rest_block_codes : :obj:`str`, :obj:`Iterable[str]` or :obj:`None`, default=None
+        The code name(s) for the rest block(s). Used when a resting state
         block is between the events to compute the correct block duration.
         If None, the block duration will be computed based on the starting
         index of the block cue codes given by ``block_cue_names``. If specified
         and ``rest_code_frequency`` is "variable", will be used with
-        ``block_cue_names`` to compute the correct duration.
+        ``block_cue_names`` to compute the correct duration. Regex can be used.
 
     rest_code_frequency : :obj:`Literal["fixed", "variable"]`, default="fixed"
-        Frequency of the rest block. For "fixed", the rest code is assumed to
-        appear between each block or at least each block. For "variable",
-        it is assumed that the rest code does not appear between each
-        block.
+        Frequency of the rest blocks. For "fixed", the rest code is assumed to
+        appear between each block. For "variable", it is assumed that the rest
+        code(s) inconsistently appears after each block.
 
     quit_code : :obj:`str` or :obj:`None`, default=None
         The quit code. Suggest to use in cases when a quit code, as opposed
@@ -976,7 +1043,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         using ``scanner_event_type`` and ``scanner_trigger_code``, then rows
         preceding the first scanner are dropped and the index is reset.
 
-    block_cue_names : :obj:`Iterable[str]`
+    block_cue_names : :obj:`list[str]`
         The names of the block cue codes (i.e., Face, Place).
 
     scanner_event_type : :obj:`str`
@@ -1006,19 +1073,11 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         The indices of when each trial block of interest (specified by ``block_cue_names``)
         begins.
 
-    rest_block_code : :obj:`str` or :obj:`None`, default=None
-        The name of the code for the rest block. Used when a resting state
-        block is between the events to compute the correct block duration.
-        If None, the block duration will be computed based on the starting
-        index of the block cue codes given by ``block_cue_names``. If specified
-        and ``rest_code_frequency`` is "variable", will be used with
-        ``block_cue_names`` to compute the correct duration.
+    rest_block_codes : obj:`list[str]` or :obj:`None`, default=None
+        The rest block code(s).
 
     rest_code_frequency : :obj:`Literal["fixed", "variable"]`, default="fixed"
-        Frequency of the rest block. For "fixed", the rest code is assumed to
-        appear between each block or at least each block. For "variable",
-        it is assumed that the rest code does not appear between each
-        block.
+        Frequency of the rest blocks.
 
     quit_code : :obj:`str` or :obj:`None`
         The quit code.
@@ -1028,7 +1087,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
     block_cues_without_instruction : :obj:`Iterable[str]`
         Names of the blocks that should not have their cue separated
-        as instruction.
+        as instruction. Regex can be used.
 
     instruction_suffix : :obj:`str`
         Suffix for instruction trial type names.
@@ -1046,7 +1105,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     ...     scanner_event_type="Pulse",
     ...     scanner_trigger_code="99",
     ...     convert_to_seconds=["Time"],
-    ...     rest_block_code="crosshair",
+    ...     rest_block_codes="crosshair",
     ... )
     >>> events = {}
     >>> events["onset"] = extractor.extract_onsets()
@@ -1067,18 +1126,18 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
     def __init__(
         self,
-        log_or_df,
-        block_cue_names,
-        scanner_event_type,
-        scanner_trigger_code,
-        trial_column_name="Code",
-        convert_to_seconds=None,
-        initial_column_headers=("Trial", "Event Type"),
-        n_discarded_volumes=0,
-        tr=None,
-        rest_block_code=None,
-        rest_code_frequency="fixed",
-        quit_code=None,
+        log_or_df: str | Path | pd.DataFrame,
+        block_cue_names: list[str],
+        scanner_event_type: str,
+        scanner_trigger_code: str,
+        trial_column_name: str = "Code",
+        convert_to_seconds: Optional[list[str]] = None,
+        initial_column_headers: Iterable[str] = ("Trial", "Event Type"),
+        n_discarded_volumes: int = 0,
+        tr: Optional[float | int] = None,
+        rest_block_codes: Optional[str | Iterable[str]] = None,
+        rest_code_frequency: Literal["fixed", "variable"] = "fixed",
+        quit_code: Optional[str] = None,
         split_cue_as_instruction: bool = False,
         block_cues_without_instruction: Optional[Iterable[str]] = None,
         instruction_suffix: str = "_instruction",
@@ -1096,14 +1155,18 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             tr,
         )
 
-        self.block_cue_names = block_cue_names
+        self.block_cue_names = convert_to_literal(
+            block_cue_names, self.df[self.trial_column_name]
+        )
 
         assert rest_code_frequency in [
             "fixed",
             "variable",
         ], "`rest_code_frequency` must be either 'fixed' or 'variable'."
 
-        self.rest_block_code = rest_block_code
+        self.rest_block_codes = convert_to_literal(
+            rest_block_codes, self.df[self.trial_column_name]
+        )
         self.rest_code_frequency = rest_code_frequency
         self.quit_code = quit_code
 
@@ -1112,12 +1175,17 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         )
 
         self.split_cue_as_instruction = split_cue_as_instruction
-        self.block_cues_without_instruction = block_cues_without_instruction or ()
+        self.block_cues_without_instruction = (
+            convert_to_literal(
+                block_cues_without_instruction, self.df[self.trial_column_name]
+            )
+            or ()
+        )
         self.instruction_suffix = instruction_suffix
         self.drop_instruction_cues = drop_instruction_cues
 
         _validate_no_cue_conflicts(
-            self.block_cue_names, self.rest_block_code, self.quit_code
+            self.block_cue_names, self.rest_block_codes, self.quit_code
         )
 
     def extract_onsets(
@@ -1207,7 +1275,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             block_end_index = _get_next_block_index(
                 trial_series=self.df[self.trial_column_name],
                 block_start_index=block_start_index,
-                rest_block_code=self.rest_block_code,
+                rest_block_codes=self.rest_block_codes,
                 rest_code_frequency=self.rest_code_frequency,
                 block_cue_names=self.block_cue_names,
                 quit_code=self.quit_code,
@@ -1228,7 +1296,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
                     block_end_index,
                     self.trial_column_name,
                     self.block_cue_names,
-                    self.rest_block_code,
+                    self.rest_block_codes,
                     self.quit_code,
                 ):
                     block_end_index = block_end_index - 1
@@ -1305,7 +1373,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         block_end_index = _get_next_block_index(
             trial_series=self.df[self.trial_column_name],
             block_start_index=block_start_index,
-            rest_block_code=self.rest_block_code,
+            rest_block_codes=self.rest_block_codes,
             rest_code_frequency=self.rest_code_frequency,
             block_cue_names=self.block_cue_names,
             quit_code=self.quit_code,
@@ -1316,7 +1384,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             block_end_index,
             self.trial_column_name,
             self.block_cue_names,
-            self.rest_block_code,
+            self.rest_block_codes,
             self.quit_code,
         ):
             block_end_index = block_end_index - 1
@@ -1550,6 +1618,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
 
     trial_types : :obj:`Iterable[str]`
         The names of the trial types (i.e "congruentleft", "seen").
+        Regex can be used.
 
         .. note::
            If your block design does not include a rest block or
@@ -1607,7 +1676,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
         using ``scanner_event_type`` and ``scanner_trigger_code``, then rows
         preceeding the first scanner are dropped and the index is reset.
 
-    trial_types : :obj:`Iterable[str]`
+    trial_types : :obj:`list[str]`
         The names of the trial types.
 
     scanner_event_type : :obj:`str`
@@ -1660,15 +1729,15 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
 
     def __init__(
         self,
-        log_or_df,
-        trial_types,
-        scanner_event_type,
-        scanner_trigger_code,
-        trial_column_name="Code",
-        convert_to_seconds=None,
-        initial_column_headers=("Trial", "Event Type"),
-        n_discarded_volumes=0,
-        tr=None,
+        log_or_df: str | Path | pd.DataFrame,
+        trial_types: Iterable[str],
+        scanner_event_type: str,
+        scanner_trigger_code: str,
+        trial_column_name: str = "Code",
+        convert_to_seconds: Optional[list[str]] = None,
+        initial_column_headers: Iterable[str] = ("Trial", "Event Type"),
+        n_discarded_volumes: int = 0,
+        tr: Optional[float | int] = None,
     ):
         super().__init__(
             log_or_df,
@@ -1681,10 +1750,12 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
             n_discarded_volumes,
             tr,
         )
-
-        self.trial_types = trial_types
+        self.trial_types = convert_to_literal(
+            trial_types, self.df[self.trial_column_name]
+        )
         trial_series = self.df.loc[
-            self.df[self.trial_column_name].isin(trial_types), self.trial_column_name
+            self.df[self.trial_column_name].isin(self.trial_types),
+            self.trial_column_name,
         ]
         self.event_trial_indices = trial_series.index.tolist()
 
@@ -1915,7 +1986,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
     block_cue_names : :obj:`Iterable[str]`
         The names of the block cue names (i.e., "Face", "Place"). Serves to
-        identify the boundaries of a trial type of interest.
+        identify the boundaries of a trial type of interest. Regex can be used.
 
     onset_column_name : :obj:`str`
         The name of the column containing stimulus onset time.
@@ -1955,19 +2026,18 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         The repetition time provided in seconds if data was converted to seconds or
         in milliseconds if not converted.
 
-    rest_block_code : :obj:`str` or :obj:`None`, default=None
-        The name of the code for the rest block. Used when a resting state
+    rest_block_codes : :obj:`str`, :obj:`Iterable[str]`, or :obj:`None`, default=None
+        The code name(s) for the rest block(s). Used when a resting state
         block is between the events to compute the correct block duration.
         If None, the block duration will be computed based on the starting
         index of the block cue codes given by ``block_cue_names``. If specified
         and ``rest_code_frequency`` is "variable", will be used with
-        ``block_cue_names`` to compute the correct duration.
+        ``block_cue_names`` to compute the correct duration. Regex can be used.
 
-    rest_code_frequency : :obj:`Literal["fixed", "variable"]`, default="fixed"
-        Frequency of the rest block. For "fixed", the rest code is assumed to
-        appear between each block or at least each block. For "variable",
-        it is assumed that the rest code does not appear between each
-        block.
+     :obj:`Literal["fixed", "variable"]`, default="fixed"
+        Frequency of the rest blocks. For "fixed", the rest code is assumed to
+        appear between each block. For "variable", it is assumed that the rest
+        code(s) inconsistently appears after each block.
 
     quit_code : :obj:`str` or :obj:`None`, default=None
         The quit code. Suggest to use in cases when a quit code, as opposed
@@ -2030,7 +2100,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     df : :obj:`pandas.DataFrame`
         DataFrame containing the log data.
 
-    block_cue_names : :obj:`Iterable[str]`
+    block_cue_names : :obj:`list[str]`
         The names of the blocks.
 
     onset_column_name : :obj:`str`
@@ -2060,11 +2130,11 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         The indices of when each trial block of interest (specified by ``block_cue_names``)
         begins.
 
-    rest_block_code : :obj:`str` or :obj:`None`
-        The name of the code for the rest block.
+    rest_block_codes : :obj:`list[str]` or :obj:`None`
+        The rest block code(s).
 
     rest_code_frequency : :obj:`Literal["fixed", "variable"]`
-        Frequency of the rest block.
+        Frequency of the rest blocks.
 
     quit_code : :obj:`str` or :obj:`None`
         The quit code.
@@ -2075,7 +2145,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
     block_cues_without_instruction : :obj:`Iterable[str]` or :obj:`None`
         Names of the blocks that should not have their cue separated
-        as instruction.
+        as instruction. Regex can be used.
 
     instruction_suffix : :obj:`str`
         Suffix for instruction trial type names.
@@ -2094,7 +2164,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     ...     procedure_column_name="Procedure",
     ...     trigger_column_name="ScannerTrigger.RTTime",
     ...     convert_to_seconds=["Stimulus.OnsetTime", "ScannerTrigger.RTTime", "Stimulus.RT"],
-    ...     rest_block_code="Rest",
+    ...     rest_block_codes="Rest",
     ... )
     >>> events = {}
     >>> events["onset"] = extractor.extract_onsets()
@@ -2118,18 +2188,18 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
     def __init__(
         self,
-        log_or_df,
-        block_cue_names,
-        onset_column_name,
-        procedure_column_name,
-        trigger_column_name=None,
-        convert_to_seconds=None,
-        initial_column_headers=("ExperimentName", "Subject"),
-        n_discarded_volumes=0,
-        tr=None,
-        rest_block_code=None,
-        rest_code_frequency="fixed",
-        quit_code=None,
+        log_or_df: str | Path | pd.DataFrame,
+        block_cue_names: Iterable[str],
+        onset_column_name: str,
+        procedure_column_name: str,
+        trigger_column_name: Optional[str] = None,
+        convert_to_seconds: Optional[list[str]] = None,
+        initial_column_headers: Iterable[str] = ("ExperimentName", "Subject"),
+        n_discarded_volumes: int = 0,
+        tr: Optional[float | int] = None,
+        rest_block_codes: Optional[str | Iterable[str]] = None,
+        rest_code_frequency: Literal["fixed", "variable"] = "fixed",
+        quit_code: Optional[str] = None,
         split_cue_as_instruction: bool = False,
         block_cues_without_instruction: Optional[Iterable[str]] = None,
         instruction_suffix: str = "_instruction",
@@ -2147,14 +2217,18 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             tr,
         )
 
-        self.block_cue_names = block_cue_names
+        self.block_cue_names = convert_to_literal(
+            block_cue_names, self.df[self.procedure_column_name]
+        )
 
         assert rest_code_frequency in [
             "fixed",
             "variable",
         ], "`rest_code_frequency` must be either 'fixed' or 'variable'."
 
-        self.rest_block_code = rest_block_code
+        self.rest_block_codes = convert_to_literal(
+            rest_block_codes, self.df[self.procedure_column_name]
+        )
         self.rest_code_frequency = rest_code_frequency
         self.quit_code = quit_code
 
@@ -2163,12 +2237,17 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         )
 
         self.split_cue_as_instruction = split_cue_as_instruction
-        self.block_cues_without_instruction = block_cues_without_instruction or ()
+        self.block_cues_without_instruction = (
+            convert_to_literal(
+                block_cues_without_instruction, self.df[self.procedure_column_name]
+            )
+            or ()
+        )
         self.instruction_suffix = instruction_suffix
         self.drop_instruction_cues = drop_instruction_cues
 
         _validate_no_cue_conflicts(
-            self.block_cue_names, self.rest_block_code, self.quit_code
+            self.block_cue_names, self.rest_block_codes, self.quit_code
         )
 
     def extract_onsets(
@@ -2258,7 +2337,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             block_end_index = _get_next_block_index(
                 trial_series=self.df[self.procedure_column_name],
                 block_start_index=block_start_index,
-                rest_block_code=self.rest_block_code,
+                rest_block_codes=self.rest_block_codes,
                 rest_code_frequency=self.rest_code_frequency,
                 block_cue_names=self.block_cue_names,
                 quit_code=self.quit_code,
@@ -2279,7 +2358,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                     block_end_index,
                     self.procedure_column_name,
                     self.block_cue_names,
-                    self.rest_block_code,
+                    self.rest_block_codes,
                     self.quit_code,
                 ):
                     block_end_index = block_end_index - 1
@@ -2348,7 +2427,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         block_end_index = _get_next_block_index(
             trial_series=self.df[self.procedure_column_name],
             block_start_index=block_start_index,
-            rest_block_code=self.rest_block_code,
+            rest_block_codes=self.rest_block_codes,
             rest_code_frequency=self.rest_code_frequency,
             block_cue_names=self.block_cue_names,
             quit_code=self.quit_code,
@@ -2359,7 +2438,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             block_end_index,
             self.procedure_column_name,
             self.block_cue_names,
-            self.rest_block_code,
+            self.rest_block_codes,
             self.quit_code,
         ):
             block_end_index = block_end_index - 1
@@ -2671,7 +2750,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
            that is an digit or float during parsing.
 
     trial_types : :obj:`Iterable[str]`
-        The names of the trial types (i.e "congruentleft", "seen").
+        The names of the trial types (i.e "congruentleft", "seen"). Regex can be used.
 
         .. note::
             Depending on the way your E-Prime data is structured, for block
@@ -2784,15 +2863,15 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
 
     def __init__(
         self,
-        log_or_df,
-        trial_types,
-        onset_column_name,
-        procedure_column_name,
-        trigger_column_name=None,
-        convert_to_seconds=None,
-        initial_column_headers=("ExperimentName", "Subject"),
-        n_discarded_volumes=0,
-        tr=None,
+        log_or_df: str | Path | pd.DataFrame,
+        trial_types: Iterable[str],
+        onset_column_name: str,
+        procedure_column_name: str,
+        trigger_column_name: Optional[str] = None,
+        convert_to_seconds: Optional[str] = None,
+        initial_column_headers: Iterable[str] = ("ExperimentName", "Subject"),
+        n_discarded_volumes: int = 0,
+        tr: Optional[float | int] = None,
     ):
         super().__init__(
             log_or_df,
@@ -2806,9 +2885,11 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             tr,
         )
 
-        self.trial_types = trial_types
+        self.trial_types = convert_to_literal(
+            trial_types, self.df[self.procedure_column_name]
+        )
         trial_series = self.df.loc[
-            self.df[self.procedure_column_name].isin(trial_types),
+            self.df[self.procedure_column_name].isin(self.trial_types),
             self.procedure_column_name,
         ]
         self.event_trial_indices = trial_series.index.tolist()
@@ -3033,7 +3114,8 @@ def add_instruction_timing(
 
     exclude_trial_types : :obj:`Iterable[str]` or :obj:`None`, default=None
         Trial types to exclude from instruction splitting. These trials
-        will be kept as-is without an instruction trial added.
+        will be kept as-is without an instruction trial added. Regex can
+        be used.
 
     Returns
     -------
@@ -3067,7 +3149,9 @@ def add_instruction_timing(
             f"`event_df` must contain the following columns: {iterable_to_str(required_columns)}."
         )
 
-    exclude_trial_types = list(exclude_trial_types) if exclude_trial_types else []
+    exclude_trial_types = (
+        convert_to_literal(exclude_trial_types, event_df["trial_type"]) or []
+    )
 
     mask = ~event_df["trial_type"].isin(exclude_trial_types)
     trials_to_split = event_df[mask].copy(deep=True)

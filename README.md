@@ -92,11 +92,11 @@ import pandas as pd
 
 extractor = PresentationBlockExtractor(
     "sub-01_task-faces.log",
-    block_cue_names=("Face", "Place"),
+    block_cue_names=("Face", "Place"),  # Can use regex ("Fa.*", "Pla.*")
     scanner_event_type="Pulse",
     scanner_trigger_code="99",
     convert_to_seconds=["Time"],
-    rest_block_code="crosshair",
+    rest_block_codes="crosshair",
     rest_code_frequency="fixed",
     split_cue_as_instruction=True,
 )
@@ -118,7 +118,7 @@ import pandas as pd
 
 extractor = EPrimeEventExtractor(
     "sub-01_task-gonogo.txt",
-    trial_types=("Go", "NoGo"),
+    trial_types="Go|NoGo",  # Can also use ("Go", "NoGo")
     onset_column_name="Stimulus.OnsetTime",
     procedure_column_name="Procedure",
     trigger_column_name="ScannerTrigger.RTTime",

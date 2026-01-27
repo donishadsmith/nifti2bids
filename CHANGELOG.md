@@ -4,6 +4,10 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.14.0] - 2026-01-27
+- Allow regex to be used in the extractors and in the function that adds instruction
+- Change ``rest_block_code`` to ``rest_block_codes``
+
 ## [0.13.5] - 2026-01-17
 - Increase maxsize for lru cache
 
