@@ -10,7 +10,7 @@
 [![Documentation Status](https://readthedocs.org/projects/nifti2bids/badge/?version=stable)](http://nifti2bids.readthedocs.io/en/stable/?badge=stable)
 
 
-A toolkit for post-hoc BIDS conversion starting from NIfTI files. Includes utilities for metadata extraction, file renaming, neurobehavioral log parsing (for E-Prime and Presentation), and JSON sidecar generation. Designed primarily for datasets where the original DICOMs are unavailable.
+A toolkit for post-hoc BIDS conversion of legacy or unstructured NIfTI datasets. Intended for cases that require custom code and flexibility, such as when NIfTI source files lack consistent naming conventions, organized folder hierarchies, or sidecar metadata. Includes utilities for metadata reconstruction from NIfTI headers, file renaming, neurobehavioral log parsing (for E-Prime and Presentation), and JSON sidecar generation.
 
 ## Installation
 
