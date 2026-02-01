@@ -89,8 +89,8 @@ def test_create_participant_tsv(tmp_dir):
     assert df["participant_id"].values[0] == "sub-01"
 
 
-"""def test_create_sessions_tsv(tmp_dir):
-    ""Test for ``create_sessions_tsv``.""
+def test_create_sessions_tsv(tmp_dir):
+    """Test for ``create_sessions_tsv``."""
     from nifti2bids.simulate import simulate_bids_dataset
 
     path = simulate_bids_dataset(n_sessions=3, output_dir=Path(tmp_dir.name) / "BIDS")
@@ -102,7 +102,7 @@ def test_create_participant_tsv(tmp_dir):
     assert filename.is_file()
 
     df = pd.read_csv(filename, sep="\t")
-    assert df["session_id"].values.tolist() == ["ses-1", "ses-2", "ses-3"]"""
+    assert df["session_id"].values.tolist() == ["ses-1", "ses-2", "ses-3"]
 
 
 def test_get_entity_value():
@@ -149,10 +149,8 @@ def test_dataframe_copy():
     assert not id(df) == id(new_df)
 
 
-@pytest.mark.parametrize(
-    "scanner_start_time, sum_duration_column", [(None, True), (10000, False)]
-)
-def test_PresentationBlockExtractor(tmp_dir, scanner_start_time, sum_duration_column):
+@pytest.mark.parametrize("scanner_start_time", [None, 10000])
+def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
     """Test for ``PresentationBlockExtractor``."""
     from pandas.testing import assert_frame_equal
 
@@ -162,7 +160,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time, sum_duration_co
     expected_df = pd.DataFrame(
         {
             "onset": [0.0, 34.0] if scanner_start_time is None else [1.0, 35.0],
-            "duration": [14.75, 13.75] if sum_duration_column else [14.0, 14.0],
+            "duration": [14.0, 14.0],
             "trial_type": ["indoor", "indoor"],
         }
     )
@@ -181,7 +179,7 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time, sum_duration_co
 
     scanner_start_time = scanner_start_time / 10000 if scanner_start_time else None
     onsets = extractor.extract_onsets(scanner_start_time=scanner_start_time)
-    durations = extractor.extract_durations(sum_duration_column=sum_duration_column)
+    durations = extractor.extract_durations()
     trial_types = extractor.extract_trial_types()
 
     df = pd.DataFrame(
@@ -224,11 +222,9 @@ def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     assert mean_accs[1] == 0.75
 
 
-@pytest.mark.parametrize(
-    "drop_instruction_cues, sum_duration_column", ([True, True], [False, False])
-)
+@pytest.mark.parametrize("drop_instruction_cues", [True, False])
 def test_PresentationBlockExtractor_instruction_cue_separation(
-    tmp_dir, drop_instruction_cues, sum_duration_column
+    tmp_dir, drop_instruction_cues
 ):
     """Test for ``PresentationBlockExtractor`` to ensure instruction and cues can be separated."""
     from pandas.testing import assert_frame_equal
@@ -255,7 +251,7 @@ def test_PresentationBlockExtractor_instruction_cue_separation(
     expected_df = pd.DataFrame(
         {
             "onset": [0.0, 1.0, 10.0],
-            "duration": [1.0, 9.0, 10.01] if sum_duration_column else [1.0, 9.0, 10.0],
+            "duration": [1.0, 9.0, 10.0],
             "trial_type": ["A_instruction", "A", "B"],
             "mean_rt": [float("NaN"), float("NaN"), 0.5],
             "mean_acc": [float("NaN"), 0.0, 1.0],
@@ -263,7 +259,7 @@ def test_PresentationBlockExtractor_instruction_cue_separation(
     )
 
     onsets = extractor.extract_onsets()
-    durations = extractor.extract_durations(sum_duration_column=sum_duration_column)
+    durations = extractor.extract_durations()
     trial_types = extractor.extract_trial_types()
     response_map = {"hit": 1, "miss": 0}
     mean_rts = extractor.extract_mean_reaction_times(

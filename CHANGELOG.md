@@ -4,6 +4,11 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.15.0] - 2026-01-31
+- Remove the sum durations for ``PresentationBlockExtractor``. Also, note that
+the previous docs where in reverse for what was done if the sum durations
+parameter was true or false.
+
 ## [0.14.0] - 2026-01-27
 - Allow regex to be used in the extractors and in the function that adds instruction
 - Change ``rest_block_code`` to ``rest_block_codes``

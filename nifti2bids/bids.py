@@ -1240,29 +1240,13 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         return onsets
 
-    def extract_durations(self, sum_duration_column: bool = False) -> list[float]:
+    def extract_durations(self) -> list[float]:
         """
         Extract the duration for each block.
 
-        Duration is computes in one of two ways:
-
-        If ``sum_duration_column`` is True, then duration is computed as the
-        difference between the onset time of the current block and the onset time
-        of the next block start of the block (either a rest block or some task block).
-
-        If ``sum_duration_column`` is False, then duration is computed by summing
-        the duration time, listed in the "Duration" column, of all "Picture" events
-        from the start of the block to the end of the block which is considered
-        to be the last "Picture" event index prior to the start of the next block
-        (either a rest block or a different task block).
-
-        Note, if there is no final quit code or rest block for the final task block, then the
-        block ends at the final index of the DataFrame.
-
-        Parameters
-        ----------
-        sum_duration_column : :obj:`bool`, default=False
-            Whether to sum the "Duration" column to compute block duration.
+        Duration is computed as the difference between the onset time of the
+        current block and the onset time of the next block start of the block
+        (either a rest block or some task block).
 
         Returns
         -------
@@ -1289,30 +1273,8 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
             row_shift = 1 if should_separate_block else 0
             block_start_time = self.df.loc[block_start_index + row_shift, "Time"]
-
-            if sum_duration_column:
-                if _should_exclude_end_index(
-                    self.df,
-                    block_end_index,
-                    self.trial_column_name,
-                    self.block_cue_names,
-                    self.rest_block_codes,
-                    self.quit_code,
-                ):
-                    block_end_index = block_end_index - 1
-
-                block_df = self.df.loc[
-                    (block_start_index + row_shift) : block_end_index
-                ]
-                block_duration = float(
-                    block_df.loc[
-                        block_df["Event Type"] == "Picture",
-                        "Duration",
-                    ].sum()
-                )
-            else:
-                block_end_time = self.df.loc[block_end_index, "Time"]
-                block_duration = block_end_time - block_start_time
+            block_end_time = self.df.loc[block_end_index, "Time"]
+            block_duration = block_end_time - block_start_time
 
             block_start_time = self.df.loc[block_start_index + row_shift, "Time"]
             if should_separate_block and not self.drop_instruction_cues:
