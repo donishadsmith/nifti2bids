@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 
 from ._exceptions import PathDoesNotExist
+from ._helpers import is_path
 from .io import regex_glob
 
 
@@ -40,7 +41,7 @@ class BIDSAuditor:
         if derivatives_dir and isinstance(derivatives_dir, str):
             derivatives_dir = Path(derivatives_dir)
 
-        if derivatives_dir and isinstance(derivatives_dir, (Path, str)):
+        if derivatives_dir and is_path(derivatives_dir):
             if not derivatives_dir.exists():
                 raise PathDoesNotExist(derivatives_dir)
 

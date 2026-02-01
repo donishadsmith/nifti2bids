@@ -120,6 +120,23 @@ Presentation and E-Prime 3 software.
    load_eprime_log
    load_presentation_log
 
+:mod:`nifti2bids.qc`
+--------------------
+Module for quality control metrics and assessment of fMRI data.
+
+.. currentmodule:: nifti2bids.qc
+
+.. autosummary::
+   :template: function.rst
+   :nosignatures:
+   :toctree: generated/
+
+   compute_n_dummy_scans
+   compute_framewise_displacement
+   create_censor_mask
+   merge_censor_masks
+   compute_consecutive_censor_stats
+
 :mod:`nifti2bids.simulate`
 --------------------------
 Module for simulating NIfTI images and BIDS datasets.

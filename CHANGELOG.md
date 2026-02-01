@@ -4,6 +4,10 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.16.0] - 2026-02-01
+- Add new QC module
+- Change default logging level to "INFO"
+
 ## [0.15.0] - 2026-01-31
 - Remove the sum durations for ``PresentationBlockExtractor``. Also, note that the previous docs had descriptions in reverse for what was done if the sum durations parameter was true or false
 

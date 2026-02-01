@@ -41,6 +41,7 @@ pip install -e .[all]
     | `EPrimeEventExtractor` | E-Prime 3 | Event | Extracts trial-level timing with individual responses |
 
 - **Auditing**: Generate a table of showing the presence or abscence of certain files for each subject and session
+- **QC**: Creation and computation of certain quality control metrics (e.g., framewise displacement)
 
 ## Quick Start
 
@@ -164,6 +165,22 @@ with open(analysis_sub_dir / "sub-1_task-rest_desc-betas.nii.gz", "w") as f:
     pass
 
 auditor.check_first_level_availability(analysis_dir=analysis_dir, desc="betas")
+```
+
+### Compute QC
+```python
+from nifti2bids.qc import create_censor_mask, compute_consecutive_censor_stats
+
+censor_mask = create_censor_mask(
+    "confounds.tsv",
+    column_name="framewise_displacement",
+    threshold=0.5,
+    n_dummy_scans=4,
+)
+
+consecutive_censor_mean, consecutive_censor_std = compute_consecutive_censor_stats(
+    censor_mask, n_dummy_scans=4
+)
 ```
 
 See the [API documentation](https://nifti2bids.readthedocs.io/en/latest/api.html) for full parameter details and additional utilities.

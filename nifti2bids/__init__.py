@@ -1,6 +1,6 @@
 """
-Post-hoc BIDS conversion toolkit for NIfTI datasets without original DICOMs.
-----------------------------------------------------------------------------
+Post-hoc BIDS toolkit for NIfTI datasets without original DICOMs.
+-----------------------------------------------------------------
 Documentation can be found at https://nifti2bids.readthedocs.io.
 
 Submodules
@@ -17,9 +17,11 @@ module specific handler is not available
 metadata -- Operations related to extracting or creating metadata information from NIfTI images
 
 parsers -- Operations related to standardizing and parsing information logs created by stimulus
-presentation software such as Presentation and EPrime
+neurobehavioral software such as Presentation and EPrime
+
+qc -- Quality control utilities for fMRI data (motion censoring, framewise displacement, etc.)
 
 simulate -- Simulate a basic NIfTI image or BIDS dataset for testing purposes
 """
 
-__version__ = "0.15.0"
+__version__ = "0.16.0"
