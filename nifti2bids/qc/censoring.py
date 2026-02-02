@@ -332,9 +332,9 @@ def compute_consecutive_censor_stats(
     dict[str, float]
         A dictionary with the following keys:
 
-        - 'consecutive_censored_volumes_mean': Mean number of consecutively
+        - "consecutive_censored_volumes_mean": Mean number of consecutively
           censored volumes. Returns 0.0 if no volumes were censored.
-        - 'consecutive_censored_volumes_std': Standard deviation of consecutively
+        - "consecutive_censored_volumes_std": Standard deviation of consecutively
           censored volumes. Returns NaN if no volumes were censored.
     """
     metric_dict = {

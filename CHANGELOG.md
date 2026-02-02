@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.17.1] - 2026-02-02
+- Change dictionary key name for global signal function
+
 ## [0.17.0] - 2026-02-02
 - Add global signal QC metric
 - Change return type for compute fd

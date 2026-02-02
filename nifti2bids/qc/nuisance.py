@@ -29,7 +29,7 @@ def compute_global_signal(
         A dictionary with the following keys:
 
         - "global_signal": Raw global signal time series.
-        - "global_signal_pct": Percent signal change time series.
+        - "global_signal_percent_change": Percent signal change time series.
     """
     func_file_or_img = load_nifti(func_file_or_img)
 
@@ -37,13 +37,15 @@ def compute_global_signal(
         mask_img=(load_nifti(mask_img_or_file) if mask_img_or_file else None),
         standardize=False,
     )
-    masked_data = masker.fit_transform(func_file_or_img)
+    timeseries = masker.fit_transform(func_file_or_img)
 
-    global_signal = np.mean(masked_data, axis=1)
-    mean_gs = np.mean(global_signal)
-    global_signal_pct = ((global_signal - mean_gs) / mean_gs) * 100
+    global_signal = np.mean(timeseries, axis=1)
+    mean_global_signal = np.mean(global_signal)
+    global_signal_pct = (
+        (global_signal - mean_global_signal) / mean_global_signal
+    ) * 100
 
     return {
         "global_signal": global_signal,
-        "global_signal_pct": global_signal_pct,
+        "global_signal_percent_change": global_signal_pct,
     }

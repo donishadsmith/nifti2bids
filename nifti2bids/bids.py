@@ -1447,10 +1447,10 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         Example
         -------
         >>> # Mean RT for all trials with a response
-        >>> mean_rts = extractor.extract_mean_reaction_times()
+        >>> mean_reaction_times = extractor.extract_mean_reaction_times()
         >>> # Mean RT for correct trials only
         >>> response_map = {"hit": 1, "miss": 0}
-        >>> mean_rts = extractor.extract_mean_reaction_times(
+        >>> mean_reaction_times = extractor.extract_mean_reaction_times(
         ...     response_map=response_map,
         ...     response_type="correct",
         ... )
@@ -1459,7 +1459,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             response_trial_names, self.split_cue_as_instruction, self.block_cue_names
         )
 
-        mean_rts = []
+        mean_reaction_times = []
         for block_start_index in self.starting_block_indices:
             block_cue_name = self.df.loc[block_start_index, self.trial_column_name]
             block_df = self._get_block_trials(block_start_index, response_trial_names)
@@ -1490,11 +1490,11 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
                 self.block_cues_without_instruction,
             )
             if should_separate_block and not self.drop_instruction_cues:
-                mean_rts.extend([np.nan, mean_rt])
+                mean_reaction_times.extend([np.nan, mean_rt])
             else:
-                mean_rts.append(mean_rt)
+                mean_reaction_times.append(mean_rt)
 
-        return mean_rts
+        return mean_reaction_times
 
     def extract_mean_accuracies(
         self,
@@ -1531,13 +1531,13 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         Example
         -------
         >>> response_map = {"hit": 1, "miss": 0}
-        >>> mean_accs = extractor.extract_mean_accuracies(response_map=response_map)
+        >>> mean_accuracies = extractor.extract_mean_accuracies(response_map=response_map)
         """
         response_trial_names = _filter_response_trial_names(
             response_trial_names, self.split_cue_as_instruction, self.block_cue_names
         )
 
-        mean_accs = []
+        mean_accuracies = []
         for block_start_index in self.starting_block_indices:
             block_cue_name = self.df.loc[block_start_index, self.trial_column_name]
             block_df = self._get_block_trials(block_start_index, response_trial_names)
@@ -1546,9 +1546,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             converted_responses = [response_map[resp] for resp in responses]
 
             if len(converted_responses) > 0:
-                mean_acc = sum(converted_responses) / len(converted_responses)
+                mean_accuracy = sum(converted_responses) / len(converted_responses)
             else:
-                mean_acc = np.nan
+                mean_accuracy = np.nan
 
             should_separate_block = _separate_block_from_cue(
                 self.split_cue_as_instruction,
@@ -1556,11 +1556,11 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
                 self.block_cues_without_instruction,
             )
             if should_separate_block and not self.drop_instruction_cues:
-                mean_accs.extend([np.nan, mean_acc])
+                mean_accuracies.extend([np.nan, mean_accuracy])
             else:
-                mean_accs.append(mean_acc)
+                mean_accuracies.append(mean_accuracy)
 
-        return mean_accs
+        return mean_accuracies
 
 
 class PresentationEventExtractor(PresentationExtractor, EventExtractor):
@@ -2537,7 +2537,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         Example
         -------
         >>> # Get mean reaction time for correct Go trials only
-        >>> mean_rts = extractor.extract_mean_reaction_times(
+        >>> mean_reaction_times = extractor.extract_mean_reaction_times(
         ...     reaction_time_column_name="Stimulus.RT",
         ...     subject_response_column="Stimulus.RESP",
         ...     correct_response_column="CorrectResponse",
@@ -2546,7 +2546,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         ... )
         """
         target_correctness = response_type == "correct"
-        mean_rts = []
+        mean_reaction_times = []
 
         response_trial_names = _filter_response_trial_names(
             response_trial_names, self.split_cue_as_instruction, self.block_cue_names
@@ -2581,11 +2581,11 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                 self.block_cues_without_instruction,
             )
             if should_separate_block and not self.drop_instruction_cues:
-                mean_rts.extend([np.nan, mean_rt])
+                mean_reaction_times.extend([np.nan, mean_rt])
             else:
-                mean_rts.append(mean_rt)
+                mean_reaction_times.append(mean_rt)
 
-        return mean_rts
+        return mean_reaction_times
 
     def extract_mean_accuracies(
         self,
@@ -2656,12 +2656,12 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         Example
         -------
         >>> # Get mean accuracy for all trial types
-        >>> mean_accs = extractor.extract_mean_accuracies(
+        >>> mean_accuracies = extractor.extract_mean_accuracies(
         ...     subject_response_column="Stimulus.RESP",
         ...     correct_response_column="CorrectResponse"
         ... )
         >>> # Get mean accuracy for specific trial types only
-        >>> mean_accs = extractor.extract_mean_accuracies(
+        >>> mean_accuracies = extractor.extract_mean_accuracies(
         ...     subject_response_column="Stimulus.RESP",
         ...     correct_response_column="CorrectResponse",
         ...     response_trial_names=("Go", "NoGo")
@@ -2671,7 +2671,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         ----
         Mean accuracy for instruction cues will be NaN.
         """
-        mean_accs = []
+        mean_accuracies = []
         for block_start_index in self.starting_block_indices:
             block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
             block_df = self._get_block_trials(block_start_index, response_trial_names)
@@ -2689,11 +2689,11 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                 self.block_cues_without_instruction,
             )
             if should_separate_block and not self.drop_instruction_cues:
-                mean_accs.extend([np.nan, correctness.mean()])
+                mean_accuracies.extend([np.nan, correctness.mean()])
             else:
-                mean_accs.append(correctness.mean())
+                mean_accuracies.append(correctness.mean())
 
-        return mean_accs
+        return mean_accuracies
 
 
 class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):

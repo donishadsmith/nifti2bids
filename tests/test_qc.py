@@ -131,8 +131,8 @@ def test_compute_global_signal():
 
     assert set(result.keys()) == {
         "global_signal",
-        "global_signal_pct",
+        "global_signal_percent_change",
     }
 
     assert result["global_signal"].shape == (10,)
-    assert result["global_signal_pct"].shape == (10,)
+    assert result["global_signal_percent_change"].shape == (10,)
