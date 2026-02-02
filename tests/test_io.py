@@ -32,7 +32,7 @@ def test_regex_glob(nifti_img_and_path):
     """Test for ``regex_glob``"""
     _, img_path = nifti_img_and_path
     files = bids_io.regex_glob(img_path.parent, pattern=r"^.*\.nii")
-    assert len(files) == 1
+    assert len(list(files)) == 1
 
 
 def test_get_nifti_header(nifti_img_and_path):

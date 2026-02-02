@@ -2,7 +2,7 @@
 
 import shutil, re
 from pathlib import Path
-from typing import Optional
+from typing import Iterator, Optional
 
 import nibabel as nib
 from numpy.typing import NDArray
@@ -81,7 +81,7 @@ def compress_image(
 
 def regex_glob(
     src_dir: str | Path, pattern: str, recursive: bool = False
-) -> list[Path]:
+) -> Iterator[Path]:
     """
     Use regex to get content in the source directory with specific patterns.
 
@@ -99,10 +99,10 @@ def regex_glob(
         False, regex pattern is only applied to content in the top-level directory.
 
 
-    Returns
-    -------
-    list[Path]
-        List of contents filtered by the regex pattern specified by ``pattern``.
+    Yields
+    ------
+    Path
+        Paths in the directory whose names match ``pattern``.
 
     Example
     -------
@@ -112,7 +112,10 @@ def regex_glob(
     """
     all_contents = Path(src_dir).rglob("*") if recursive else Path(src_dir).glob("*")
 
-    return [path for path in all_contents if re.compile(pattern).match(path.name)]
+    compiled = re.compile(pattern)
+    for path in all_contents:
+        if compiled.match(path.name):
+            yield path
 
 
 def get_nifti_header(

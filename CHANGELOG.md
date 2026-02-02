@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.16.1] - 2026-02-01
+- Regex glob function now returns a generator instead of list[Path]
+
 ## [0.16.0] - 2026-02-01
 - Add new QC module
 - Change default logging level to "INFO"
