@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.16.2] - 2026-02-01
+- Forgot to convert the rotation parameters to mm.
+
 ## [0.16.1] - 2026-02-01
 - Regex glob function now returns a generator instead of list[Path]
 

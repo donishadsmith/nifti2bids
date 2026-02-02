@@ -197,6 +197,7 @@ def get_image_orientation(
 def get_n_slices(
     nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image,
     slice_axis: Optional[Literal["i", "j", "k"]] = None,
+    verbose: bool = False,
 ) -> int:
     """
     Gets the number of slices from the header of a NIfTI image.
@@ -210,6 +211,9 @@ def get_n_slices(
         Axis the image slices were collected in. If None,
         determines the slice axis using metadata ("slice_end")
         from the NIfTI header.
+
+    verbose : :obj:`bool`, default=False
+        Logs information.
 
     Returns
     -------
@@ -230,15 +234,19 @@ def get_n_slices(
     reversed_slice_dim_map = {v: k for v, k in _VOXEL_INDX_DICT.items()}
 
     n_slices = hdr.get_data_shape()[slice_dim_indx]
-    LGR.info(
-        f"Number of slices based on "
-        f"{reversed_slice_dim_map.get(slice_dim_indx)}: {n_slices}"
-    )
+
+    if verbose:
+        LGR.info(
+            f"Number of slices based on "
+            f"{reversed_slice_dim_map.get(slice_dim_indx)}: {n_slices}"
+        )
 
     return _to_native_numeric(n_slices)
 
 
-def get_tr(nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image) -> float:
+def get_tr(
+    nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image, verbose: bool = False
+) -> float:
     """
     Get the repetition time from the header of a NIfTI image.
 
@@ -246,6 +254,9 @@ def get_tr(nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image) -> float:
     ----------
     nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
         Path to the NIfTI file or a NIfTI image.
+
+    verbose : :obj:`bool`, default=False
+        Logs "INFO" level information if True.
 
     Returns
     -------
@@ -257,7 +268,8 @@ def get_tr(nifti_file_or_img: str | Path | nib.nifti1.Nifti1Image) -> float:
     if not (tr := hdr.get_zooms()[3]):
         raise ValueError(f"Suspicious repetition time: {tr}.")
 
-    LGR.info(f"Repetition Time: {tr}.")
+    if verbose:
+        LGR.info(f"Repetition Time: {tr}.")
 
     return round(_to_native_numeric(tr), 2)
 
@@ -600,6 +612,7 @@ def create_slice_timing(
     ascending: bool = True,
     interleaved_pattern: Literal["even", "odd", "philips"] = "odd",
     multiband_factor: Optional[int] = None,
+    verbose: bool = False,
 ) -> list[float]:
     """
     Create slice timing dictionary mapping the slice index to its
@@ -678,6 +691,9 @@ def create_slice_timing(
             - Parameter not used for "central" and "reversed_central"  as there is
               no reference to assure ordering in multiband acquisition.
 
+    verbose : :obj:`bool`, default=False
+        Logs "INFO" level information if True.
+
     Returns
     -------
     list[float]
@@ -713,7 +729,7 @@ def create_slice_timing(
             f"index {slice_start} so slice timing may not be accurate."
         )
 
-    n_slices = get_n_slices(nifti_file_or_img, slice_axis)
+    n_slices = get_n_slices(nifti_file_or_img, slice_axis, verbose)
     acquisition_kwargs = {"n_slices": n_slices}
     if slice_acquisition_method == "interleaved":
         acquisition_kwargs.update({"interleaved_pattern": interleaved_pattern})
@@ -722,7 +738,7 @@ def create_slice_timing(
         acquisition_kwargs.update({"ascending": ascending})
 
     slice_order = slice_ordering_func[slice_acquisition_method](**acquisition_kwargs)
-    tr = tr if tr else get_tr(nifti_file_or_img)
+    tr = tr if tr else get_tr(nifti_file_or_img, verbose)
     band_kwargs = {"tr": tr, "slice_order": slice_order}
 
     return (

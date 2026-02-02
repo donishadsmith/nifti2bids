@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -62,7 +62,7 @@ def _get_input_data(
         is a file path.
 
     verbose : :obj:`bool`, default=False
-        Logs infomation.
+        Logs "INFO" level information if True.
 
     return_df :  :obj:`bool`, default=False
         Returns the full DataFrame if True.
@@ -95,6 +95,8 @@ def _get_input_data(
 def compute_framewise_displacement(
     input_data: str | Path | pd.DataFrame | NDArray,
     has_header: bool = True,
+    rotation_units: Literal["radians", "degrees"] = "radians",
+    radius: float | int = 50,
     verbose: bool = False,
 ) -> NDArray:
     """
@@ -116,13 +118,21 @@ def compute_framewise_displacement(
         .. important::
            - If ``has_header`` is False, then the first six columns will be assumed to be the
              three translations and three rotations.
+           - Assumes first three columns are translation parameters in mm and last three columns
+             are rotation parameters in radians or degrees.
 
     has_header : :obj:`bool`, default=True
         Whether the input file has a header row. Only used when ``input_data``
         is a file path.
 
+    rotation_units : :obj:`Literal["radians", "degrees"]`, default="radians"
+        The units of the rotation parameters.
+
+    radius : :obj:`int` or :obj:`float`, default=50
+        The radius of the head in mm.
+
     verbose : :obj:`bool`, default=False
-        Logs infomation.
+        Logs "INFO" level information if True.
 
     Returns
     -------
@@ -139,6 +149,9 @@ def compute_framewise_displacement(
     Mejia, A., Muschelli, J., & Pham, D. fMRIscrub: fMRI scrubbing (R package).
     https://neuroconductor.org/help/fMRIscrub/reference/FD.html
     """
+    if rotation_units not in ["radians", "degrees"]:
+        raise ValueError("`rotation_units` must be either 'radians' or 'degrees'")
+
     if not isinstance(input_data, np.ndarray):
         data = _get_input_data(
             input_data, has_header=has_header, verbose=verbose, return_df=True
@@ -162,7 +175,13 @@ def compute_framewise_displacement(
     else:
         arr = data
 
-    fd_arr = np.abs(np.diff(arr[:, :6], axis=0)).sum(axis=1)
+    arr = arr[:, :6]
+    if rotation_units == "radians":
+        arr[:, 3:] *= radius
+    else:
+        arr[:, 3:] = np.deg2rad(arr[:, 3:]) * radius
+
+    fd_arr = np.abs(np.diff(arr, axis=0)).sum(axis=1)
 
     return np.insert(fd_arr, 0, 0)
 
@@ -202,7 +221,7 @@ def create_censor_mask(
         is a file path.
 
     verbose : :obj:`bool`, default=False
-        Logs infomation.
+        Logs "INFO" level information if True.
 
     Returns
     -------
