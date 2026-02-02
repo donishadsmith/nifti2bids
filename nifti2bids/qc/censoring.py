@@ -315,7 +315,7 @@ def _get_contiguous_segments(censor_mask: NDArray) -> NDArray:
 
 def compute_consecutive_censor_stats(
     censor_mask: NDArray, n_dummy_scans: int = 0
-) -> tuple[float, float]:
+) -> dict[str, float]:
     """
     Compute the mean and standard deviation of the consecutive censored volumes.
 
@@ -329,18 +329,30 @@ def compute_consecutive_censor_stats(
 
     Return
     ------
-    tuple[float, float]
-        A tuple where the first value is the mean number of volumes that are censored
-        consecutively and the second value is the standard deviation of the volumes
-        that are censored consecutively. In cases when no volumes have been censored, then
-        the mean will be 0.0 and the std will be NaN.
+    dict[str, float]
+        A dictionary with the following keys:
+
+        - 'consecutive_censored_volumes_mean': Mean number of consecutively
+          censored volumes. Returns 0.0 if no volumes were censored.
+        - 'consecutive_censored_volumes_std': Standard deviation of consecutively
+          censored volumes. Returns NaN if no volumes were censored.
     """
+    metric_dict = {
+        "consecutive_censored_volumes_mean": 0.0,
+        "consecutive_censored_volumes_std": np.nan,
+    }
+
     segments = _get_contiguous_segments(censor_mask[n_dummy_scans:])
     censored_segments_counts = np.array(
         [len(segment) for segment in segments if segment[0] == 0]
     )
 
     if censored_segments_counts.size > 0:
-        return censored_segments_counts.mean(), censored_segments_counts.std(ddof=0)
-    else:
-        return 0.0, np.nan
+        metric_dict["consecutive_censored_volumes_mean"] = (
+            censored_segments_counts.mean()
+        )
+        metric_dict["consecutive_censored_volumes_std"] = censored_segments_counts.std(
+            ddof=0
+        )
+
+    return metric_dict

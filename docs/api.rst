@@ -136,6 +136,7 @@ Module for quality control metrics and assessment of fMRI data.
    create_censor_mask
    merge_censor_masks
    compute_consecutive_censor_stats
+   compute_global_signal
 
 :mod:`nifti2bids.simulate`
 --------------------------

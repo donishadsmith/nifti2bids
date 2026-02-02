@@ -4,6 +4,10 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.17.0] - 2026-02-02
+- Add global signal QC metric
+- Change return type for compute fd
+
 ## [0.16.2] - 2026-02-01
 - Forgot to convert the rotation parameters to mm.
 

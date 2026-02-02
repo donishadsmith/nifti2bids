@@ -7,3 +7,4 @@ from .censoring import (
     merge_censor_masks,
     compute_consecutive_censor_stats,
 )
+from .nuisance import compute_global_signal

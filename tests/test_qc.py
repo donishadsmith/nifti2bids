@@ -9,6 +9,7 @@ from nifti2bids.qc import (
     create_censor_mask,
     merge_censor_masks,
     compute_consecutive_censor_stats,
+    compute_global_signal,
 )
 
 
@@ -113,8 +114,25 @@ def test_merge_censor_mask():
 def test_compute_consecutive_censor_stats():
     "Test ``compute_consecutive_censor_stats``."
     censor_mask = np.array([0, 0, 1, 1])
-    mean, std = compute_consecutive_censor_stats(censor_mask)
+    mean, std = compute_consecutive_censor_stats(censor_mask).values()
     assert (mean, std) == (2.0, 0.0)
 
-    mean, std = compute_consecutive_censor_stats(censor_mask, n_dummy_scans=2)
+    mean, std = compute_consecutive_censor_stats(censor_mask, n_dummy_scans=2).values()
     assert (mean, std) == (0.0, np.nan)
+
+
+def test_compute_global_signal():
+    "Test for ``compute_global_signal``."
+    from nifti2bids.simulate import simulate_nifti_image
+
+    nifti_img = simulate_nifti_image((3, 3, 3, 10))
+
+    result = compute_global_signal(nifti_img)
+
+    assert set(result.keys()) == {
+        "global_signal",
+        "global_signal_pct",
+    }
+
+    assert result["global_signal"].shape == (10,)
+    assert result["global_signal_pct"].shape == (10,)
