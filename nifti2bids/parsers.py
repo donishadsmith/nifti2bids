@@ -198,7 +198,9 @@ def _text_to_df(
         )
 
         text = "".join(cleaned_textlines[start_indx:stop_indx])
-        df = pd.read_csv(io.StringIO(text, newline=None), sep=delimiter)
+        df = pd.read_csv(
+            io.StringIO(text, newline=None), sep=delimiter, low_memory=False
+        )
 
     return df
 

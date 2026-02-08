@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.17.2] - 2026-02-07
+- Prevent dtype warning
+
 ## [0.17.1] - 2026-02-02
 - Change dictionary key name for global signal function
 
