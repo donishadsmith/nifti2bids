@@ -10,6 +10,7 @@ from nifti2bids.qc import (
     merge_censor_masks,
     compute_consecutive_censor_stats,
     compute_global_signal,
+    create_spike_regressors,
 )
 
 
@@ -136,3 +137,20 @@ def test_compute_global_signal():
 
     assert result["global_signal"].shape == (10,)
     assert result["global_signal_percent_change"].shape == (10,)
+
+
+def test_create_spike_regressors():
+    """Test for ``create_spike_regressors``"""
+    from pandas.testing import assert_frame_equal
+
+    arr = np.array([0, 1, 1, 0])
+    df = create_spike_regressors(arr)
+    expected_df = pd.DataFrame(
+        np.array([[1, 0, 0, 0], [0, 0, 0, 1]]).T,
+        columns=["spike_regressor_0", "spike_regressor_1"],
+    )
+    assert_frame_equal(expected_df, df)
+
+    arr = np.array([1, 1, 1, 1])
+    df = create_spike_regressors(arr)
+    assert df.empty

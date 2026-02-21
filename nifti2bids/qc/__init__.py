@@ -5,6 +5,7 @@ from .censoring import (
     compute_framewise_displacement,
     create_censor_mask,
     merge_censor_masks,
+    create_spike_regressors,
     compute_consecutive_censor_stats,
 )
 from .nuisance import compute_global_signal

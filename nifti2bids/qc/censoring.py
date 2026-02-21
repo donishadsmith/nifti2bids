@@ -356,3 +356,30 @@ def compute_consecutive_censor_stats(
         )
 
     return metric_dict
+
+
+def create_spike_regressors(censor_mask: NDArray) -> pd.DataFrame:
+    """
+    Creates spike regressors that can be used to censor certain frames during
+    regression. Can be used in cases where censoring needs to be done for
+    denoising but the function may not include an option to include a
+    censor mask.
+
+    Parameters
+    ----------
+    censor_mask: :obj:`NDArray`
+        A numpy array where 1 = keep, 0 = censor.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame of spike regressors
+    """
+    spike_regressor_names = [
+        f"spike_regressor_{i}" for i in range(censor_mask[censor_mask == 0].size)
+    ]
+
+    indices = np.where(censor_mask == 0)
+    spike_regressors = np.eye(censor_mask.size, dtype=int)[indices].T
+
+    return pd.DataFrame(spike_regressors, columns=spike_regressor_names or None)

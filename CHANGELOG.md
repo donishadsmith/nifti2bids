@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.17.3] - 2026-02-20
+- Add function to create spike regressors
+
 ## [0.17.2] - 2026-02-07
 - Prevent dtype warning
 
