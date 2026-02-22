@@ -361,9 +361,7 @@ def compute_consecutive_censor_stats(
 def create_spike_regressors(censor_mask: NDArray) -> pd.DataFrame:
     """
     Creates spike regressors that can be used to censor certain frames during
-    regression. Can be used in cases where censoring needs to be done for
-    denoising but the function may not include an option to include a
-    censor mask.
+    regression.
 
     Parameters
     ----------
@@ -383,3 +381,23 @@ def create_spike_regressors(censor_mask: NDArray) -> pd.DataFrame:
     spike_regressors = np.eye(censor_mask.size, dtype=int)[indices].T
 
     return pd.DataFrame(spike_regressors, columns=spike_regressor_names or None)
+
+
+def get_n_censored_volumes(arr_or_file: str | Path | NDArray) -> int:
+    """
+    Computes number of censored volumes.
+
+    Parameters
+    ----------
+    arr_or_file : :obj:`str`, :obj:`Path`, :obj:`NDArray`
+        A numpy array or text file where 1 = keep, 0 = censor.
+
+    Returns
+    -------
+    int
+        Number of censored volumes
+    """
+    arr = np.loadtxt(arr_or_file) if is_path(arr_or_file) else arr_or_file
+    arr = arr.astype(int)
+
+    return arr[arr == 0].size

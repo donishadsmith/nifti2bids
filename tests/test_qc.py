@@ -11,6 +11,7 @@ from nifti2bids.qc import (
     compute_consecutive_censor_stats,
     compute_global_signal,
     create_spike_regressors,
+    get_n_censored_volumes,
 )
 
 
@@ -154,3 +155,13 @@ def test_create_spike_regressors():
     arr = np.array([1, 1, 1, 1])
     df = create_spike_regressors(arr)
     assert df.empty
+
+
+def test_get_n_censored_volumes(tmp_dir):
+    """Test for ``get_n_censored_volumes``"""
+    arr = np.array([1, 0, 0, 1])
+    assert get_n_censored_volumes(arr) == 2
+
+    file = Path(tmp_dir.name) / "cens.1D"
+    np.savetxt(file, arr)
+    assert get_n_censored_volumes(file) == 2

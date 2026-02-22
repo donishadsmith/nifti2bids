@@ -16,6 +16,36 @@ LGR = setup_logger(__name__)
 _VOXEL_INDX_DICT = {"i": 0, "j": 1, "k": 2}
 
 
+def needs_resampling(
+    source_file_or_img: str | Path | nib.nifti1.Nifti1Image,
+    target_file_or_img: str | Path | nib.nifti1.Nifti1Image,
+) -> bool:
+    """
+    Determines if a source image needs to be resampled.
+
+    Parameters
+    ----------
+    source_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+        The source image that may need to be resampled.
+
+    target_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`
+        The target image that it may need to be resampled to.
+
+    Returns
+    -------
+    bool
+        True if resampling is needed and False if no resampling is needed.
+
+    """
+    source_img = load_nifti(source_file_or_img)
+    target_img = load_nifti(target_file_or_img)
+
+    equal_shape = source_img.shape == target_img.shape
+    equal_affine = np.allclose(source_img.affine, target_img.affine, atol=1e-5)
+
+    return False if (equal_shape and equal_affine) else True
+
+
 @check_all_none(parameter_names=["nifti_file_or_img", "nifti_header"])
 def determine_slice_axis(
     nifti_file_or_img: Optional[str | Path | nib.nifti1.Nifti1Image] = None,
@@ -28,7 +58,7 @@ def determine_slice_axis(
 
     Parameters
     ----------
-    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image` default=None
+    nifti_file_or_img : :obj:`str`, :obj:`Path`, or :obj:`Nifti1Image`, default=None
         Path to the NIfTI file or a NIfTI image. Must be specified
         if ``nifti_header`` is None.
 

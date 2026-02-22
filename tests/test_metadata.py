@@ -446,3 +446,16 @@ def test_compute_total_readout_time():
 
     with pytest.raises(ValueError):
         bids_meta.compute_total_readout_time()
+
+
+def test_needs_resampling():
+    """Test for needs_resampling"""
+    from nifti2bids.simulate import simulate_nifti_image, create_affine
+
+    img_1 = simulate_nifti_image((97, 115, 98, 50))
+    assert not bids_meta.needs_resampling(img_1, img_1)
+
+    img_2 = simulate_nifti_image(
+        (97, 115, 98, 50), create_affine([4, 4, 4, 1], [1, 1, 1, 1])
+    )
+    assert bids_meta.needs_resampling(img_1, img_2)

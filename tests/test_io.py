@@ -45,3 +45,10 @@ def test_get_nifti_affine(nifti_img_and_path):
     """Test for ``get_nifti_affine``."""
     img, _ = nifti_img_and_path
     assert bids_io.get_nifti_affine(img).shape == (4, 4)
+
+
+def test_replace_ext():
+    """Test for ``replace_ext``."""
+    from pathlib import Path
+
+    assert bids_io.replace_ext("file.nii.gz", "json") == Path("file.json")

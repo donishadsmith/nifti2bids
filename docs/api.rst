@@ -73,6 +73,7 @@ Module for input/output operations on NIfTI files and images.
    regex_glob
    get_nifti_header
    get_nifti_affine
+   replace_ext
 
 :mod:`nifti2bids.metadata`
 --------------------------
@@ -86,6 +87,7 @@ from NIfTIs.
    :nosignatures:
    :toctree: generated/
 
+   needs_resampling
    determine_slice_axis
    get_hdr_metadata
    get_n_volumes
@@ -137,6 +139,7 @@ Module for quality control metrics and assessment of fMRI data.
    merge_censor_masks
    compute_consecutive_censor_stats
    create_spike_regressors
+   get_n_censored_volumes
    compute_global_signal
 
 :mod:`nifti2bids.simulate`

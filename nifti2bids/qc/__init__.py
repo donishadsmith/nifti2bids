@@ -7,5 +7,6 @@ from .censoring import (
     merge_censor_masks,
     create_spike_regressors,
     compute_consecutive_censor_stats,
+    get_n_censored_volumes,
 )
 from .nuisance import compute_global_signal

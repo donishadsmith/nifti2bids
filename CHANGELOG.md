@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.17.4] - 2026-02-21
+- Adds additional helper functions
+
 ## [0.17.3] - 2026-02-20
 - Add function to create spike regressors
 

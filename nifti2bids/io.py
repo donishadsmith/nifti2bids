@@ -178,3 +178,32 @@ def _copy_file(
 
     if remove_src_file:
         Path(src_file).unlink()
+
+
+def replace_ext(filename: str | Path, new_ext: str) -> Path:
+    """
+    Replaces extension of a filename.
+
+    Parameters
+    ----------
+    filename : :obj:`str` or :obj:`Path`
+        The path to the file.
+
+    new_ext : :obj:`str`
+        The new extension.
+
+    Returns
+    -------
+    Path
+        Filename with new extension.
+
+    Example
+    --------
+    >>> replace_ext("file.nii.gz", ".json")
+        "file.json"
+    """
+    filename = Path(filename)
+    old_ext = "".join(filename.suffixes)
+    new_ext = f".{new_ext}" if not new_ext.startswith(".") else new_ext
+
+    return Path(str(filename).replace(old_ext, new_ext))
