@@ -315,7 +315,9 @@ def load_presentation_log(
     )
 
 
-def get_presentation_log_date(log_filepath: str | Path) -> tuple[str, str]:
+def get_presentation_log_date(
+    log_filepath: str | Path, include_time: bool = False
+) -> str | tuple[str, str]:
     """
     Gets the date and time from a Presentation logfile.
 
@@ -324,10 +326,14 @@ def get_presentation_log_date(log_filepath: str | Path) -> tuple[str, str]:
     log_filepath : :obj:`str` or :obj:`Path`
         Path to the Presentation log file (i.e text, log, Excel files).
 
+    include_time : :obj:`bool`
+        If true, returns the time the file was created
+
     Returns
     -------
-    tuple[str, str]
-        A tuple of the date and time the logfile was generated.
+    str or tuple[str, str]
+        A string of the date if ``include_time`` is False else a
+        tuple of the date and time the logfile was generated.
     """
     header = "Logfile"
     for line in _get_textlines(log_filepath):
@@ -336,8 +342,9 @@ def get_presentation_log_date(log_filepath: str | Path) -> tuple[str, str]:
 
     # Delimiter is likely just a space but just in case
     delimiter = csv.Sniffer().sniff(line, delimiters=None).delimiter
+    date, time = line.removeprefix(header).strip().split(delimiter)[-2:]
 
-    return line.removeprefix(header).strip().split(delimiter)[-2:]
+    return (date, time) if include_time else date
 
 
 __all__ = [

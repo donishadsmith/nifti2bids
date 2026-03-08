@@ -4,6 +4,9 @@ Documentation of changes for each version of ``Nifti2Bids``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.18.0] - 2026-03-08
+- Update to function that parses Presentation log generation date
+
 ## [0.17.6] - 2026-03-03
 - Add function to get log date for Presentation
 

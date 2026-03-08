@@ -79,6 +79,9 @@ def test_load_eprime_log(create_eprime_logfile):
 def test_get_presentation_log_date(create_presentation_logfile):
     """Test for ``get_presentation_log_date`` function."""
     src_file = create_presentation_logfile
-    date, time = get_presentation_log_date(src_file)
+    date, time = get_presentation_log_date(src_file, include_time=True)
     assert date == "09/24/2025"
     assert time == "11:40:20"
+
+    date = get_presentation_log_date(src_file)
+    assert date == "09/24/2025"
