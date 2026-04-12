@@ -1,4 +1,4 @@
-# BIDSAID
+# BIDSAid
 
 [![Latest Version](https://img.shields.io/pypi/v/bidsaid.svg)](https://pypi.python.org/pypi/bidsaid/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/bidsaid.svg)](https://pypi.python.org/pypi/bidsaid/)

@@ -1,8 +1,8 @@
 Contributing
 ============
-BIDSAID is an open-source package, and all contributions are welcome to help improve, enhance, and refine it!
+BIDSAid is an open-source package, and all contributions are welcome to help improve, enhance, and refine it!
 
-Since the repository for BIDSAID is located on GitHub, you will need to create an account. Here are some
+Since the repository for BIDSAid is located on GitHub, you will need to create an account. Here are some
 [instructions](https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github) to get you started.
 
 Code of Conduct
@@ -28,9 +28,9 @@ Workflow for Making Changes
 
 To allow any changes to be tracked and ensure that any changes aren't being duplicated.
 
-**2. Fork BIDSAID**
+**2. Fork BIDSAid**
 
-This is your own unique copy of BIDSAID and changes will not affect the main codebase.
+This is your own unique copy of BIDSAid and changes will not affect the main codebase.
 Here are some guides to [forking](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
 and ensuring that your fork is always [synced](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/syncing-a-fork) with the main codebase.
 

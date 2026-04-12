@@ -1,6 +1,6 @@
 # Changelog
 
-Documentation of changes for each version of ``BIDSAID``.
+Documentation of changes for each version of ``BIDSAid``.
 
 **Currently doesn't follow semantic versioning.**
 
