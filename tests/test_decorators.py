@@ -1,8 +1,8 @@
 import nibabel as nib
 import pytest
 
-from nifti2bids._decorators import check_all_none, check_nifti
-from nifti2bids.simulate import simulate_nifti_image
+from bidsaid._decorators import check_all_none, check_nifti
+from bidsaid.simulate import simulate_nifti_image
 
 
 def test_check_all_none():

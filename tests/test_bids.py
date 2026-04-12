@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd, pytest
 
-from nifti2bids.bids import (
+from bidsaid.bids import (
     create_bids_file,
     create_participant_tsv,
     create_sessions_tsv,
@@ -91,7 +91,7 @@ def test_create_participant_tsv(tmp_dir):
 
 def test_create_sessions_tsv(tmp_dir):
     """Test for ``create_sessions_tsv``."""
-    from nifti2bids.simulate import simulate_bids_dataset
+    from bidsaid.simulate import simulate_bids_dataset
 
     path = simulate_bids_dataset(n_sessions=3, output_dir=Path(tmp_dir.name) / "BIDS")
 
@@ -123,7 +123,7 @@ def _create_presentation_logfile(dst_dir, data, design):
 
 def test_dataframe_copy():
     """Test to ensure original dataframe is not modified"""
-    from nifti2bids.bids import _process_log_or_df
+    from bidsaid.bids import _process_log_or_df
 
     df = pd.DataFrame({"A": [1, 2, 3], "B": [5, 6, 7]})
     new_df = _process_log_or_df(

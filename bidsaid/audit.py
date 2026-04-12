@@ -264,7 +264,7 @@ class BIDSAuditor:
 
         Example
         -------
-        >>> from nifti2bids.audit import BIDSAuditor
+        >>> from bidsaid.audit import BIDSAuditor
         >>> BIDSAuditor.clear_caches()
         """
         BIDSAuditor._call_layout.cache_clear()

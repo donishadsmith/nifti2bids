@@ -1,13 +1,13 @@
-# NIfTI2BIDS
+# BIDSAID
 
-[![Latest Version](https://img.shields.io/pypi/v/nifti2bids.svg)](https://pypi.python.org/pypi/nifti2bids/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/nifti2bids.svg)](https://pypi.python.org/pypi/nifti2bids/)
-[![Source Code](https://img.shields.io/badge/Source%20Code-nifti2bids-purple)](https://github.com/donishadsmith/nifti2bids)
+[![Latest Version](https://img.shields.io/pypi/v/bidsaid.svg)](https://pypi.python.org/pypi/bidsaid/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/bidsaid.svg)](https://pypi.python.org/pypi/bidsaid/)
+[![Source Code](https://img.shields.io/badge/Source%20Code-bidsaid-purple)](https://github.com/donishadsmith/bidsaid)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Test Status](https://github.com/donishadsmith/nifti2bids/actions/workflows/testing.yaml/badge.svg)](https://github.com/donishadsmith/nifti2bids/actions/workflows/testing.yaml)
-[![codecov](https://codecov.io/gh/donishadsmith/nifti2bids/graph/badge.svg?token=PCJ17NA627)](https://codecov.io/gh/donishadsmith/nifti2bids)
+[![Test Status](https://github.com/donishadsmith/bidsaid/actions/workflows/testing.yaml/badge.svg)](https://github.com/donishadsmith/bidsaid/actions/workflows/testing.yaml)
+[![codecov](https://codecov.io/gh/donishadsmith/bidsaid/graph/badge.svg?token=PCJ17NA627)](https://codecov.io/gh/donishadsmith/bidsaid)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Documentation Status](https://readthedocs.org/projects/nifti2bids/badge/?version=stable)](http://nifti2bids.readthedocs.io/en/stable/?badge=stable)
+[![Documentation Status](https://readthedocs.org/projects/bidsaid/badge/?version=stable)](http://bidsaid.readthedocs.io/en/stable/?badge=stable)
 
 
 A toolkit for post-hoc BIDS conversion of legacy or unstructured NIfTI datasets. Intended for cases that require custom code and flexibility, such as when NIfTI source files lack consistent naming conventions, organized folder hierarchies, or sidecar metadata. Includes utilities for metadata reconstruction from NIfTI headers, file renaming, neurobehavioral log parsing (for E-Prime and Presentation), and JSON sidecar generation.
@@ -16,13 +16,13 @@ A toolkit for post-hoc BIDS conversion of legacy or unstructured NIfTI datasets.
 
 ### Standard Installation
 ```bash
-pip install nifti2bids[all]
+pip install bidsaid[all]
 ```
 
 ### Development Version
 ```bash
-git clone --depth 1 https://github.com/donishadsmith/nifti2bids/
-cd nifti2bids
+git clone --depth 1 https://github.com/donishadsmith/bidsaid/
+cd bidsaid
 pip install -e .[all]
 ```
 
@@ -47,7 +47,7 @@ pip install -e .[all]
 
 ### Creating BIDS-Compliant Filenames
 ```python
-from nifti2bids.bids import create_bids_file
+from bidsaid.bids import create_bids_file
 
 create_bids_file(
     src_file="101_mprage.nii.gz",
@@ -60,7 +60,7 @@ create_bids_file(
 
 ### Extracting Metadata from NIfTI Headers
 ```python
-from nifti2bids.metadata import get_tr, create_slice_timing, get_image_orientation
+from bidsaid.metadata import get_tr, create_slice_timing, get_image_orientation
 
 tr = get_tr("sub-01_bold.nii.gz")
 slice_timing = create_slice_timing(
@@ -73,7 +73,7 @@ orientation_map, orientation = get_image_orientation("sub-01_bold.nii.gz")
 
 ### Loading Raw Log Files
 ```python
-from nifti2bids.parsers import (
+from bidsaid.parsers import (
     load_presentation_log,
     load_eprime_log,
     convert_edat3_to_txt,
@@ -88,7 +88,7 @@ eprime_df = load_eprime_log(eprime_txt_path, convert_to_seconds=["Stimulus.Onset
 
 ### Creating BIDS Events from Presentation Logs
 ```python
-from nifti2bids.bids import PresentationBlockExtractor
+from bidsaid.bids import PresentationBlockExtractor
 import pandas as pd
 
 extractor = PresentationBlockExtractor(
@@ -114,7 +114,7 @@ events_df = pd.DataFrame(
 
 ### Creating BIDS Events from E-Prime Logs
 ```python
-from nifti2bids.bids import EPrimeEventExtractor
+from bidsaid.bids import EPrimeEventExtractor
 import pandas as pd
 
 extractor = EPrimeEventExtractor(
@@ -146,8 +146,8 @@ events_df = pd.DataFrame(
 
 ### Audit BIDS Dataset
 ```python
-from nifti2bids.audit import BIDSAuditor
-from nifti2bids.simulate import simulate_bids_dataset
+from bidsaid.audit import BIDSAuditor
+from bidsaid.simulate import simulate_bids_dataset
 
 bids_root = simulate_bids_dataset()
 
@@ -169,7 +169,7 @@ auditor.check_first_level_availability(analysis_dir=analysis_dir, desc="betas")
 
 ### Compute QC
 ```python
-from nifti2bids.qc import create_censor_mask, compute_consecutive_censor_stats
+from bidsaid.qc import create_censor_mask, compute_consecutive_censor_stats
 
 censor_mask = create_censor_mask(
     "confounds.tsv",
@@ -183,4 +183,4 @@ consecutive_censor_mean, consecutive_censor_std = compute_consecutive_censor_sta
 )
 ```
 
-See the [API documentation](https://nifti2bids.readthedocs.io/en/latest/api.html) for full parameter details and additional utilities.
+See the [API documentation](https://bidsaid.readthedocs.io/en/latest/api.html) for full parameter details and additional utilities.

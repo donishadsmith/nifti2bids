@@ -3,8 +3,8 @@ from pathlib import Path
 import pandas as pd, pytest, numpy as np
 from pandas.testing import assert_frame_equal
 
-from nifti2bids.audit import BIDSAuditor
-from nifti2bids.simulate import simulate_bids_dataset
+from bidsaid.audit import BIDSAuditor
+from bidsaid.simulate import simulate_bids_dataset
 
 
 @pytest.mark.parametrize("n_sessions", [1, None])

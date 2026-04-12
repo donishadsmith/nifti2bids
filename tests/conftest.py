@@ -3,7 +3,7 @@ from pathlib import Path
 
 import nibabel as nib, pytest
 
-from nifti2bids.simulate import simulate_nifti_image
+from bidsaid.simulate import simulate_nifti_image
 
 
 @pytest.fixture(autouse=False, scope="function")

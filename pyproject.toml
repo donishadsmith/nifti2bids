@@ -3,10 +3,10 @@ requires = ["setuptools>=77.0.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-version = {attr = "nifti2bids.__version__"}
+version = {attr = "bidsaid.__version__"}
 
 [project]
-name = "nifti2bids"
+name = "bidsaid"
 dynamic = ["version"]
 license = "MIT"
 authors = [{name = "Donisha Smith", email = "dsmit420@jhu.edu"}]
@@ -50,20 +50,20 @@ dependencies = [
     ]
 
 [project.optional-dependencies]
-all = ["nifti2bids[test, windows]"]
+all = ["bidsaid[test, windows]"]
 test = ["pytest", "pytest-cov"]
 windows = ["pybids>=0.16.5"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["nifti2bids", "nifti2bids.*"]
+include = ["bidsaid", "bidsaid.*"]
 
 [tool.coverage.report]
 show_missing = true
 
 [tool.coverage.run]
 branch = true
-source = ["nifti2bids"]
+source = ["bidsaid"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -73,10 +73,10 @@ python_files = ["test_*.py"]
 line-length = 88
 
 [project.urls]
-Homepage = "https://nifti2bids.readthedocs.io"
-Github = "https://github.com/donishadsmith/nifti2bids"
-Issues = "https://github.com/donishadsmith/nifti2bids/issues"
-Changelog = "https://nifti2bids.readthedocs.io/en/stable/changelog.html"
+Homepage = "https://bidsaid.readthedocs.io"
+Github = "https://github.com/donishadsmith/bidsaid"
+Issues = "https://github.com/donishadsmith/bidsaid/issues"
+Changelog = "https://bidsaid.readthedocs.io/en/stable/changelog.html"
 
 [bdist_wheel]
 universal = 1

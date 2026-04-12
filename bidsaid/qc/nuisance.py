@@ -3,7 +3,7 @@ from pathlib import Path
 import nibabel as nib, numpy as np
 from nilearn.maskers import NiftiMasker
 
-from nifti2bids.io import load_nifti
+from bidsaid.io import load_nifti
 
 
 def compute_global_signal(

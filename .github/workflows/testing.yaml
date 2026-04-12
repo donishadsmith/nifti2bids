@@ -42,7 +42,7 @@ jobs:
 
       - name: Run tests with coverage for Ubuntu on Python 3.10
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-ver == '3.10' }}
-        run: pytest --cov nifti2bids
+        run: pytest --cov bidsaid
 
       - name: Run test without coverage for Ubuntu from Python >= 3.10
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-ver != '3.10' }}

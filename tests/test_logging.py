@@ -2,7 +2,7 @@ import logging
 
 import rich
 
-from nifti2bids.logging import setup_logger, _add_default_handler
+from bidsaid.logging import setup_logger, _add_default_handler
 
 
 def test_setup_logger(caplog):

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np, pandas as pd, pytest
 
-from nifti2bids.qc import (
+from bidsaid.qc import (
     compute_n_dummy_scans,
     compute_framewise_displacement,
     create_censor_mask,
@@ -125,7 +125,7 @@ def test_compute_consecutive_censor_stats():
 
 def test_compute_global_signal():
     "Test for ``compute_global_signal``."
-    from nifti2bids.simulate import simulate_nifti_image
+    from bidsaid.simulate import simulate_nifti_image
 
     nifti_img = simulate_nifti_image((3, 3, 3, 10))
 

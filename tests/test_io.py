@@ -1,5 +1,5 @@
 import nibabel as nib
-import nifti2bids.io as bids_io
+import bidsaid.io as bids_io
 
 
 def test_compress_image(nifti_img_and_path):

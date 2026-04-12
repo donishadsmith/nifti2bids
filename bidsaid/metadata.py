@@ -193,8 +193,8 @@ def get_image_orientation(
 
     Examples
     --------
-    >>> from nifti2bids.simulate import simulate_nifti_image
-    >>> from nifti2bids.metadata import get_image_orientation
+    >>> from bidsaid.simulate import simulate_nifti_image
+    >>> from bidsaid.metadata import get_image_orientation
     >>> img = simulate_nifti_image((10, 10, 10, 10))
     >>> get_image_orientation(img)
         ({"i": "L -> R", "j": "P -> A", "k": "I -> S"}, ("R", "A", "S"))
@@ -247,7 +247,7 @@ def direction_to_voxel_axis(
     Example
     -------
     Assuming image has RAS orientation
-    >>> from nifti2bids.simulate import simulate_nifti_image
+    >>> from bidsaid.simulate import simulate_nifti_image
     >>> nifti_img = simulate_nifti_image(img_shape=(5, 5, 5, 5))
     >>> direction_to_voxel_axis(nifti_img, ("A", "P"))
         ("j", 2)
@@ -590,7 +590,7 @@ def _create_multiband_slice_groupings(
 
     Example
     -------
-    >>> from nifti2bids.metadata import _create_mutiband_slice_groupings
+    >>> from bidsaid.metadata import _create_mutiband_slice_groupings
     >>> slice_order = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9] # interleaved order
     >>> _create_mutiband_slice_groupings(slice_order, multiband_factor=2, n_time_steps=5, ascending=True)
     >>> [(0, 5), (2, 7), (4, 9), (1, 6), (3, 8)]
@@ -642,7 +642,7 @@ def _create_multiband_timing(
 
     Example
     -------
-    >>> from nifti2bids.metadata import _create_mutiband_timing
+    >>> from bidsaid.metadata import _create_mutiband_timing
     >>> slice_order = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9] # interleaved order
     >>> _create_mutiband_timing(0.8, slice_order, multiband_factor=2, ascending=True)
     >>> [0.0, 0.48, 0.16, 0.64, 0.32, 0.0, 0.48, 0.16, 0.64, 0.32]
@@ -892,7 +892,7 @@ def is_valid_date(date_str: str, date_fmt: str) -> bool:
 
     Example
     -------
-    >>> from nifti2bids.metadata import is_valid_date
+    >>> from bidsaid.metadata import is_valid_date
     >>> is_valid_date("241010", "%y%m%d")
         True
     """
@@ -923,7 +923,7 @@ def parse_date_from_path(path: str | Path, date_fmt: str) -> str | None:
 
     Example
     -------
-    >>> from nifti2bids.metadata import parse_date_from_path
+    >>> from bidsaid.metadata import parse_date_from_path
     >>> date_str = parse_date_from_path("101_240820_mprage_32chan.nii", "%y%m%d")
     >>> print(date_str)
         "240820"
@@ -1036,8 +1036,8 @@ def infer_task_from_image(
 
     Example
     -------
-    >>> from nifti2bids.io import simulate_nifti_image
-    >>> from nifti2bids.metadata import infer_task_from_image
+    >>> from bidsaid.io import simulate_nifti_image
+    >>> from bidsaid.metadata import infer_task_from_image
     >>> img = simulate_nifti_image((100, 100, 100, 260))
     >>> task_volume_map = {"flanker": 300, "nback": 260}
     >>> infer_task_from_image(img, task_volume_map)

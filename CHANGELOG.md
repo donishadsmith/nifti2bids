@@ -1,8 +1,11 @@
 # Changelog
 
-Documentation of changes for each version of ``Nifti2Bids``.
+Documentation of changes for each version of ``BIDSAID``.
 
 **Currently doesn't follow semantic versioning.**
+
+## [0.20.0] - 2026-04-12
+- Package renamed from ``nifti2bids`` to ``bidsaid`` due to expanding scope. Prior package names deleted from Pypi to allow other users to use those names
 
 ## [0.19.0] - 2026-03-10
 - Update simulate module

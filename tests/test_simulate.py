@@ -2,7 +2,7 @@ from pathlib import Path
 
 import nibabel as nib, pytest
 
-from nifti2bids.simulate import (
+from bidsaid.simulate import (
     simulate_nifti_image,
     simulate_bids_dataset,
 )

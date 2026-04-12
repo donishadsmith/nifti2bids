@@ -1,10 +1,10 @@
 API
 ===
-:mod:`nifti2bids.audit`
+:mod:`bidsaid.audit`
 ----------------------
 Module for auditing directories.
 
-.. currentmodule:: nifti2bids.audit
+.. currentmodule:: bidsaid.audit
 
 .. autosummary::
    :template: class.rst
@@ -13,11 +13,11 @@ Module for auditing directories.
 
    BIDSAuditor
 
-:mod:`nifti2bids.bids`
+:mod:`bidsaid.bids`
 ----------------------
 Module for initializing and creating BIDS compliant files.
 
-.. currentmodule:: nifti2bids.bids
+.. currentmodule:: bidsaid.bids
 
 .. autosummary::
    :template: function.rst
@@ -43,11 +43,11 @@ Module for initializing and creating BIDS compliant files.
    EPrimeBlockExtractor
    EPrimeEventExtractor
 
-:mod:`nifti2bids.logging`
+:mod:`bidsaid.logging`
 -------------------------
 Module setting up a logger.
 
-.. currentmodule:: nifti2bids.logging
+.. currentmodule:: bidsaid.logging
 
 .. autosummary::
    :template: function.rst
@@ -57,11 +57,11 @@ Module setting up a logger.
    setup_logger
 
 
-:mod:`nifti2bids.io`
+:mod:`bidsaid.io`
 --------------------
 Module for input/output operations on NIfTI files and images.
 
-.. currentmodule:: nifti2bids.io
+.. currentmodule:: bidsaid.io
 
 .. autosummary::
    :template: function.rst
@@ -75,12 +75,12 @@ Module for input/output operations on NIfTI files and images.
    get_nifti_affine
    replace_ext
 
-:mod:`nifti2bids.metadata`
+:mod:`bidsaid.metadata`
 --------------------------
 Module containing functions to extract metadata information
 from NIfTIs.
 
-.. currentmodule:: nifti2bids.metadata
+.. currentmodule:: bidsaid.metadata
 
 .. autosummary::
    :template: function.rst
@@ -107,12 +107,12 @@ from NIfTIs.
    compute_effective_echo_spacing
    compute_total_readout_time
 
-:mod:`nifti2bids.parsers`
+:mod:`bidsaid.parsers`
 --------------------------
 Module containing functions to parse raw logs from stimulus
 Presentation and E-Prime 3 software.
 
-.. currentmodule:: nifti2bids.parsers
+.. currentmodule:: bidsaid.parsers
 
 .. autosummary::
    :template: function.rst
@@ -124,11 +124,11 @@ Presentation and E-Prime 3 software.
    load_presentation_log
    get_presentation_log_date
 
-:mod:`nifti2bids.qc`
+:mod:`bidsaid.qc`
 --------------------
 Module for quality control metrics and assessment of fMRI data.
 
-.. currentmodule:: nifti2bids.qc
+.. currentmodule:: bidsaid.qc
 
 .. autosummary::
    :template: function.rst
@@ -144,11 +144,11 @@ Module for quality control metrics and assessment of fMRI data.
    get_n_censored_volumes
    compute_global_signal
 
-:mod:`nifti2bids.simulate`
+:mod:`bidsaid.simulate`
 --------------------------
 Module for simulating NIfTI images and BIDS datasets.
 
-.. currentmodule:: nifti2bids.simulate
+.. currentmodule:: bidsaid.simulate
 
 .. autosummary::
    :template: function.rst

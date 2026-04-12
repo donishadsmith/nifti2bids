@@ -106,7 +106,7 @@ def regex_glob(
 
     Example
     -------
-    >>> from nifti2bids.io import regex_glob
+    >>> from bidsaid.io import regex_glob
     >>> # Get any file ending in pdf or txt
     >>> regex_glob(r"path/to/directory", pattern=r"^.*.(pdf|txt)$")
     """

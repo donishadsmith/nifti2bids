@@ -7,10 +7,10 @@ from typing import Iterable, Literal
 
 import numpy as np, pandas as pd
 
-from nifti2bids._helpers import iterable_to_str
-from nifti2bids.logging import setup_logger
-from nifti2bids.io import _copy_file
-from nifti2bids.parsers import (
+from bidsaid._helpers import iterable_to_str
+from bidsaid.logging import setup_logger
+from bidsaid.io import _copy_file
+from bidsaid.parsers import (
     load_eprime_log,
     load_presentation_log,
     _convert_time,
@@ -156,7 +156,7 @@ def _strip_none_entities(bids_filename: str | Path) -> str:
 
     Example
     -------
-    >>> from nifti2bids.bids import _strip_none_entities
+    >>> from bidsaid.bids import _strip_none_entities
     >>> bids_filename = "sub-101_ses-None_task-flanker_bold.nii.gz"
     >>> _strip_none_entities(bids_filename)
         "sub-101_task-flanker_bold.nii.gz"
@@ -199,7 +199,7 @@ def get_entity_value(
 
     Example
     -------
-    >>> from nifti2bids.bids import get_entity_value
+    >>> from bidsaid.bids import get_entity_value
     >>> get_entity_value("sub-01_task-flanker_bold.nii.gz", "task")
         "flanker"
     """
@@ -907,7 +907,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     ----------
     log_or_df : :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The Presentation log as a file path or the Presentation DataFrame
-        returned by :code:`nifti2bids.parsers.load_presentation_log`.
+        returned by :code:`bidsaid.parsers.load_presentation_log`.
 
         .. important::
            If a text file is used, data are assumed to have at least one element
@@ -1097,7 +1097,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
     Example
     -------
     >>> import pandas as pd
-    >>> from nifti2bids.bids import PresentationBlockExtractor
+    >>> from bidsaid.bids import PresentationBlockExtractor
     >>> extractor = PresentationBlockExtractor(
     ...     log_file,
     ...     block_cue_names=("Face", "Place"),
@@ -1571,7 +1571,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     ----------
     log_or_df : :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The Presentation log as a file path or the Presentation DataFrame
-        returned by :code:`nifti2bids.parsers.load_presentation_log`.
+        returned by :code:`bidsaid.parsers.load_presentation_log`.
 
         .. important::
            If a text file is used, data are assumed to have at least one element
@@ -1671,7 +1671,7 @@ class PresentationEventExtractor(PresentationExtractor, EventExtractor):
     Example
     -------
     >>> import pandas as pd
-    >>> from nifti2bids.bids import PresentationEventExtractor
+    >>> from bidsaid.bids import PresentationEventExtractor
     >>> extractor = PresentationEventExtractor(
     ...     log_file,
     ...     trial_types=("congruentleft", "congruentright", "incongruentleft", "incongruentright", "nogo"),
@@ -1940,7 +1940,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     ----------
     log_or_df : :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The E-Prime log as a file path or the E-Prime DataFrame
-        returned by :code:`nifti2bids.parsers.load_eprime_log`.
+        returned by :code:`bidsaid.parsers.load_eprime_log`.
 
         .. important::
             If a text file is used, data are assumed to have at least one element
@@ -2119,7 +2119,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     Example
     -------
     >>> import pandas as pd
-    >>> from nifti2bids.bids import EPrimeBlockExtractor
+    >>> from bidsaid.bids import EPrimeBlockExtractor
     >>> extractor = EPrimeBlockExtractor(
     ...     log_file,
     ...     block_cue_names=("Face", "Place"),
@@ -2704,7 +2704,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     ----------
     log_or_df : :obj:`str`, :obj:`Path`, :obj:`pandas.DataFrame`
         The E-Prime log as a file path or the E-Prime DataFrame
-        returned by :code:`nifti2bids.parsers.load_eprime_log`.
+        returned by :code:`bidsaid.parsers.load_eprime_log`.
 
         .. important::
            If a text file is used, data are assumed to have at least one element
@@ -2797,7 +2797,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
     Example
     -------
     >>> import pandas as pd
-    >>> from nifti2bids.bids import EPrimeEventExtractor
+    >>> from bidsaid.bids import EPrimeEventExtractor
     >>> extractor = EPrimeEventExtractor(
     ...     log_file,
     ...     trial_types=("Go", "NoGo"),
@@ -3092,7 +3092,7 @@ def add_instruction_timing(
     Example
     -------
     >>> import pandas as pd
-    >>> from nifti2bids.bids import add_instruction_timing
+    >>> from bidsaid.bids import add_instruction_timing
     >>> events_df = pd.DataFrame({
     ...     "onset": [0.0, 10.0, 20.0],
     ...     "duration": [10.0, 10.0, 10.0],

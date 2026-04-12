@@ -1,7 +1,7 @@
 """
 Post-hoc BIDS toolkit for NIfTI datasets without original DICOMs.
 -----------------------------------------------------------------
-Documentation can be found at https://nifti2bids.readthedocs.io.
+Documentation can be found at https://bidsaid.readthedocs.io.
 
 Submodules
 ----------
@@ -24,4 +24,4 @@ qc -- Quality control utilities for fMRI data (motion censoring, framewise displ
 simulate -- Simulate a basic NIfTI image or BIDS dataset for testing purposes
 """
 
-__version__ = "0.19.0"
+__version__ = "0.20.0"

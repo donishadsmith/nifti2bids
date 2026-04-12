@@ -219,7 +219,7 @@ def load_eprime_log(
     Loads E-Prime 3 log file as a Pandas Dataframe.
 
     .. important::
-       - If the log file extension is "edat3", use :func:`nifti2bids.parsers.convert_edat3_to_tsv`
+       - If the log file extension is "edat3", use :func:`bidsaid.parsers.convert_edat3_to_tsv`
          to convert it to text form. If exporting manually, remove the checkmark from
          the "Unicode" field. The type of text file the edat file is exported as is irrelevent.
 

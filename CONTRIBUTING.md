@@ -1,25 +1,25 @@
 Contributing
 ============
-NIfTI2BIDS is an open-source package, and all contributions are welcome to help improve, enhance, and refine it!
+BIDSAID is an open-source package, and all contributions are welcome to help improve, enhance, and refine it!
 
-Since the repository for NIfTI2BIDS is located on GitHub, you will need to create an account. Here are some
+Since the repository for BIDSAID is located on GitHub, you will need to create an account. Here are some
 [instructions](https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github) to get you started.
 
 Code of Conduct
 ---------------
-Before making a contribution, please be aware of the [code of conduct](https://github.com/donishadsmith/nifti2bids/blob/main/CODE_OF_CONDUCT.md).
+Before making a contribution, please be aware of the [code of conduct](https://github.com/donishadsmith/bidsaid/blob/main/CODE_OF_CONDUCT.md).
 
 Labels
 ------
-Below are the current list of labels that can be used when opening an [issue](https://github.com/donishadsmith/nifti2bids/issues):
+Below are the current list of labels that can be used when opening an [issue](https://github.com/donishadsmith/bidsaid/issues):
 
-[![bug](https://img.shields.io/badge/-bug-d73a4a.svg)](https://github.com/donishadsmith/nifti2bids/labels/bug)
+[![bug](https://img.shields.io/badge/-bug-d73a4a.svg)](https://github.com/donishadsmith/bidsaid/labels/bug)
 - *These issues relate to unexpected behaviors or chrashes.*
 
-[![documentation](https://img.shields.io/badge/-documentation-0075ca.svg)](https://github.com/donishadsmith/NIfTI2BIDS/labels/bug)
+[![documentation](https://img.shields.io/badge/-documentation-0075ca.svg)](https://github.com/donishadsmith/bidsaid/labels/bug)
 - *These issues relate to improvements or enhancements to documentation.*
 
-[![enhancement](https://img.shields.io/badge/-enhancement-0E8A16.svg)](https://github.com/donishadsmith/NIfTI2BIDS/labels/bug)
+[![enhancement](https://img.shields.io/badge/-enhancement-0E8A16.svg)](https://github.com/donishadsmith/bidsaid/labels/bug)
 - *These issues relate to requested new features or improvements to existing ones.*
 
 Workflow for Making Changes
@@ -28,9 +28,9 @@ Workflow for Making Changes
 
 To allow any changes to be tracked and ensure that any changes aren't being duplicated.
 
-**2. Fork NIfTI2BIDS**
+**2. Fork BIDSAID**
 
-This is your own unique copy of NIfTI2BIDS and changes will not affect the main codebase.
+This is your own unique copy of BIDSAID and changes will not affect the main codebase.
 Here are some guides to [forking](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
 and ensuring that your fork is always [synced](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/syncing-a-fork) with the main codebase.
 

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from nifti2bids.parsers import (
+from bidsaid.parsers import (
     load_presentation_log,
     load_eprime_log,
     get_presentation_log_date,

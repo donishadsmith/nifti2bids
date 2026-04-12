@@ -4,4 +4,4 @@ generated/
 venv/
 docs/_build/
 dist/
-nifti2bids.egg-info
+bidsaid.egg-info
