@@ -4,6 +4,9 @@ Documentation of changes for each version of ``BIDSAid``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.21.0] - 2026-04-12
+- Splits ``bids`` module to ``files`` and ``events`` modules
+
 ## [0.20.0] - 2026-04-12
 - Package renamed from ``nifti2bids`` to ``bidsaid`` due to expanding scope. Prior package names deleted from Pypi to allow other users to use those names
 

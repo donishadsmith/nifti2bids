@@ -10,7 +10,7 @@
 [![Documentation Status](https://readthedocs.org/projects/bidsaid/badge/?version=stable)](http://bidsaid.readthedocs.io/en/stable/?badge=stable)
 
 
-A toolkit for post-hoc BIDS conversion of legacy or unstructured NIfTI datasets. Intended for cases that require custom code and flexibility, such as when NIfTI source files lack consistent naming conventions, organized folder hierarchies, or sidecar metadata. Includes utilities for metadata reconstruction from NIfTI headers, file renaming, neurobehavioral log parsing (for E-Prime and Presentation), and JSON sidecar generation.
+A toolkit for creating and managing BIDS-compliant fMRI datasets without original DICOMs. Intended for cases that require custom code and flexibility, such as when NIfTI source files lack consistent naming conventions, organized folder hierarchies, or sidecar metadata. Includes utilities for metadata reconstruction from NIfTI headers, file renaming, neurobehavioral log parsing (for E-Prime and Presentation), and JSON sidecar generation.
 
 ## Installation
 

@@ -17,7 +17,7 @@ def _determine_delimiter(
     Parameters
     ----------
     textlines : :obj:`list[str]`
-        The lines of text from the presentation log file.
+        The lines of text from the Presentation log file.
 
     initial_column_headers : :obj:`Iterable[str]`
         The initial column headers for data.

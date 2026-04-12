@@ -13,11 +13,11 @@ Module for auditing directories.
 
    BIDSAuditor
 
-:mod:`bidsaid.bids`
+:mod:`bidsaid.files`
 ----------------------
 Module for initializing and creating BIDS compliant files.
 
-.. currentmodule:: bidsaid.bids
+.. currentmodule:: bidsaid.files
 
 .. autosummary::
    :template: function.rst
@@ -32,6 +32,12 @@ Module for initializing and creating BIDS compliant files.
    create_participant_tsv
    create_sessions_tsv
    add_instruction_timing
+
+:mod:`bidsaid.events`
+----------------------
+Module containing classes for extracting timing information from Presentation and E-Prime logs.
+
+.. currentmodule:: bidsaid.events
 
 .. autosummary::
    :template: class.rst

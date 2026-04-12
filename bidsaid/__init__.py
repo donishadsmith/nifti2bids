@@ -1,13 +1,15 @@
 """
-Post-hoc BIDS toolkit for NIfTI datasets without original DICOMs.
------------------------------------------------------------------
+A toolkit for creating and managing BIDS-compliant fMRI datasets without original DICOMs.
+-----------------------------------------------------------------------------------------
 Documentation can be found at https://bidsaid.readthedocs.io.
 
 Submodules
 ----------
 audit -- Contains the ``BIDSAuditor`` class to check for certain file availability
 
-bids -- Operations related to initializing and creating BIDS compliant files
+files -- Operations related to initializing and creating BIDS compliant files
+
+events -- Contains classes to extract timing information from Presentation or E-Prime logs
 
 io -- Generic operations related to loading NIfTI data
 
@@ -17,11 +19,11 @@ module specific handler is not available
 metadata -- Operations related to extracting or creating metadata information from NIfTI images
 
 parsers -- Operations related to standardizing and parsing information logs created by stimulus
-neurobehavioral software such as Presentation and EPrime
+neurobehavioral software such as Presentation and E-Prime
 
 qc -- Quality control utilities for fMRI data (motion censoring, framewise displacement, etc.)
 
 simulate -- Simulate a basic NIfTI image or BIDS dataset for testing purposes
 """
 
-__version__ = "0.20.0"
+__version__ = "0.21.0"

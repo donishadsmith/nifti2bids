@@ -1,7 +1,6 @@
 """Module for creating simulated data."""
 
-"""Module for creating simulated data."""
-
+import inspect
 from pathlib import Path
 
 import nibabel as nib, numpy as np
@@ -10,7 +9,7 @@ from nilearn.datasets import load_mni152_brain_mask
 from nilearn.image import resample_img
 from tqdm import tqdm
 
-from .bids import (
+from .files import (
     _strip_none_entities,
     create_dataset_description,
     save_dataset_description,
@@ -49,12 +48,17 @@ def simulate_nifti_image(
         / np.array(img_shape[:3])
     )
 
-    resampled_mask = resample_img(
-        whole_brain_mask,
-        target_shape=img_shape[:3],
-        target_affine=new_affine,
-        interpolation="nearest",
-    )
+    kwargs = {
+        "img": whole_brain_mask,
+        "target_shape": img_shape[:3],
+        "target_affine": new_affine,
+        "interpolation": "nearest",
+    }
+
+    if "copy_header" in inspect.signature(resample_img).parameters.keys():
+        kwargs.update({"copy_header": True})
+
+    resampled_mask = resample_img(**kwargs)
 
     mask_data = resampled_mask.get_fdata()
     if len(img_shape) == 4:
