@@ -6,6 +6,7 @@ Documentation of changes for each version of ``BIDS-Aid``.
 
 ## [0.23.0] - 2026-04-19
 - Add more features to reaction time functions for BlockExtractors
+- Add extract number of responses
 
 ## [0.22.1] - 2026-04-13
 - Fix NoneType issue in ``sort_by_acquisition_order`` function

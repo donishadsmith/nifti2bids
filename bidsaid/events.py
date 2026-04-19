@@ -486,6 +486,10 @@ class BlockExtractor(LogExtractor):
     def extract_mean_accuracies(self):
         """Extract mean accuracy for each block."""
 
+    @abstractmethod
+    def extract_response_counts(self):
+        """Extract number of trials responded to in each block."""
+
 
 class EventExtractor(LogExtractor):
     """Abstract Base Class for Event Extractors."""
@@ -1247,6 +1251,52 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
                 mean_accuracies.append(mean_accuracy)
 
         return mean_accuracies
+
+    def extract_response_counts(
+        self,
+        response_trial_names: Iterable[str] | None = None,
+    ) -> list[int]:
+        """
+        Extract the number of trials with a response for each block.
+
+        Parameters
+        ----------
+        response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
+            The stimulus trial names within each block to include.
+
+            .. important::
+               If ``split_cue_as_instruction`` is True, block cue names
+               are excluded from this parameter.
+
+        Returns
+        -------
+        list[int]
+            A list of response counts for each block. If instruction cue
+            is separated, NaN will be assigned for its count.
+        """
+        response_trial_names = _filter_response_trial_names(
+            response_trial_names, self.split_cue_as_instruction, self.block_cue_names
+        )
+
+        counts = []
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.trial_column_name]
+            block_df = self._get_block_trials(block_start_index, response_trial_names)
+            reaction_times, _ = self._extract_rts_and_responses(block_df)
+
+            count = sum(1 for rt in reaction_times if not np.isnan(rt))
+
+            should_separate_block = _separate_block_from_cue(
+                self.split_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+            if should_separate_block and not self.drop_instruction_cues:
+                counts.extend([np.nan, count])
+            else:
+                counts.append(count)
+
+        return counts
 
 
 class PresentationEventExtractor(PresentationExtractor, EventExtractor):
@@ -2411,6 +2461,56 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                 mean_accuracies.append(correctness.mean())
 
         return mean_accuracies
+
+    def extract_response_counts(
+        self,
+        reaction_time_column_name: str,
+        response_trial_names: Iterable[str] | None = None,
+    ) -> list[int]:
+        """
+        Extract the number of trials with a response for each block.
+
+        Parameters
+        ----------
+        reaction_time_column_name : :obj:`str`
+            The name of the column containing reaction time values.
+
+        response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
+            The stimulus trial names within each block to include.
+
+            .. important::
+               If ``split_cue_as_instruction`` is True, block cue names
+               are excluded from this parameter.
+
+        Returns
+        -------
+        list[int]
+            A list of response counts for each block. If instruction cue
+            is separated, NaN will be assigned for its count.
+        """
+        response_trial_names = _filter_response_trial_names(
+            response_trial_names, self.split_cue_as_instruction, self.block_cue_names
+        )
+
+        counts = []
+        for block_start_index in self.starting_block_indices:
+            block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
+            block_df = self._get_block_trials(block_start_index, response_trial_names)
+
+            rts = block_df[reaction_time_column_name].replace(0, np.nan)
+            count = rts.notna().sum()
+
+            should_separate_block = _separate_block_from_cue(
+                self.split_cue_as_instruction,
+                block_cue_name,
+                self.block_cues_without_instruction,
+            )
+            if should_separate_block and not self.drop_instruction_cues:
+                counts.extend([np.nan, count])
+            else:
+                counts.append(count)
+
+        return counts
 
 
 class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):

@@ -119,6 +119,8 @@ def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     # Block 2: Mean = (1.5 + 1.1 + 1.6 + NaN) / 3 = 1.400s
     assert mean_rts_all[1] == pytest.approx(1.400, rel=1e-2)
 
+    assert extractor.extract_response_counts() == [4, 3]
+
     # Test mean RT for correct trials only
     response_map = {"hit": 1, "miss": 0}
     mean_rts_correct = extractor.extract_mean_reaction_times(
@@ -330,6 +332,11 @@ def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     assert mean_rts_all[0] == pytest.approx(0.55)
     # Block B: (0.5 + 0.7) / 2 = 0.6
     assert mean_rts_all[1] == pytest.approx(0.6)
+
+    assert extractor.extract_response_counts(reaction_time_column_name="Data.RT") == [
+        2,
+        2,
+    ]
 
     # Test mean RT for correct trials only
     mean_rts_correct = extractor.extract_mean_reaction_times(
