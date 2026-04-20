@@ -1100,7 +1100,9 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             (ie. "hit", "miss", "other", "false alarm", "incorrect"), to accuracy
             values (0 for incorrect, 1 for correct). Use ``float("NaN")`` to
             exclude a response code from the computation. Required when
-            ``response_type`` is "correct" or "incorrect".
+            ``response_type`` is "correct" or "incorrect". When provided
+            with ``response_type="all"``, responses mapped to ``float("NaN")``
+            are excluded from the mean reaction time computation.
 
         response_type : :obj:`Literal["correct", "incorrect", "all"]`, default="all"
             Whether to compute mean RT for correct, incorrect, or all trials.
@@ -1152,6 +1154,13 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
             reaction_times, responses = self._extract_rts_and_responses(block_df)
 
             if response_type == "all":
+                if response_map is not None:
+                    reaction_times = [
+                        rt
+                        for rt, resp in zip(reaction_times, responses)
+                        if not np.isnan(float(response_map.get(resp, float("nan"))))
+                    ]
+
                 mean_rt = (
                     np.nanmean(reaction_times)
                     if len(reaction_times) > 0 and not np.all(np.isnan(reaction_times))

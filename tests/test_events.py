@@ -96,6 +96,8 @@ def test_PresentationBlockExtractor(tmp_dir, scanner_start_time):
 
 def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     """Test for ``PresentationBlockExtractor.extract_mean_reaction_times`` and ``extract_mean_accuracies``."""
+    import numpy as np
+
     filename = Path(tmp_dir.name) / "block.txt"
     _create_presentation_logfile(tmp_dir.name, BLOCK_PRESENTATION_DATA_NO_CUE, "block")
 
@@ -120,6 +122,15 @@ def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     assert mean_rts_all[1] == pytest.approx(1.400, rel=1e-2)
 
     assert extractor.extract_response_counts() == [4, 3]
+
+    # Test filtering
+    mean_rts_all = extractor.extract_mean_reaction_times(
+        response_map={"hit": float("nan"), "miss": float("nan")}
+    )
+    assert len(mean_rts_all) == 2
+    assert np.isnan(mean_rts_all[0])
+    # Block 2: Mean = (1.5 + 1.1 + 1.6 + NaN) / 3 = 1.400s
+    assert np.isnan(mean_rts_all[1])
 
     # Test mean RT for correct trials only
     response_map = {"hit": 1, "miss": 0}

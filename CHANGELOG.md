@@ -4,6 +4,9 @@ Documentation of changes for each version of ``BIDS-Aid``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.23.1] - 2026-04-19
+- Filtering logic added to extract reaction times for ``PresentationBlockExtractor`` to filter out certain response types.
+
 ## [0.23.0] - 2026-04-19
 - Add more features to reaction time functions for BlockExtractors
 - Add extract number of responses
