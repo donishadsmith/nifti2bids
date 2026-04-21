@@ -459,6 +459,10 @@ def convert_to_literal(
     return condition_names
 
 
+def _sanitize_list(input_list):
+    return [float(x) if _is_float(x) else x for x in input_list]
+
+
 class LogExtractor(ABC):
     """Abstract Base Class for Extractors."""
 
@@ -1263,6 +1267,7 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
     def extract_response_counts(
         self,
+        response_map: dict[str, int] | None = None,
         response_trial_names: Iterable[str] | None = None,
     ) -> list[int]:
         """
@@ -1270,6 +1275,12 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
 
         Parameters
         ----------
+        response_map : :obj:`dict[str, int]` or :obj:`None`, default=None
+            A dictionary mapping response codes, from "Stim Type" column, to values.
+            If provided, responses mapped to ``float("NaN")`` (or responses not in the
+            map) are excluded from the count. This ensures the count accurately reflects
+            the valid trials used in reaction time and accuracy computations.
+
         response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include.
 
@@ -1291,9 +1302,17 @@ class PresentationBlockExtractor(PresentationExtractor, BlockExtractor):
         for block_start_index in self.starting_block_indices:
             block_cue_name = self.df.loc[block_start_index, self.trial_column_name]
             block_df = self._get_block_trials(block_start_index, response_trial_names)
-            reaction_times, _ = self._extract_rts_and_responses(block_df)
+            reaction_times, responses = self._extract_rts_and_responses(block_df)
 
-            count = sum(1 for rt in reaction_times if not np.isnan(rt))
+            if response_map is not None:
+                count = sum(
+                    1
+                    for rt, resp in zip(reaction_times, responses)
+                    if not np.isnan(rt)
+                    and not np.isnan(float(response_map.get(resp, float("nan"))))
+                )
+            else:
+                count = sum(1 for rt in reaction_times if not np.isnan(rt))
 
             should_separate_block = _separate_block_from_cue(
                 self.split_cue_as_instruction,
@@ -2166,6 +2185,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         block_df: pd.DataFrame,
         subject_response_column: str,
         correct_response_column: str,
+        valid_correct_responses: Iterable[str | int | float] | None = None,
         response_required_only: bool = False,
     ) -> pd.Series:
         """
@@ -2185,6 +2205,9 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
 
         correct_response_column : :obj:`str`
             Column name for correct response.
+
+        valid_correct_responses : :obj:`Iterable[str | int | float]` or :obj:`None`, default=None
+            Specific values in the ``correct_response_column`` to include in the computation.
 
         response_required_only : :obj:`bool`, default=False
             Compute accuracy only for trials expecting a response.
@@ -2210,6 +2233,11 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             subject_resp = subject_resp[~correct_resp.isna()]
             correct_resp = correct_resp[~correct_resp.isna()]
 
+        if valid_correct_responses:
+            block_df = block_df[correct_resp.isin(valid_correct_responses)]
+            subject_resp = subject_resp[correct_resp.isin(valid_correct_responses)]
+            correct_resp = correct_resp[correct_resp.isin(valid_correct_responses)]
+
         both_nan = subject_resp.isna() & correct_resp.isna()
         both_equal = subject_resp == correct_resp
 
@@ -2220,6 +2248,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         reaction_time_column_name: str,
         subject_response_column: str | None = None,
         correct_response_column: str | None = None,
+        valid_correct_responses: Iterable[str | int | float] | None = None,
         response_type: Literal["correct", "incorrect", "all"] = "all",
         response_trial_names: Iterable[str] | None = None,
         response_required_only: bool = False,
@@ -2248,6 +2277,14 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             ``response_type`` is "correct" or "incorrect", or when
             ``response_required_only`` is True.
 
+        valid_correct_responses : :obj:`Iterable[str | int | float]` or :obj:`None`, default=None
+            Specific values in the ``correct_response_column`` to include in the computation.
+            If provided, only trials where the correct response matches one of these
+            values will be evaluated. This is useful for fixing the denominator to
+            specific target trials (e.g., passing `["1"]` to evaluate only Hit Rate,
+            ignoring commission errors on NoGo trials that E-Prime might have encoded as "0").
+            If None, all non-NaN values are evaluated.
+
         response_type : :obj:`Literal["correct", "incorrect", "all"]`, default="all"
             Whether to compute mean reaction time for correct, incorrect,
             or all trials.
@@ -2261,9 +2298,22 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                are excluded from this parameter.
 
         response_required_only : :obj:`bool`, default=False
-            Compute reaction times only for trials expecting a response.
-            Non-response trials are assumed to be assigned NaN
-            in ``correct_response_column``.
+            Compute mean reaction times only for trials that expect a subject response.
+            When True, the script assumes that trials not requiring a response (e.g.,
+            NoGo trials) are encoded as NaN in the ``correct_response_column``, and
+            excludes them from the computation. This prevents reaction times from
+            false alarms (commission errors) from skewing the mean reaction time of
+            legitimate trials. Set to False to include all reaction times regardless
+            of whether a response was expected.
+
+            .. important::
+                This parameter relies strictly on the presence of a non-NaN value in
+                the ``correct_response_column`` to determine if a trial expects a
+                response. If the log file explicitly assigns a value (e.g., "0") to a
+                trial that should not be responded to, the code will
+                treat it as a valid, response-required trial and include it in the
+                reaction time computation. Ensure withhold/NoGo trials are
+                represented as NaN.
 
         Returns
         -------
@@ -2307,22 +2357,37 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                     "'incorrect', or when ``response_required_only`` is True."
                 )
 
+        if valid_correct_responses and not correct_response_column:
+            raise ValueError(
+                "``correct_response_column`` must be provided when "
+                "``valid_correct_responses`` is used."
+            )
+
         mean_reaction_times = []
 
         response_trial_names = _filter_response_trial_names(
             response_trial_names, self.split_cue_as_instruction, self.block_cue_names
         )
 
+        if valid_correct_responses:
+            valid_correct_responses = _sanitize_list(valid_correct_responses)
+
         for block_start_index in self.starting_block_indices:
             block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
             block_df = self._get_block_trials(block_start_index, response_trial_names)
 
             if response_type == "all":
-                if response_required_only:
+                # Avoid repeating this twice under the two if statements
+                if correct_response_column:
                     correct_response = block_df[correct_response_column].apply(
                         lambda x: float(x) if _is_float(x) else x
                     )
+
+                if response_required_only:
                     block_df = block_df[~correct_response.isna()]
+
+                if valid_correct_responses:
+                    block_df = block_df[correct_response.isin(valid_correct_responses)]
 
                 rts = block_df[reaction_time_column_name].replace(0, np.nan)
                 mean_rt = (
@@ -2335,6 +2400,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                     block_df,
                     subject_response_column,
                     correct_response_column,
+                    valid_correct_responses,
                     response_required_only,
                 )
 
@@ -2367,6 +2433,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         self,
         subject_response_column: str,
         correct_response_column: str,
+        valid_correct_responses: Iterable[str | int | float] | None = None,
         response_trial_names: Iterable[str] | None = None,
         response_required_only: bool = False,
     ) -> list[float]:
@@ -2387,6 +2454,14 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             where the subject should not respond should be NaN.
             Usually column name ending in ".CRESP".
 
+        valid_correct_responses : :obj:`Iterable[str | int | float]` or :obj:`None`, default=None
+            Specific values in the ``correct_response_column`` to include in the computation.
+            If provided, only trials where the correct response matches one of these
+            values will be evaluated. This is useful for fixing the denominator to
+            specific target trials (e.g., passing `["1"]` to evaluate only Hit Rate,
+            ignoring commission errors on NoGo trials that E-Prime might have encoded as "0").
+            If None, all non-NaN values are evaluated.
+
         response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include for the
             accuracy computation.
@@ -2396,9 +2471,20 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                are excluded from this parameter.
 
         response_required_only : :obj:`bool`, default=False
-            Compute accuracy only for trials expecting a response.
-            Non-response trials are assumed to be assigned NaN
-            in ``correct_response_column``.
+            Compute mean accuracy only for trials that expect a subject response.
+            When True, the script assumes that trials not requiring a response (e.g.,
+            NoGo trials) are encoded as NaN in the ``correct_response_column``, and
+            excludes them from the computation. This prevents overall accuracy scores
+            from being artificially inflated by correct withholds. Set to False to
+            include all trials regardless of whether a response was expected.
+
+            .. important::
+                This parameter relies strictly on the presence of a non-NaN value in
+                the ``correct_response_column`` to determine if a trial expects a
+                response. If the log file explicitly assigns a value (e.g., "0") to a
+                trial that should not be responded to, the script will
+                treat it as a valid, response-required trial and include it in the
+                accuracy computation. Ensure withhold/NoGo trials are represented as NaN.
 
         Returns
         -------
@@ -2448,6 +2534,10 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         Mean accuracy for instruction cues will be NaN.
         """
         mean_accuracies = []
+
+        if valid_correct_responses:
+            valid_correct_responses = _sanitize_list(valid_correct_responses)
+
         for block_start_index in self.starting_block_indices:
             block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
             block_df = self._get_block_trials(block_start_index, response_trial_names)
@@ -2456,6 +2546,7 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
                 block_df,
                 subject_response_column,
                 correct_response_column,
+                valid_correct_responses,
                 response_required_only,
             )
 
@@ -2474,6 +2565,8 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
     def extract_response_counts(
         self,
         reaction_time_column_name: str,
+        correct_response_column: str | None = None,
+        valid_correct_responses: Iterable[str | int | float] | None = None,
         response_trial_names: Iterable[str] | None = None,
     ) -> list[int]:
         """
@@ -2483,6 +2576,16 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
         ----------
         reaction_time_column_name : :obj:`str`
             The name of the column containing reaction time values.
+
+        correct_response_column : :obj:`str` or :obj:`None`, default=None
+            The name of the column containing the correct response. Required if
+            ``valid_correct_responses`` is provided.
+
+        valid_correct_responses : :obj:`Iterable[str | int | float]` or :obj:`None`, default=None
+            Specific values in the ``correct_response_column`` to include in the count.
+            If provided, the script will only count responses for trials where the
+            correct response matches one of these values (e.g., counting only responses
+            on valid Go trials). If None, all trials are evaluated.
 
         response_trial_names : :obj:`Iterable[str]` or :obj:`None`, default=None
             The stimulus trial names within each block to include.
@@ -2497,14 +2600,29 @@ class EPrimeBlockExtractor(EPrimeExtractor, BlockExtractor):
             A list of response counts for each block. If instruction cue
             is separated, NaN will be assigned for its count.
         """
+        if valid_correct_responses and not correct_response_column:
+            raise ValueError(
+                "``correct_response_column`` must be provided when "
+                "``valid_correct_responses`` is used."
+            )
+
         response_trial_names = _filter_response_trial_names(
             response_trial_names, self.split_cue_as_instruction, self.block_cue_names
         )
+
+        if valid_correct_responses:
+            valid_correct_responses = _sanitize_list(valid_correct_responses)
 
         counts = []
         for block_start_index in self.starting_block_indices:
             block_cue_name = self.df.loc[block_start_index, self.procedure_column_name]
             block_df = self._get_block_trials(block_start_index, response_trial_names)
+
+            if valid_correct_responses:
+                correct_response = block_df[correct_response_column].apply(
+                    lambda x: float(x) if _is_float(x) else x
+                )
+                block_df = block_df[correct_response.isin(valid_correct_responses)]
 
             rts = block_df[reaction_time_column_name].replace(0, np.nan)
             count = rts.notna().sum()
@@ -2793,6 +2911,7 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
         self,
         subject_response_column: str,
         correct_response_column: str,
+        valid_correct_responses: Iterable[str | int | float] | None = None,
         response_required_only: bool = False,
     ) -> list[int]:
         """
@@ -2809,48 +2928,41 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             where the subject should not respond should be NaN.
             Usually column name ending in ".CRESP".
 
+        valid_correct_responses : :obj:`Iterable[str | int | float]` or :obj:`None`, default=None
+            Specific values in the ``correct_response_column`` to include in the computation.
+            If provided, only trials where the correct response matches one of these
+            values will be evaluated. This is useful for fixing the denominator to
+            specific target trials (e.g., passing `["1"]` to evaluate only Hit Rate,
+            ignoring commission errors on NoGo trials that E-Prime might have encoded as "0").
+            If None, all non-NaN values are evaluated.
+
         response_required_only : :obj:`bool`, default=False
-            Compute accuracy only for trials expecting a response.
-            Non-response trials are assumed to be assigned NaN
-            in ``correct_response_column``.
+            Compute accuracy only for trials that expect a subject response.
+            When True, the script assumes that trials not requiring a response (e.g.,
+            NoGo trials) are encoded as NaN in the ``correct_response_column``, and
+            assigns them NaN instead of a binary accuracy score. This isolates
+            accuracy metrics to active responses. Set to False to evaluate all trials
+            (where a correct withhold evaluates to 1).
+
+            .. important::
+                This parameter relies strictly on the presence of a non-NaN value in
+                the ``correct_response_column`` to determine if a trial expects a
+                response. If the log file explicitly assigns a value (e.g., "0") to a trial
+                that should not be responded to, the script will treat it as a valid,
+                response-required trial and assign it an accuracy
+                score. Ensure withhold/NoGo trials are represented as NaN.
 
         Returns
         -------
         list[int]
             A list of accuracy values for each event (0 = incorrect, 1 = correct,
             NaN = trial did not require response when ``response_required_only=True``).
-
-        Notes
-        -----
-        Correctness is determined by comparing ``subject_response_column`` to
-        ``correct_response_column``:
-
-        +------------------+-------------------+--------------------------+----------+
-        | Subject Response | Correct Response  | Interpretation           | Accuracy |
-        +==================+===================+==========================+==========+
-        | "1"              | "1"               | Correct response         | 1        |
-        +------------------+-------------------+--------------------------+----------+
-        | NaN              | NaN               | Correct response         | 1        |
-        +------------------+-------------------+--------------------------+----------+
-        | NaN              | "1"               | Incorrect response       | 0        |
-        +------------------+-------------------+--------------------------+----------+
-        | "1"              | NaN               | Incorrect response       | 0        |
-        +------------------+-------------------+--------------------------+----------+
-        | "2"              | "3"               | Incorrect response       | 0        |
-        +------------------+-------------------+--------------------------+----------+
-
-        Note: If ``response_required_only`` is True, only accuracy for the first,
-        third, and fifth row are assigned 0 and 1, the second and fourth trials as NaN
-        since those are trials that expect a response.
-
-        Example
-        -------
-        >>> responses = extractor.extract_accuracies(
-        ...     subject_response_column="Stimulus.RESP",
-        ...     correct_response_column="Stimulus.CRESP",
-        ... )
         """
         responses = []
+
+        if valid_correct_responses:
+            valid_correct_responses = _sanitize_list(valid_correct_responses)
+
         for row_indx in self.event_trial_indices:
             subject_resp = self.df.loc[row_indx, subject_response_column]
             correct_resp = self.df.loc[row_indx, correct_response_column]
@@ -2865,7 +2977,12 @@ class EPrimeEventExtractor(EPrimeExtractor, EventExtractor):
             both_nan = pd.isna(subject_resp) and pd.isna(correct_resp)
             both_equal = subject_resp == correct_resp
 
-            if response_required_only and pd.isna(correct_resp):
+            if valid_correct_responses:
+                is_valid_target = correct_resp in valid_correct_responses
+            else:
+                is_valid_target = not pd.isna(correct_resp)
+
+            if response_required_only and not is_valid_target:
                 response = np.nan
             else:
                 response = 1 if (both_nan or both_equal) else 0

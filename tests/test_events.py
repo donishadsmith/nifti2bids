@@ -122,6 +122,10 @@ def test_PresentationBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     assert mean_rts_all[1] == pytest.approx(1.400, rel=1e-2)
 
     assert extractor.extract_response_counts() == [4, 3]
+    assert extractor.extract_response_counts(response_map={"hit": float("NaN")}) == [
+        0,
+        0,
+    ]
 
     # Test filtering
     mean_rts_all = extractor.extract_mean_reaction_times(
@@ -349,6 +353,23 @@ def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
         2,
     ]
 
+    mean_rts_all = extractor.extract_mean_reaction_times(
+        correct_response_column="Data.CRESP",
+        reaction_time_column_name="Data.RT",
+        valid_correct_responses=["1"],
+    )
+
+    assert len(mean_rts_all) == 2
+    # Block A: (0.5 + 0.6) / 2 = 0.55
+    assert mean_rts_all[0] == pytest.approx(0.55)
+    # Block B: (0.5 + 0.7) / 2 = 0.6
+    assert mean_rts_all[1] == pytest.approx(0.6)
+
+    assert extractor.extract_response_counts(reaction_time_column_name="Data.RT") == [
+        2,
+        2,
+    ]
+
     # Test mean RT for correct trials only
     mean_rts_correct = extractor.extract_mean_reaction_times(
         reaction_time_column_name="Data.RT",
@@ -357,6 +378,21 @@ def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
         response_type="correct",
         response_trial_names=("A", "B"),
     )
+    assert len(mean_rts_correct) == 2
+    # Block A: only correct trial has RT 0.5
+    assert mean_rts_correct[0] == 0.5
+    # Block B: both correct, (0.5 + 0.7) / 2 = 0.6
+    assert mean_rts_correct[1] == 0.6
+
+    mean_rts_correct = extractor.extract_mean_reaction_times(
+        reaction_time_column_name="Data.RT",
+        subject_response_column="Data.RESP",
+        correct_response_column="Data.CRESP",
+        response_type="correct",
+        valid_correct_responses=["1"],
+        response_trial_names=("A", "B"),
+    )
+
     assert len(mean_rts_correct) == 2
     # Block A: only correct trial has RT 0.5
     assert mean_rts_correct[0] == 0.5
@@ -373,6 +409,18 @@ def test_EPrimeBlockExtractor_mean_rt_and_accuracy(tmp_dir):
     mean_accs = extractor.extract_mean_accuracies(
         subject_response_column="Data.RESP",
         correct_response_column="Data.CRESP",
+        response_trial_names=("A", "B"),
+    )
+    assert len(mean_accs) == 2
+    # Block A
+    assert mean_accs[0] == 0.5
+    # Block B
+    assert mean_accs[1] == 1.0
+
+    mean_accs = extractor.extract_mean_accuracies(
+        subject_response_column="Data.RESP",
+        correct_response_column="Data.CRESP",
+        valid_correct_responses=["1"],
         response_trial_names=("A", "B"),
     )
     assert len(mean_accs) == 2
@@ -495,6 +543,27 @@ def test_EPrimeEventExtractor(tmp_dir):
         responses = extractor.extract_accuracies(
             subject_response_column="Data.RESP",
             correct_response_column="Data.CRESP",
+        )
+
+        df = pd.DataFrame(
+            {
+                "onset": onsets,
+                "duration": durations,
+                "trial_type": trial_types,
+                "reaction_time": reaction_times,
+                "response": responses,
+            }
+        )
+        assert_frame_equal(df, expected_df)
+
+        # Using the valid parameter
+        reaction_times = extractor.extract_reaction_times(
+            reaction_time_column_name="Data.RT"
+        )
+        responses = extractor.extract_accuracies(
+            subject_response_column="Data.RESP",
+            correct_response_column="Data.CRESP",
+            valid_correct_responses=["1"],
         )
 
         df = pd.DataFrame(

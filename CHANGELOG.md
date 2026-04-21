@@ -4,6 +4,9 @@ Documentation of changes for each version of ``BIDS-Aid``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.24.0] - 2026-04-20
+- Add parameter to EPrime extractors to filter specific responses. Also added ``response_map`` to `extract_response_counts`` for ``PresentationBlockExtractor``
+
 ## [0.23.1] - 2026-04-19
 - Filtering logic added to extract reaction times for ``PresentationBlockExtractor`` to filter out certain response types.
 
