@@ -151,7 +151,8 @@ def _get_starting_block_indices(
     """
     trial_series = log_df[trial_column_name]
 
-    # Get the starting index for each block via grouping indices with the same
+    # Get the starting index for each block via grouping indices and getting
+    # runs of the same value
     trial_list = trial_series.tolist()
     starting_block_indices = []
     current_index = 0
