@@ -1,8 +1,9 @@
-import nibabel as nib
+import nibabel as nib, pytest
 import bidsaid.io as bids_io
 
 
-def test_compress_image(nifti_img_and_path):
+@pytest.mark.parametrize("use_gzip", [True, False])
+def test_compress_image(nifti_img_and_path, use_gzip):
     """Test for ``compress_image``."""
     _, img_path = nifti_img_and_path
 
@@ -12,7 +13,7 @@ def test_compress_image(nifti_img_and_path):
     file = files[0]
     assert file.suffix.endswith(".nii")
 
-    bids_io.compress_image(img_path, remove_src_file=True)
+    bids_io.compress_image(img_path, remove_src_file=True, use_gzip=use_gzip)
 
     files = list(img_path.parent.glob("*"))
     assert len(files) == 1

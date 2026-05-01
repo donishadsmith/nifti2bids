@@ -1,6 +1,6 @@
 """Module for input/output operations."""
 
-import shutil, re
+import gzip, shutil, re
 from pathlib import Path
 from typing import Iterator
 
@@ -41,6 +41,7 @@ def compress_image(
     dst_dir: str | Path | None = None,
     remove_src_file: bool = False,
     return_dst_file: bool = False,
+    use_gzip: bool = False,
 ) -> Path | None:
     """
     Compresses a ".nii" image to a ".nii.gz" image.
@@ -60,6 +61,11 @@ def compress_image(
     return_dst_file : :obj:`bool`, default=False
         Return the path to the compressed file.
 
+    use_gzip : :obj:`bool`, default=False
+        If True, compresses file directly with ``gzip`` instead of passing to ``nibabel``
+        for compression. Recommend to use if an ``OSError`` (e.g., insufficient memory)
+        occurs during compression.
+
     Returns
     -------
     Path or None
@@ -71,7 +77,13 @@ def compress_image(
     dst_dir = Path(dst_dir) if dst_dir else nifti_file.parent
 
     dst_file = dst_dir / str(nifti_file.name).replace(".nii", ".nii.gz")
-    nib.save(img, dst_file)
+
+    if use_gzip:
+        with open(nifti_file, "rb") as input_file:
+            with gzip.open(dst_file, "wb") as output_file:
+                shutil.copyfileobj(input_file, output_file)
+    else:
+        nib.save(img, dst_file)
 
     if remove_src_file:
         nifti_file.unlink()

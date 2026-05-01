@@ -4,7 +4,11 @@ Documentation of changes for each version of ``BIDS-Aid``.
 
 **Currently doesn't follow semantic versioning.**
 
-## [0.24.0] - 2026-04-21
+## [0.24.1] - 2026-05-01
+- Add ``use_gzip`` parameter for ``compress_image`` to be used in event OSError occurs
+when using nibabel.
+
+## [0.24.0.post1] - 2026-04-21
 - Docs cleaning
 
 ## [0.24.0] - 2026-04-21
