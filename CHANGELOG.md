@@ -4,9 +4,19 @@ Documentation of changes for each version of ``BIDS-Aid``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.25.0] - 2026-05-15
+- Renamed several functions and parameters referring to "instruction" to "cue", specifically:
+    - ``split_cue_as_instruction`` to ``split_cue_from_block``
+    - ``instruction_suffix`` to ``cue_suffix``
+    - ``drop_instruction_cues`` to ``drop_cue_rows``
+    - ``add_instruction_timing`` to ``add_cue_timing`` and ``instruction_duration`` to ``cue_duration``
+
+- ``rest_code_frequency`` is now ``rest_code_pattern``
+- For block extractors,``block_cue_names`` is now ``trial_types`` to match event extractors and BIDS
+    - Consequently, ``block_cues_without_instruction`` is now ``unsplit_trial_types``
+
 ## [0.24.1] - 2026-05-01
-- Add ``use_gzip`` parameter for ``compress_image`` to be used in event OSError occurs
-when using nibabel.
+- Add ``use_gzip`` parameter for ``compress_image`` to be used in event OSError occurs when using nibabel.
 
 ## [0.24.0.post1] - 2026-04-21
 - Docs cleaning

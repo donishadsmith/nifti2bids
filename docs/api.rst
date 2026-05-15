@@ -31,7 +31,7 @@ Module for initializing and creating BIDS compliant files.
    save_dataset_description
    create_participant_tsv
    create_sessions_tsv
-   add_instruction_timing
+   add_cue_timing
 
 :mod:`bidsaid.events`
 ----------------------

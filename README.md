@@ -93,13 +93,13 @@ import pandas as pd
 
 extractor = PresentationBlockExtractor(
     "sub-01_task-faces.log",
-    block_cue_names=("Face", "Place"),  # Can use regex ("Fa.*", "Pla.*")
+    trial_types=("Face", "Place"),  # Can use regex ("Fa.*", "Pla.*")
     scanner_event_type="Pulse",
     scanner_trigger_code="99",
     convert_to_seconds=["Time"],
     rest_block_codes="crosshair",
-    rest_code_frequency="fixed",
-    split_cue_as_instruction=True,
+    rest_code_pattern="fixed",
+    split_cue_from_block=True,
 )
 
 events_df = pd.DataFrame(
