@@ -86,7 +86,7 @@ def compress_image(
         nib.save(img, dst_file)
 
     if remove_src_file:
-        nifti_file.unlink()
+        nifti_file.unlink(missing_ok=True)
 
     return dst_file if return_dst_file else None
 
@@ -188,7 +188,7 @@ def _copy_file(
     shutil.copy(src_file, dst_file)
 
     if remove_src_file:
-        Path(src_file).unlink()
+        Path(src_file).unlink(missing_ok=True)
 
 
 def replace_ext(filename: str | Path, new_ext: str) -> Path:

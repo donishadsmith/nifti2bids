@@ -4,6 +4,9 @@ Documentation of changes for each version of ``BIDS-Aid``.
 
 **Currently doesn't follow semantic versioning.**
 
+## [0.25.1] - 2026-05-20
+- Add missing_ok parameter for unlinking files
+
 ## [0.25.0] - 2026-05-15
 - Renamed several functions and parameters referring to "instruction" to "cue", specifically:
     - ``split_cue_as_instruction`` to ``split_cue_from_block``

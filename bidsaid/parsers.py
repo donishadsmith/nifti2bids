@@ -139,7 +139,7 @@ def convert_edat3_to_text(
         [EDATAAID_PATH, "/e", "/f", tmpfile.name], startupinfo=startupinfo, shell=False
     )
 
-    Path(tmpfile.name).unlink()
+    Path(tmpfile.name).unlink(missing_ok=True)
 
     return Path(dst_path) if return_dst_path else None
 
